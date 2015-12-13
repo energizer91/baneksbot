@@ -1,11 +1,18 @@
 /**
  * Created by Александр on 13.12.2015.
  */
-module.exports = function (app, express) {
+module.exports = function (app, express, mysql) {
     var router = express.Router();
 
     router.get('/', function(req, res, next) {
-        res.render('index', { title: 'Express' });
+        return mysql.query('SELECT * FROM users', function (err, rows, fields) {
+            return res.json({
+                err: err,
+                rows: rows,
+                fields: fields
+            });
+        });
+        //res.render('index', { title: 'Express' });
     });
 
     return {

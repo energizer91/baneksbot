@@ -7,7 +7,7 @@ var express = require('express'),
     routes = require('./index')(express),
     mysql = require('mysql'),
     mysqlConnection = mysql.createConnection({
-        host     : 'localhost',
+        host     : '92.255.195.247',
         user     : 'root',
         password : 'root',
         database : 'baneks'
