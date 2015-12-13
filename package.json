@@ -1,0 +1,22 @@
+{
+  "name": "baneks-node",
+  "version": "1.0.0",
+  "description": "Baneks bot NodeJS version",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://energizer91@bitbucket.org/energizer91/baneks-node.git"
+  },
+  "keywords": [
+    "baneks",
+    "nodejs",
+    "telegram",
+    "bot"
+  ],
+  "author": "Alexander Bareyko",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/energizer91/baneks-node#readme"
+}
