@@ -6,8 +6,9 @@ var express = require('express'),
     fs = require('fs'),
     routes = require('./index')(express),
     mysql = require('mysql'),
+    botDB = require('./helpers/mysql')(mysql);
     mysqlConnection = mysql.createConnection({
-        host     : '92.255.195.247',
+        host     : 'localhost',
         user     : 'root',
         password : 'root',
         database : 'baneks'
