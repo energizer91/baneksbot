@@ -1,7 +1,7 @@
 /**
- * Created by Александр on 13.12.2015.
+ * Created by РђР»РµРєСЃР°РЅРґСЂ on 13.12.2015.
  */
-module.exports = function (app, express, mysql) {
+module.exports = function (express, mysql) {
     var router = express.Router();
 
     router.get('/', function(req, res, next) {

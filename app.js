@@ -2,17 +2,11 @@ var express = require('express'),
     path = require('path'),
     favicon = require('serve-favicon'),
     logger = require('morgan'),
-    cookieParser = require('cookie-parser'),bodyParser = require('body-parser'),
+    cookieParser = require('cookie-parser'),
+    bodyParser = require('body-parser'),
     fs = require('fs'),
     routes = require('./index')(express),
-    mysql = require('mysql'),
-    botDB = require('./helpers/mysql')(mysql);
-    mysqlConnection = mysql.createConnection({
-        host     : 'localhost',
-        user     : 'root',
-        password : 'root',
-        database : 'baneks'
-    });
+    botDB = require('./helpers/mysql');
 
 var app = express();
 
@@ -24,7 +18,7 @@ app.set('view engine', 'jade');
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -34,7 +28,7 @@ var files = fs.readdirSync(path.join(__dirname, 'routes'));
 
 for ( var file in files) {
     if (files.hasOwnProperty(file)) {
-        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(app, express, mysqlConnection);
+        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(express, botDB);
         app.use('/api' + routerEndpoint.endPoint, routerEndpoint.router);
     }
 }

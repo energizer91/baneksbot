@@ -1,17 +1,13 @@
 /**
- * Created by Александр on 13.12.2015.
+ * Created by РђР»РµРєСЃР°РЅРґСЂ on 13.12.2015.
  */
-module.exports = function (app, express, mysql) {
+module.exports = function (express, mysql) {
     var router = express.Router();
 
     router.get('/', function(req, res, next) {
-        return mysql.query('SELECT * FROM aneks', function (err, rows, fields) {
-            return res.json({
-                err: err,
-                rows: rows,
-                fields: fields
-            });
-        });
+        return mysql.makeRequest('SELECT * FROM aneks').then(function (aneks) {
+            return res.json(aneks);
+        }).catch(next);
         //res.render('index', { title: 'Express' });
     });
 
