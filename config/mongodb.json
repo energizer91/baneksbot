@@ -1,0 +1,7 @@
+{
+  "server": "localhost",
+  "port": "27017",
+  "user": "baneks-node",
+  "password": "Esw8t3MF",
+  "database": "baneks"
+}

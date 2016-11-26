@@ -6,7 +6,8 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     fs = require('fs'),
     routes = require('./index')(express),
-    botDB = require('./helpers/mysql');
+    //botDB = require('./helpers/mysql');
+    botDB = require('./helpers/mongo');
 
 var app = express();
 

@@ -19,5 +19,16 @@ module.exports = {
 
         params.owner_id = config.group_id;
         return this.executeCommand('wall.get', params, 'GET');
+    },
+    getComments: function (params) {
+        if (!params) {
+            params = {};
+        }
+
+        params.owner_id = config.group_id;
+        if (!(params.hasOwnProperty('post_id') && params.post_id)) {
+            throw new Error('Post ID is not defined');
+        }
+        return this.executeCommand('wall.getComments', params, 'GET');
     }
 };
