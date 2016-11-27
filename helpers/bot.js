@@ -1,0 +1,67 @@
+/**
+ * Created by Александр on 16.04.2016.
+ */
+
+var botConfig = require('../config/telegram.json'),
+    requestHelper = require('./request'),
+    q = require('q'),
+    botMethods = {
+        sendRequest: function (request, params, method) {
+            var botUrl = botConfig.url + botConfig.token + '/' + request,
+                parameters = requestHelper.prepareConfig(botUrl, method);
+
+            return requestHelper.makeRequest(parameters, params);
+        },
+        sendMessage: function (userId, message) {
+            var br2nl = function (text) {
+                return (text || '').replace(/<br>/g, '\n');
+            };
+            if (!message) {
+                return;
+            }
+            if (typeof message == 'string') {
+                return this.sendRequest('sendMessage', {
+                    chat_id: userId,
+                    text: br2nl(message)
+                });
+            } else {
+                var messages = [
+                    this.sendRequest('sendMessage', {
+                        chat_id: userId,
+                        text: br2nl(message.text)
+                    })
+                ].concat((message.attachments || []).map(function (attachment) {
+                    return this.sendRequest('sendMessage', {
+                        chat_id: userId,
+                        text: this.performAttachment(attachment)
+                    });
+                }, this));
+                return q.all(messages);
+            }
+        },
+        sendMessageToAdmin: function (text) {
+            return this.sendMessage(botConfig.adminChat, text);
+        },
+        getMe: function () {
+            return this.sendRequest('getMe');
+        },
+        performAttachment: function (attachment) {
+            if (!attachment) {
+                return undefined;
+            }
+
+            switch (attachment.type) {
+                case 'photo':
+                    return attachment.photo.photo_2560 || attachment.photo.photo_1280;
+                    break;
+                case 'video':
+                    return 'https://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
+                    break;
+                default:
+                    return undefined;
+                    break;
+            }
+        }
+    };
+
+module.exports = botMethods;
