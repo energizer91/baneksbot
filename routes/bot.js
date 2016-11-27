@@ -12,17 +12,18 @@ module.exports = function (express, mongo) {
 
     var commands = {
             '/anek': function (command, data) {
+                var userId = data.message.chat.id;
                 if (command[1] == 'count') {
                     return mongo.Anek.count().then(function (count) {
-                        return botApi.sendMessageToAdmin('Всего анеков на данный момент: ' + count);
+                        return botApi.sendMessage(userId, 'Всего анеков на данный момент: ' + count);
                     })
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
-                        return botApi.sendMessageToAdmin(anek);
+                        return botApi.sendMessage(userId, anek);
                     }).catch(console.error);
                 }
                 return mongo.Anek.random().then(function (anek) {
-                    return botApi.sendMessageToAdmin(anek);
+                    return botApi.sendMessage(userId, anek);
                 })
             },
             '/subscribe': function (command, data) {
