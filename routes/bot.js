@@ -28,7 +28,7 @@ module.exports = function (express, mongo) {
             },
             '/find': function (command, data) {
                 var userId = data.message.chat.id;
-                return botApi.sendMessage(chatId, 'Поиск временно не работает, сори');
+                return botApi.sendMessage(userId, 'Поиск временно не работает, сори');
             },
             '/subscribe': function (command, data) {
                 return botApi.sendMessageToAdmin('subscribe ' + JSON.stringify(data));
