@@ -33,16 +33,40 @@ module.exports = function (express, mongo) {
                 return botApi.sendMessageToAdmin('unsubscribe ' + JSON.stringify(data));
             },
             '/top_day': function (command, data) {
-                return botApi.sendMessageToAdmin('top day ' + JSON.stringify(data));
+                var userId = data.message.chat.id;
+                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 }}).limit(1).exec().then(function (aneks) {
+                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 1 анеков за сутки:')).map(function (anek) {
+                        return botApi.sendMessage(userId, anek);
+                    }));
+                });
+                //return botApi.sendMessageToAdmin('top day ' + JSON.stringify(data));
             },
             '/top_week': function (command, data) {
-                return botApi.sendMessageToAdmin('top week ' + JSON.stringify(data));
+                var userId = data.message.chat.id;
+                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 7 }}).limit(3).exec().then(function (aneks) {
+                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 3 анеков за неделю:')).map(function (anek) {
+                        return botApi.sendMessage(userId, anek);
+                    }));
+                });
+                //return botApi.sendMessageToAdmin('top week ' + JSON.stringify(data));
             },
             '/top_month': function (command, data) {
-                return botApi.sendMessageToAdmin('top month ' + JSON.stringify(data));
+                var userId = data.message.chat.id;
+                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 30 }}).limit(5).exec().then(function (aneks) {
+                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 5 анеков за месяц:')).map(function (anek) {
+                        return botApi.sendMessage(userId, anek);
+                    }));
+                });
+                //return botApi.sendMessageToAdmin('top month ' + JSON.stringify(data));
             },
             '/top_ever': function (command, data) {
-                return botApi.sendMessageToAdmin('top ever ' + JSON.stringify(data));
+                var userId = data.message.chat.id;
+                return mongo.Anek.find({}).limit(10).exec().then(function (aneks) {
+                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 10 анеков за все время:')).map(function (anek) {
+                        return botApi.sendMessage(userId, anek);
+                    }));
+                });
+                //return botApi.sendMessageToAdmin('top ever ' + JSON.stringify(data));
             }
         },
         performCommand = function (command, data) {
