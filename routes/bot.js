@@ -22,6 +22,12 @@ module.exports = function (express, mongo) {
                     return botApi.sendMessage(message.chat.id, anek);
                 })
             },
+            '/start': function (command, message) {
+                return botApi.sendMessage(message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.');
+            },
+            '/help': function (command, message) {
+                return botApi.sendMessage(message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.');
+            },
             '/find': function (command, message) {
                 return botApi.sendMessage(message.chat.id, 'Поиск временно не работает, сори');
             },
