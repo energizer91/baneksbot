@@ -26,6 +26,10 @@ module.exports = function (express, mongo) {
                     return botApi.sendMessage(userId, anek);
                 })
             },
+            '/find': function (command, data) {
+                var userId = data.message.chat.id;
+                return botApi.sendMessage(chatId, 'Поиск временно не работает, сори');
+            },
             '/subscribe': function (command, data) {
                 return botApi.sendMessageToAdmin('subscribe ' + JSON.stringify(data));
             },
@@ -92,7 +96,7 @@ module.exports = function (express, mongo) {
                     if (commands[command[0]]) {
                         result = performCommand(command, data);
                     } else {
-                        throw new Error('Command not found');
+                        throw new Error('Command not found: ' + command[0]);
                     }
                 }
             } else {
