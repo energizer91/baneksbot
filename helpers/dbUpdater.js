@@ -54,6 +54,26 @@ var getAllAneks = function (start) {
             }));
         })
     },
+    updateAneks = function () {
+        return getAllAneks().then(function (responses) {
+            var aneks = [];
+
+            responses.forEach(function (response) {
+                aneks = aneks.concat(response.response.items.reverse().map(function (anek) {
+                    return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
+                        likes: anek.likes.count,
+                        comments: anek.comments,
+                        reposts: anek.reposts.count
+                    });
+                }))
+            });
+
+            return q.all(aneks).catch(function (error) {
+                console.log(error);
+                return [];
+            });
+        })
+    },
     checkUpdateProgress = function (operation) {
         return q.Promise(function (resolve, reject) {
             console.log(new Date(), operation);
