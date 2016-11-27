@@ -223,7 +223,7 @@ module.exports = function (express, mongo) {
                 return redefineDatabase(count).then(zipAneks);
             }).then(function (aneks){
                 console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
-                return mongo.User.find({/*subscribed: true*/user_id: {$in: [85231140, 5630968, 226612010]}}).then(function (users) {
+                return mongo.User.find({subscribed: true/*user_id: {$in: [85231140, 5630968, 226612010]}*/}).then(function (users) {
                     return q.all(aneks.map(function (anek) {
                         return q.all(users.map(function (user) {
                             console.log(new Date(), 'sending anek ' + anek.post_id + ' to user ' + user.user_id + ' (' + (user.username || (user.first_name + ' ' + user.last_name)) + ')');
