@@ -11,63 +11,84 @@ module.exports = function (express, mongo) {
         refreshTimer;
 
     var commands = {
-            '/anek': function (command, data) {
-                var userId = data.message.chat.id;
+            '/anek': function (command, message) {
                 if (command[1] == 'count') {
                     return mongo.Anek.count().then(function (count) {
-                        return botApi.sendMessage(userId, 'Всего анеков на данный момент: ' + count);
+                        return botApi.sendMessage(message.chat.id, 'Всего анеков на данный момент: ' + count);
                     })
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
-                        return botApi.sendMessage(userId, anek);
+                        return botApi.sendMessage(message.chat.id, anek);
                     }).catch(console.error);
                 }
                 return mongo.Anek.random().then(function (anek) {
-                    return botApi.sendMessage(userId, anek);
+                    return botApi.sendMessage(message.chat.id, anek);
                 })
             },
-            '/find': function (command, data) {
-                var userId = data.message.chat.id;
-                return botApi.sendMessage(userId, 'Поиск временно не работает, сори');
+            '/find': function (command, message) {
+                return botApi.sendMessage(message.chat.id, 'Поиск временно не работает, сори');
             },
-            '/subscribe': function (command, data) {
+            '/subscribe': function (command, message) {
                 return botApi.sendMessageToAdmin('subscribe ' + JSON.stringify(data));
             },
-            '/unsubscribe': function (command, data) {
+            '/unsubscribe': function (command, message) {
                 return botApi.sendMessageToAdmin('unsubscribe ' + JSON.stringify(data));
             },
-            '/top_day': function (command, data) {
-                var userId = data.message.chat.id;
-                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 }}).sort({likes: -1}).limit(1).exec().then(function (aneks) {
-                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 1 анеков за сутки:')).map(function (anek) {
-                        return botApi.sendMessage(userId, anek);
+            '/top_day': function (command, message) {
+                var count =  Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
+                return mongo.Anek
+                    .find({})
+                    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 }})
+                    .sort({likes: -1})
+                    .limit(count)
+                    .exec()
+                    .then(function (aneks) {
+                        return q.all(aneks.concat(botApi.sendMessage(message.chat.id, 'Топ ' + count + ' за сутки:')).map(function (anek) {
+                            return botApi.sendMessage(message.chat.id, anek);
                     }));
                 });
                 //return botApi.sendMessageToAdmin('top day ' + JSON.stringify(data));
             },
-            '/top_week': function (command, data) {
-                var userId = data.message.chat.id;
-                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 7 }}).sort({likes: -1}).limit(3).exec().then(function (aneks) {
-                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 3 анеков за неделю:')).map(function (anek) {
-                        return botApi.sendMessage(userId, anek);
+            '/top_week': function (command, message) {
+                var count =  Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
+                return mongo.Anek
+                    .find({})
+                    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 7 }})
+                    .sort({likes: -1})
+                    .limit(count)
+                    .exec()
+                    .then(function (aneks) {
+                        return q.all(aneks.concat(botApi.sendMessage(message.chat.id, 'Топ ' + count + ' за неделю:')).map(function (anek) {
+                            return botApi.sendMessage(message.chat.id, anek);
                     }));
                 });
                 //return botApi.sendMessageToAdmin('top week ' + JSON.stringify(data));
             },
-            '/top_month': function (command, data) {
-                var userId = data.message.chat.id;
-                return mongo.Anek.find({}).where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 30 }}).sort({likes: -1}).limit(5).exec().then(function (aneks) {
-                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 5 анеков за месяц:')).map(function (anek) {
-                        return botApi.sendMessage(userId, anek);
+            '/top_month': function (command, message) {
+                var count =  Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
+                return mongo.Anek
+                    .find({})
+                    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 30 }})
+                    .sort({likes: -1})
+                    .limit(count)
+                    .exec()
+                    .then(function (aneks) {
+                        return q.all(aneks.concat(botApi.sendMessage(message.chat.id, 'Топ ' + count + ' за месяц:')).map(function (anek) {
+                            return botApi.sendMessage(message.chat.id, anek);
                     }));
                 });
                 //return botApi.sendMessageToAdmin('top month ' + JSON.stringify(data));
             },
-            '/top_ever': function (command, data) {
-                var userId = data.message.chat.id;
-                return mongo.Anek.find({}).sort({likes: -1}).limit(10).exec().then(function (aneks) {
-                    return q.all(aneks.concat(botApi.sendMessage(userId, 'Топ 10 анеков за все время:')).map(function (anek) {
-                        return botApi.sendMessage(userId, anek);
+            '/top_ever': function (command, message) {
+                var count =  Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
+                return mongo.Anek
+                    .find({})
+                    .sort({likes: -1})
+                    .limit(count)
+                    .exec()
+                    .then(function (aneks) {
+                        return q.all(aneks.concat(botApi.sendMessage(message.chat.id, 'Топ ' + count + ' за все время:')).map(function (anek) {
+                            return botApi.sendMessage(message.chat.id, anek);
                     }));
                 });
                 //return botApi.sendMessageToAdmin('top ever ' + JSON.stringify(data));
@@ -94,7 +115,7 @@ module.exports = function (express, mongo) {
                     }
 
                     if (commands[command[0]]) {
-                        result = performCommand(command, data);
+                        result = performCommand(command, data.message);
                     } else {
                         throw new Error('Command not found: ' + command[0]);
                     }
@@ -226,7 +247,7 @@ module.exports = function (express, mongo) {
     });
 
     router.get('/command', function (req, res, next) {
-        return performWebHook({message: {text: req.query.query}}).then(function (response) {
+        return performWebHook({message: {text: req.query.query, chat: {id: 5630968}}}).then(function (response) {
             return res.json(response);
         }).catch(next);
     });
