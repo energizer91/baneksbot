@@ -73,21 +73,31 @@ module.exports = function (express, mongo) {
             return commands[command[0]].call(botApi, command, data);
         },
         performWebHook = function (data) {
-            var command = (data.message.text || '').split(' '),
-                result;
+            var result;
+            if (data.inline_query) {
+                console.log('Execute inline query');
+            } else if (data.message) {
+                var message = data.message,
+                    command = (message.text || '').split(' ');
 
-            //console.log(data);
+                if (message.new_chat_member) {
+                    result = botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
+                } else if (message.new_chat_member) {
+                    result = botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
+                } else {
+                    if (command[0].indexOf('@') >= 0) {
+                        command[0] = command[0].split('@')[0];
+                    }
 
-            if (command[0].indexOf('@') >= 0) {
-                command[0] = command[0].split('@')[0];
-            }
-
-            if (commands[command[0]]) {
-                result = performCommand(command, data);
+                    if (commands[command[0]]) {
+                        result = performCommand(command, data);
+                    } else {
+                        throw new Error('Command not found');
+                    }
+                }
             } else {
-                throw new Error('Command not found');
+                throw new Error('No messge specified');
             }
-
             return result;
         },
         clearDatabases = function () {
@@ -187,7 +197,7 @@ module.exports = function (express, mongo) {
         .post(function (req, res, next) {
             return performWebHook(req.body).then(function (response) {
                 return res.json(response);
-            });
+            }).catch(next);
         })
         .get(function (req, res, next) {
             res.send('just a simple hook for telegram bot');
