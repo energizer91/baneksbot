@@ -135,7 +135,7 @@ module.exports = function (express, mongo) {
         performWebHook = function (data) {
             if (data.inline_query) {
                 console.log('Execute inline query');
-                return {};
+                return q();
             } else if (data.message) {
                 var message = data.message;
 
