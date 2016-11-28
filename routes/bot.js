@@ -133,33 +133,34 @@ module.exports = function (express, mongo) {
             return commands[command[0]].call(botApi, command, data);
         },
         performWebHook = function (data) {
-            if (data.inline_query) {
-                console.log('Execute inline query');
-                return q();
-            } else if (data.message) {
-                var message = data.message;
+            return q.Promise(function (resolve, reject) {
+                if (data.inline_query) {
+                    console.log('Execute inline query');
+                    return resolve({});
+                } else if (data.message) {
+                    var message = data.message;
 
-                if (message.new_chat_member) {
-                    return botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
-                } else if (message.new_chat_member) {
-                    return botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
-                } else if (message.text) {
-                    var command = (message.text || '').split(' ');
-                    if (command[0].indexOf('@') >= 0) {
-                        command[0] = command[0].split('@')[0];
-                    }
+                    if (message.new_chat_member) {
+                        return resolve(botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!'));
+                    } else if (message.new_chat_member) {
+                        return resolve(botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.'));
+                    } else if (message.text) {
+                        var command = (message.text || '').split(' ');
+                        if (command[0].indexOf('@') >= 0) {
+                            command[0] = command[0].split('@')[0];
+                        }
 
-                    if (commands[command[0]]) {
-                        return performCommand(command, data.message);
-                    } else {
-                        console.error('Unknown command', data);
-                        throw new Error('Command not found: ' + command.join(' '));
+                        if (commands[command[0]]) {
+                            return resolve(performCommand(command, data.message));
+                        } else {
+                            console.error('Unknown command', data);
+                            return reject('Command not found: ' + command.join(' '));
+                        }
                     }
                 }
-            } else {
                 console.log(data);
-                throw new Error('No message specified');
-            }
+                return reject('No message specified');
+            });
         },
         clearDatabases = function () {
             return q.all([
