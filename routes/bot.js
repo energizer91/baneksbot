@@ -1,14 +1,17 @@
 /**
  * Created by Александр on 13.12.2015.
  */
-module.exports = function (express, mongo, messageQueue) {
+module.exports = function (express, mongo) {
     var router = express.Router(),
         vkApi = require('../helpers/vk'),
         q = require('q'),
-        botApi = require('../helpers/bot');
+        botApi = require('../helpers/bot'),
+        Queue = require('promise-queue');
+
+    Queue.configure(require('q').Promise);
 
     var commands = {
-            '/anek': function (command, message) {
+            '/anek': function (command, message, messageQueue) {
                 if (command[1] == 'count') {
                     return mongo.Anek.count().then(function (count) {
                         return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Всего анеков на данный момент: ' + count))
@@ -23,16 +26,25 @@ module.exports = function (express, mongo, messageQueue) {
                     return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, anek));
                 })
             },
-            '/start': function (command, message) {
+            '/krevet': function (command, message, messageQueue) {
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Кревет кревет и в рот кривет и в жопу два кревета'));
+            },
+            '/do_rock': function (command, message, messageQueue) {
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'денис'));
+            },
+            '/start': function (command, message, messageQueue) {
                 return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.'));
             },
-            '/help': function (command, message) {
+            '/help': function (command, message, messageQueue) {
                 return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.'));
             },
-            '/chat': function (command, message) {
-                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'денис дурак'));
+            '/chat': function (command, message, messageQueue) {
+                if (!botApi.config.baneksLink) {
+                    return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'денис дурак'));
+                }
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Здесь весело: ' + botApi.config.baneksLink));
             },
-            '/find': function (command, message) {
+            '/find': function (command, message, messageQueue) {
                 command.splice(0, 1);
 
                 var searchPhrase = command.join(' ');
@@ -47,7 +59,7 @@ module.exports = function (express, mongo, messageQueue) {
                     return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Сор, бро. Ничего не нашел'));
                 })
             },
-            '/subscribe': function (command, message) {
+            '/subscribe': function (command, message, messageQueue) {
                 return mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user) {
                         if (!user.subscribed) {
@@ -74,7 +86,7 @@ module.exports = function (express, mongo, messageQueue) {
                     return messageQueue.add(botApi.sendMessageToAdmin.bind(botApi, 'subscribe fail' + JSON.stringify(error)));
                 });
             },
-            '/unsubscribe': function (command, message) {
+            '/unsubscribe': function (command, message, messageQueue) {
                 return mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user && user.subscribed) {
                         return mongo.User.update({_id: user.id}, {subscribed: false}).then(function () {
@@ -87,7 +99,7 @@ module.exports = function (express, mongo, messageQueue) {
                     return messageQueue.add(botApi.sendMessageToAdmin.bind(botApi, 'unsubscribe fail' + JSON.stringify(error)));
                 });
             },
-            '/top_day': function (command, message) {
+            '/top_day': function (command, message, messageQueue) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
                 return mongo.Anek
                     .find({})
@@ -101,7 +113,7 @@ module.exports = function (express, mongo, messageQueue) {
                         });
                     });
             },
-            '/top_week': function (command, message) {
+            '/top_week': function (command, message, messageQueue) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
                 return mongo.Anek
                     .find({})
@@ -115,7 +127,7 @@ module.exports = function (express, mongo, messageQueue) {
                         });
                 });
             },
-            '/top_month': function (command, message) {
+            '/top_month': function (command, message, messageQueue) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
                 return mongo.Anek
                     .find({})
@@ -129,7 +141,7 @@ module.exports = function (express, mongo, messageQueue) {
                         });
                 });
             },
-            '/top_ever': function (command, message) {
+            '/top_ever': function (command, message, messageQueue) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
                 return mongo.Anek
                     .find({})
@@ -143,8 +155,8 @@ module.exports = function (express, mongo, messageQueue) {
                 });
             }
         },
-        performCommand = function (command, data) {
-            return commands[command[0]].call(botApi, command, data);
+        performCommand = function (command, data, messageQueue) {
+            return commands[command[0]].call(botApi, command, data, messageQueue);
         },
         searchAneks = function (searchPhrase, limit) {
             return mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).exec().then(function (results) {
@@ -155,7 +167,7 @@ module.exports = function (express, mongo, messageQueue) {
                 throw new Error('Nothing was found.');
             });
         },
-        performInline = function (query) {
+        performInline = function (query, messageQueue) {
             var results = [];
             return searchAneks(query.query, 5).then(function (aneks) {
                 results = aneks.map(function (anek) {
@@ -176,6 +188,7 @@ module.exports = function (express, mongo, messageQueue) {
         },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
+                var messageQueue = new Queue(1, Infinity);
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
                     switch (queryData[0]) {
@@ -198,7 +211,7 @@ module.exports = function (express, mongo, messageQueue) {
                     if (data.inline_query.query && data.inline_query.query.length < 3) {
                         return reject(new Error('Too small inline query'));
                     }
-                    return resolve(performInline(data.inline_query));
+                    return resolve(performInline(data.inline_query, messageQueue));
                 } else if (data.message) {
                     var message = data.message;
 
@@ -213,7 +226,7 @@ module.exports = function (express, mongo, messageQueue) {
                         }
 
                         if (commands[command[0]]) {
-                            return resolve(performCommand(command, data.message));
+                            return resolve(performCommand(command, data.message, messageQueue));
                         } else {
                             console.error('Unknown command', data);
                             return reject(new Error('Command not found: ' + command.join(' ')));

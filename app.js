@@ -26,15 +26,13 @@ var Queue = require('promise-queue');
 
 Queue.configure(require('q').Promise);
 
-var messageQueue = new Queue(1, Infinity);
-
 app.use('/', routes);
 
 var files = fs.readdirSync(path.join(__dirname, 'routes'));
 
 for (var file in files) {
     if (files.hasOwnProperty(file)) {
-        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(express, botDB, messageQueue);
+        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(express, botDB);
         app.use('/api' + routerEndpoint.endPoint, routerEndpoint.router);
     }
 }
