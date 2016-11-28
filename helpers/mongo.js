@@ -17,7 +17,6 @@ var anekSchema = mongoose.Schema({
         attachments: Array,
         date: Number,
         from_id: Number,
-        //counter: Number,
         post_id: {type: Number, index: true},
         owner_id: Number,
         signer_id: Number,

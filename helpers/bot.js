@@ -38,7 +38,21 @@ var botConfig = require('../config/telegram.json'),
                 var messages = [
                     this.sendRequest('sendMessage', {
                         chat_id: userId,
-                        text: br2nl(message.text)
+                        text: br2nl(message.text),
+                        reply_markup: JSON.stringify({
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: 'Перейти к анеку',
+                                        url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
+                                    },
+                                    {
+                                        text: 'Переделки',
+                                        callback_data: 'comment ' + message.post_id
+                                    }
+                                ]
+                            ]
+                        })
                     })
                 ].concat((message.attachments || []).map(function (attachment) {
                     return this.sendRequest('sendMessage', {

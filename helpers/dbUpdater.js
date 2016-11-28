@@ -102,7 +102,7 @@ var getAllAneks = function (start) {
                 });
             });
         }).finally(function () {
-            console.log(new Date(), 'Updating finished');
+            console.log(new Date(), 'Updating aneks finished');
             updateInProcess = false;
             setTimeout(updateAneksTimer, 30000);
         }).catch(function (error) {
@@ -111,9 +111,9 @@ var getAllAneks = function (start) {
     },
     refreshAneksTimer = function () {
         return checkUpdateProgress('Initializing aneks refresh').then(updateAneks).finally(function () {
-            console.log(new Date(), 'Refreshing finished');
+            console.log(new Date(), 'Refreshing aneks finished');
             updateInProcess = false;
-            setTimeout(refreshAneksTimer, 120000);
+            setTimeout(refreshAneksTimer, 130000);
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).done();

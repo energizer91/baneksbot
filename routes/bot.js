@@ -136,10 +136,8 @@ module.exports = function (express, mongo, messageQueue) {
                     .then(function (aneks) {
                         return ['Топ ' + count + ' за все время:'].concat(aneks).map(function (anek) {
                             return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, anek));
-                            //return botApi.sendMessage(message.chat.id, anek);
                         });
                 });
-                //return botApi.sendMessageToAdmin('top ever ' + JSON.stringify(data));
             }
         },
         performCommand = function (command, data) {
@@ -175,8 +173,25 @@ module.exports = function (express, mongo, messageQueue) {
         },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
-                if (data.inline_query) {
-                    console.log(data.inline_query.query, data.inline_query.query.length);
+                if (data.hasOwnProperty('callback_query')) {
+                    var queryData = data.callback_query.data.split(' ');
+                    switch (queryData[0]) {
+                        case 'comment':
+                            var aneks = [];
+                            return resolve(getAllComments(queryData[1]).then(function (comments) {
+                                comments.forEach(function (comment) {
+                                    aneks = aneks.concat(comment.response.items);
+                                });
+                                aneks = aneks.sort(function (a, b) {
+                                    return b.likes.count - a.likes.count;
+                                }).slice(0, 3);
+
+                                return aneks.map(function (comment) {
+                                    return resolve(messageQueue.add(botApi.sendMessage.bind(botApi, data.callback_query.message.chat.id, comment.likes.count + ' лайков:<br>' + comment.text)));
+                                });
+                            }));
+                    }
+                } else if (data.hasOwnProperty('inline_query')) {
                     if (data.inline_query.query && data.inline_query.query.length < 3) {
                         return reject(new Error('Too small inline query'));
                     }
@@ -211,6 +226,27 @@ module.exports = function (express, mongo, messageQueue) {
                 mongo.Anek.remove({}),
                 mongo.Comment.remove({})
             ]);
+        },
+        getAllComments = function (postId) {
+            return vkApi.getCommentsCount(postId).then(function (counter) {
+                var requests = [],
+                    current = counter,
+                    goal = 0,
+                    maxStep = 100,
+                    step = maxStep;
+
+                while (current > goal) {
+                    if (current - step < goal) {
+                        step = current - goal;
+                    }
+
+                    current -= step;
+
+                    requests.push(vkApi.getComments({post_id: postId, offset: current, count: step}));
+                }
+
+                return q.all(requests);
+            });
         },
         getAllAneks = function (start) {
             return vkApi.getPostsCount().then(function (counter) {
