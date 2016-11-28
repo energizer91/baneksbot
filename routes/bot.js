@@ -167,6 +167,9 @@ module.exports = function (express, mongo) {
                             parse_mode: 'Markdown'
                         };
                     });
+                    console.log('inline results', query, results);
+                    return botApi.sendInline(query.id, results);
+                }).catch(function (error) {
                     return botApi.sendInline(query.id, results);
                 });
             }
