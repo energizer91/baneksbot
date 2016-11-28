@@ -18,10 +18,10 @@ var botConfig = require('../config/telegram.json'),
         sendInline: function (inlineId, results) {
             return this.sendRequest('answerInlineQuery', {
                 inline_query_id: inlineId,
-                results: results.map(function (result) {
+                results: JSON.stringify(results.map(function (result) {
                     result.text = br2nl(result.text);
                     return result;
-                }),
+                })),
                 cache_time: 0
             })
         },
