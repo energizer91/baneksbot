@@ -43,6 +43,8 @@ var anekSchema = mongoose.Schema({
         client: String
     });
 
+anekSchema.index({text: 'text'});
+
 anekSchema.statics.random = function() {
     var self = this;
     return self.count().then(function (count) {

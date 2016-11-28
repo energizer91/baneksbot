@@ -29,7 +29,19 @@ module.exports = function (express, mongo) {
                 return botApi.sendMessage(message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.');
             },
             '/find': function (command, message) {
-                return botApi.sendMessage(message.chat.id, 'Поиск временно не работает, сори');
+                command.splice(0, 1);
+
+                var searchPhrase = command.join(' ');
+                if (!searchPhrase.length || searchPhrase.length < 3) {
+                    return botApi.sendMessage(message.chat.id, 'Слишком короткий запрос.');
+                }
+
+                return searchAneks(searchPhrase, 1).then(function (aneks) {
+                    return botApi.sendMessage(message.chat.id, aneks[0]);
+                }).catch(function (error) {
+                    console.error(error);
+                    return botApi.sendMessage(message.chat.id, 'Сор, бро. Ничего не нашел');
+                })
             },
             '/subscribe': function (command, message) {
                 return mongo.User.findOne({user_id: message.from.id}).then(function (user) {
@@ -132,12 +144,39 @@ module.exports = function (express, mongo) {
         performCommand = function (command, data) {
             return commands[command[0]].call(botApi, command, data);
         },
+        searchAneks = function (searchPhrase, limit) {
+            return mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).exec().then(function (results) {
+                if (results.length) {
+                    return results;
+                }
+
+                throw new Error('Nothing was found.');
+            });
+        },
+        performInline = function (query) {
+            var results = [];
+            if (query.query && query.query.length > 3) {
+                return searchAneks(query.query, 5).then(function (aneks) {
+                    results = aneks.map(function (anek) {
+                        return {
+                            type: 'article',
+                            id: anek.post_id,
+                            title: 'Анекдот #' + anek.post_id,
+                            message_text: anek.text,
+                            description: anek.text.slice(0, 100),
+                            parse_mode: 'Markdown'
+                        };
+                    });
+                    return botApi.sendInline(query.id, results);
+                });
+            }
+
+            return botApi.sendInline(query.id, results);
+        },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
-                console.log(data);
                 if (data.inline_query) {
-                    console.log('Execute inline query');
-                    return resolve({});
+                    return resolve(performInline(data.inline_query));
                 } else if (data.message) {
                     var message = data.message;
 

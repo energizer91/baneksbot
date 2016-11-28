@@ -5,6 +5,9 @@
 var botConfig = require('../config/telegram.json'),
     requestHelper = require('./request'),
     q = require('q'),
+    br2nl = function (text) {
+        return (text || '').replace(/<br>/g, '\n');
+    },
     botMethods = {
         sendRequest: function (request, params, method) {
             var botUrl = botConfig.url + botConfig.token + '/' + request,
@@ -12,10 +15,17 @@ var botConfig = require('../config/telegram.json'),
 
             return requestHelper.makeRequest(parameters, params);
         },
+        sendInline: function (inlineId, results) {
+            return this.sendRequest('answerInlineQuery', {
+                inline_query_id: inlineId,
+                results: results.map(function (result) {
+                    result.text = br2nl(result.text);
+                    return result;
+                }),
+                cache_time: 0
+            })
+        },
         sendMessage: function (userId, message) {
-            var br2nl = function (text) {
-                return (text || '').replace(/<br>/g, '\n');
-            };
             if (!message) {
                 return;
             }
