@@ -133,16 +133,16 @@ module.exports = function (express, mongo) {
             return commands[command[0]].call(botApi, command, data);
         },
         performWebHook = function (data) {
-            var result;
             if (data.inline_query) {
                 console.log('Execute inline query');
+                return {};
             } else if (data.message) {
                 var message = data.message;
 
                 if (message.new_chat_member) {
-                    result = botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
+                    return botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
                 } else if (message.new_chat_member) {
-                    result = botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
+                    return botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
                 } else if (message.text) {
                     var command = (message.text || '').split(' ');
                     if (command[0].indexOf('@') >= 0) {
@@ -150,16 +150,16 @@ module.exports = function (express, mongo) {
                     }
 
                     if (commands[command[0]]) {
-                        result = performCommand(command, data.message);
+                        return performCommand(command, data.message);
                     } else {
                         console.error('Unknown command', data);
                         throw new Error('Command not found: ' + command.join(' '));
                     }
                 }
             } else {
+                console.log(data);
                 throw new Error('No message specified');
             }
-            return result;
         },
         clearDatabases = function () {
             return q.all([
