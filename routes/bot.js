@@ -26,8 +26,11 @@ module.exports = function (express, mongo) {
                     return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, anek));
                 })
             },
+            '/filin': function (command, message, messageQueue) {
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Подтверждаю.'));
+            },
             '/krevet': function (command, message, messageQueue) {
-                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Кревет кревет и в рот кривет и в жопу два кревета'));
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'кревет-кревет, и в рот кревет жопу два кревета.'));
             },
             '/do_rock': function (command, message, messageQueue) {
                 return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'денис'));
