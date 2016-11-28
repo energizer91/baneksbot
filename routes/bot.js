@@ -152,7 +152,8 @@ module.exports = function (express, mongo) {
                     if (commands[command[0]]) {
                         result = performCommand(command, data.message);
                     } else {
-                        throw new Error('Command not found: ' + command[0]);
+                        console.error('Unknown command', data);
+                        throw new Error('Command not found: ' + command.join(' '));
                     }
                 }
             } else {
