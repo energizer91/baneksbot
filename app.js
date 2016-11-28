@@ -26,7 +26,7 @@ var Queue = require('promise-queue');
 
 Queue.configure(require('q').Promise);
 
-var messageQueue = new Queue();
+var messageQueue = new Queue(1, Infinity);
 
 app.use('/', routes);
 
@@ -38,6 +38,34 @@ for (var file in files) {
         app.use('/api' + routerEndpoint.endPoint, routerEndpoint.router);
     }
 }
+
+var cp = require('child_process');
+
+var dbUpdater = cp.fork(path.join(__dirname, 'helpers/dbUpdater.js'));
+
+dbUpdater.on('close', function (code) {
+    console.log('Aneks update process has been closed with code ' + code);
+});
+
+var childQueue = new Queue(5, Infinity);
+
+dbUpdater.on('message', function (m) {
+    if (m.type == 'message' && m.message) {
+        childQueue.add(botApi.sendMessage(m.userId, m.message));
+    } else {
+        console.log('PARENT got message:', m);
+    }
+});
+
+app.get('/disableUpdate', function (req, res) {
+    dbUpdater.send({type: 'service', action: 'update', value: false});
+    return res.send('Update has been disabled');
+});
+
+app.get('/enableUpdate', function (req, res) {
+    dbUpdater.send({type: 'service', action: 'update', value: true});
+    return res.send('Update has been enabled');
+});
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -70,22 +98,6 @@ app.use(function (err, req, res, next) {
         message: err.message,
         error: {}
     });
-});
-
-var cp = require('child_process');
-
-var dbUpdater = cp.fork(path.join(__dirname, 'helpers/dbUpdater.js'));
-
-dbUpdater.on('close', function (code) {
-    console.log('Aneks update process has been closed with code ' + code);
-});
-
-dbUpdater.on('message', function (m) {
-    if (m.type == 'message' && m.message) {
-        messageQueue.add(botApi.sendMessage(m.userId, m.message));
-    } else {
-        console.log('PARENT got message:', m);
-    }
 });
 
 

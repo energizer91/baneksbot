@@ -3,6 +3,7 @@
  */
 var q = require('q'),
     updateInProcess = false,
+    forceDenyUpdate = false,
     mongo = require('./mongo'),
     vkApi = require('./vk');
 
@@ -79,6 +80,9 @@ var getAllAneks = function (start) {
             if (updateInProcess) {
                 return reject(new Error('Update is in progress'));
             }
+            if (forceDenyUpdate) {
+                return reject(new Error('Update is disabled'));
+            }
             updateInProcess = true;
             return resolve(undefined);
         })
@@ -102,9 +106,7 @@ var getAllAneks = function (start) {
             updateInProcess = false;
             setTimeout(updateAneksTimer, 30000);
         }).catch(function (error) {
-            console.log(new Date(), 'An error occured');
-            //throw error;
-            console.error(error);
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).done();
     },
     refreshAneksTimer = function () {
@@ -113,9 +115,7 @@ var getAllAneks = function (start) {
             updateInProcess = false;
             setTimeout(refreshAneksTimer, 120000);
         }).catch(function (error) {
-            console.log(new Date(), 'An error occured');
-            //throw error;
-            console.error(error);
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).done();
     };
 
@@ -125,6 +125,17 @@ setTimeout(refreshAneksTimer, 130000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
+    if (m.type == 'service') {
+        switch (m.action) {
+            case 'update':
+                console.log('Switch automatic updates to', m.value);
+                forceDenyUpdate = !m.value;
+                break;
+            default:
+                console.log('Unknown service command');
+                break;
+        }
+    }
 });
 
 process.send({ message: 'ready' });
