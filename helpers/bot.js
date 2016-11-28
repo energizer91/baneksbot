@@ -43,7 +43,7 @@ var botConfig = require('../config/telegram.json'),
                             inline_keyboard: [
                                 [
                                     {
-                                        text: 'Перейти к анеку',
+                                        text: 'К анеку',
                                         url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
                                     },
                                     {

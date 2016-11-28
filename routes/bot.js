@@ -29,6 +29,9 @@ module.exports = function (express, mongo, messageQueue) {
             '/help': function (command, message) {
                 return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.'));
             },
+            '/chat': function (command, message) {
+                return messageQueue.add(botApi.sendMessage.bind(botApi, message.chat.id, 'денис дурак'));
+            },
             '/find': function (command, message) {
                 command.splice(0, 1);
 
@@ -186,8 +189,8 @@ module.exports = function (express, mongo, messageQueue) {
                                     return b.likes.count - a.likes.count;
                                 }).slice(0, 3);
 
-                                return aneks.map(function (comment) {
-                                    return resolve(messageQueue.add(botApi.sendMessage.bind(botApi, data.callback_query.message.chat.id, comment.likes.count + ' лайков:<br>' + comment.text)));
+                                return aneks.map(function (comment, index) {
+                                    return resolve(messageQueue.add(botApi.sendMessage.bind(botApi, data.callback_query.message.chat.id, (index + 1) + ' место:<br>' + comment.text)));
                                 });
                             }));
                     }
