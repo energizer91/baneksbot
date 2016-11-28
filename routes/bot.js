@@ -159,14 +159,14 @@ module.exports = function (express, mongo) {
                 results = aneks.map(function (anek) {
                     return {
                         type: 'article',
-                        id: anek.post_id,
+                        id: anek.post_id.toString(),
                         title: 'Анекдот #' + anek.post_id,
                         message_text: anek.text,
                         description: anek.text.slice(0, 100),
                         parse_mode: 'Markdown'
                     };
                 });
-                console.log('inline results', query, results);
+
                 return botApi.sendInline(query.id, results);
             }).catch(function () {
                 return botApi.sendInline(query.id, results);
