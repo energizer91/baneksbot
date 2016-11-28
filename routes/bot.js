@@ -137,14 +137,14 @@ module.exports = function (express, mongo) {
             if (data.inline_query) {
                 console.log('Execute inline query');
             } else if (data.message) {
-                var message = data.message,
-                    command = (message.text || '').split(' ');
+                var message = data.message;
 
                 if (message.new_chat_member) {
                     result = botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
                 } else if (message.new_chat_member) {
                     result = botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
-                } else {
+                } else if (message.text) {
+                    var command = (message.text || '').split(' ');
                     if (command[0].indexOf('@') >= 0) {
                         command[0] = command[0].split('@')[0];
                     }
@@ -157,7 +157,7 @@ module.exports = function (express, mongo) {
                     }
                 }
             } else {
-                throw new Error('No messge specified');
+                throw new Error('No message specified');
             }
             return result;
         },
