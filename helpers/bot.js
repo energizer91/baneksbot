@@ -45,6 +45,7 @@ var botConfig = require('../config/telegram.json'),
         getMe: function () {
             return this.sendRequest('getMe');
         },
+        config: botConfig,
         performAttachment: function (attachment) {
             if (!attachment) {
                 return undefined;

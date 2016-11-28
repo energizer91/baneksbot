@@ -32,10 +32,44 @@ module.exports = function (express, mongo) {
                 return botApi.sendMessage(message.chat.id, 'Поиск временно не работает, сори');
             },
             '/subscribe': function (command, message) {
-                return botApi.sendMessageToAdmin('subscribe ' + JSON.stringify(data));
+                return mongo.User.findOne({user_id: message.from.id}).then(function (user) {
+                    if (user) {
+                        if (!user.subscribed) {
+                            return mongo.User.update({_id: user.id}, {subscribed: true}).then(function () {
+                                return botApi.sendMessage(message.from.id, 'Окей, подпишем тебя снова.');
+                            });
+                        } else {
+                            return botApi.sendMessage(user.user_id, 'Чувак, тыж уже подписан?!');
+                        }
+                    }
+                    var newUser = new mongo.User({
+                        user_id: message.from.id,
+                        first_name: message.from.first_name,
+                        last_name: message.from.last_name,
+                        username: message.from.username,
+                        platform: 'web',
+                        subscribed: true
+                    });
+                    return newUser.save().then(function (user) {
+                        return botApi.sendMessage(user.user_id, 'Окей, ' + user.first_name + '. Буду присылать тебе анеки по мере поступления.');
+                    });
+                }).catch(function (error) {
+                    console.log(error);
+                    return botApi.sendMessageToAdmin('subscribe fail' + JSON.stringify(error));
+                });
             },
             '/unsubscribe': function (command, message) {
-                return botApi.sendMessageToAdmin('unsubscribe ' + JSON.stringify(data));
+                return mongo.User.findOne({user_id: message.from.id}).then(function (user) {
+                    if (user && user.subscribed) {
+                        return mongo.User.update({_id: user.id}, {subscribed: false}).then(function () {
+                            return botApi.sendMessage(message.from.id, 'Хорошо, больше не буду отправлять =(');
+                        });
+                    }
+                    return botApi.sendMessage(message.from.id, 'Чувак, ты и так не подписан.');
+                }).catch(function (error) {
+                    console.log(error);
+                    return botApi.sendMessageToAdmin('unsubscribe fail' + JSON.stringify(error));
+                });
             },
             '/top_day': function (command, message) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
@@ -203,7 +237,20 @@ module.exports = function (express, mongo) {
     });
 
     router.get('/command', function (req, res, next) {
-        return performWebHook({message: {text: req.query.query, chat: {id: 5630968}}}).then(function (response) {
+        return performWebHook({
+            message: {
+                text: req.query.query,
+                chat: {
+                    id: botApi.config.adminChat
+                },
+                from: {
+                    first_name: 'Alexander',
+                    last_name: 'Bareyko',
+                    username: 'energizer91',
+                    id: botApi.config.adminChat
+                }
+            }
+        }).then(function (response) {
             return res.json(response);
         }).catch(next);
     });
