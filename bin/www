@@ -88,16 +88,3 @@ function onListening() {
         : 'port ' + addr.port;
     debug('Listening on ' + bind);
 }
-
-var cp = require('child_process'),
-    path = require('path');
-
-var dbUpdater = cp.fork(path.join(__dirname, '../', 'helpers/dbUpdater.js'));
-
-dbUpdater.on('close', function (code) {
-    console.log('Aneks update process has been closed with code ' + code);
-});
-
-dbUpdater.on('message', function (m) {
-    console.log('PARENT got message:', m);
-});
