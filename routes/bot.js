@@ -155,30 +155,30 @@ module.exports = function (express, mongo) {
         },
         performInline = function (query) {
             var results = [];
-            if (query.query && query.query.length > 3) {
-                return searchAneks(query.query, 5).then(function (aneks) {
-                    results = aneks.map(function (anek) {
-                        return {
-                            type: 'article',
-                            id: anek.post_id,
-                            title: 'Анекдот #' + anek.post_id,
-                            message_text: anek.text,
-                            description: anek.text.slice(0, 100),
-                            parse_mode: 'Markdown'
-                        };
-                    });
-                    console.log('inline results', query, results);
-                    return botApi.sendInline(query.id, results);
-                }).catch(function (error) {
-                    return botApi.sendInline(query.id, results);
+            return searchAneks(query.query, 5).then(function (aneks) {
+                results = aneks.map(function (anek) {
+                    return {
+                        type: 'article',
+                        id: anek.post_id,
+                        title: 'Анекдот #' + anek.post_id,
+                        message_text: anek.text,
+                        description: anek.text.slice(0, 100),
+                        parse_mode: 'Markdown'
+                    };
                 });
-            }
-
-            return botApi.sendInline(query.id, results);
+                console.log('inline results', query, results);
+                return botApi.sendInline(query.id, results);
+            }).catch(function () {
+                return botApi.sendInline(query.id, results);
+            });
         },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
                 if (data.inline_query) {
+                    console.log(data.inline_query.query, data.inline_query.query.length);
+                    if (data.inline_query.query && data.inline_query.query.length < 3) {
+                        return reject(new Error('Too small inline query'));
+                    }
                     return resolve(performInline(data.inline_query));
                 } else if (data.message) {
                     var message = data.message;
