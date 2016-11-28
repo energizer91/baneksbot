@@ -1,10 +1,10 @@
 {
-  "token": "112927376:AAGMUEqR-Gv5NxZHnt5hmUVRKVU0X63NEf4",
+  "token": "",
   "url": "https://api.telegram.org/bot",
-  "baneksConf": -2962203,
+  "baneksConf": ,
   "baneksLink": "",
-  "adminChat": 5630968,
+  "adminChat": ,
   "baneksPromo": "",
-  "botName": "baneksbot",
+  "botName": "",
   "updateMethod": "webhook"
 }

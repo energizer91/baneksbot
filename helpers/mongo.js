@@ -14,11 +14,11 @@ db.once('open', function () {
 });
 
 var anekSchema = mongoose.Schema({
-        //attachments: [{type: mongoose.Schema.Types.ObjectId, ref: 'Attachment'}],
-        //comments: [{type: mongoose.Schema.Types.ObjectId, ref: 'Comment'}],
+        attachments: Array,
         date: Number,
         from_id: Number,
-        post_id: Number,
+        //counter: Number,
+        post_id: {type: Number, index: true},
         owner_id: Number,
         signer_id: Number,
         is_pinned: Boolean,
@@ -26,13 +26,6 @@ var anekSchema = mongoose.Schema({
         post_type: String,
         reposts: Number,
         text: String
-    }),
-    attachmentSchema = mongoose.Schema({
-        type: String,
-        attachment_id: Number,
-        date: Number,
-        url: String,
-        owner_id: String
     }),
     commentSchema = mongoose.Schema({
         comment_id: Number,
@@ -45,14 +38,25 @@ var anekSchema = mongoose.Schema({
         username: String,
         first_name: String,
         last_name: String,
-        user_id: Number
+        user_id: Number,
+        subscribed: Boolean,
+        client: String
     });
+
+anekSchema.index({text: 'text'});
+
+anekSchema.statics.random = function() {
+    var self = this;
+    return self.count().then(function (count) {
+        var rand = Math.floor(Math.random() * count);
+        return self.findOne().skip(rand).exec();
+    });
+};
 
 mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
 module.exports = {
     Anek: mongoose.model('Anek', anekSchema),
-    Attachment: mongoose.model('Attachment', attachmentSchema),
     Comment: mongoose.model('Comment', commentSchema),
     User: mongoose.model('User', userSchema)
 };

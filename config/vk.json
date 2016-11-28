@@ -1,4 +1,5 @@
 {
   "url": "https://api.vk.com/method/",
-  "group_id": -45491419
+  "group_id": 0,
+  "api_version": "5.60"
 }

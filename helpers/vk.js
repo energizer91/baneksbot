@@ -18,7 +18,16 @@ module.exports = {
         }
 
         params.owner_id = config.group_id;
+        if (config.api_version) {
+            params.v = config.api_version;
+        }
+        console.log('Making VK request wall.get', params);
         return this.executeCommand('wall.get', params, 'GET');
+    },
+    getPostsCount: function () {
+        return this.getPosts({offset: 0, count: 1}).then(function (count) {
+            return count.response.count;
+        })
     },
     getComments: function (params) {
         if (!params) {
