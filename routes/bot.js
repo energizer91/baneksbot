@@ -134,6 +134,7 @@ module.exports = function (express, mongo) {
         },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
+                console.log(data);
                 if (data.inline_query) {
                     console.log('Execute inline query');
                     return resolve({});
@@ -154,12 +155,12 @@ module.exports = function (express, mongo) {
                             return resolve(performCommand(command, data.message));
                         } else {
                             console.error('Unknown command', data);
-                            return reject('Command not found: ' + command.join(' '));
+                            return reject(new Error('Command not found: ' + command.join(' ')));
                         }
                     }
                 }
                 console.log(data);
-                return reject('No message specified');
+                return reject(new Error('No message specified'));
             });
         },
         clearDatabases = function () {
@@ -223,10 +224,15 @@ module.exports = function (express, mongo) {
     });
 
     router.route('/webhook')
-        .post(function (req, res, next) {
-            return performWebHook(req.body).then(function (response) {
-                return res.json(response);
-            }).catch(next);
+        .post(function (req, res) {
+            return performWebHook(req.body).then(function () {
+                res.status(200);
+                return res.send('OK');
+            }).catch(function (error) {
+                console.error(error, error.stack);
+                res.status(200);
+                return res.send('OK');
+            });
         });
 
     router.get('/redefine', function (req, res, next) {
