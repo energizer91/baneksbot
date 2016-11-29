@@ -198,8 +198,7 @@ module.exports = function (express, mongo) {
                                 });
 
                                 return resolve(
-                                    botApi.answerCallbackQuery(data.callback_query.id, {text: 'Ищу лучшие переделки'})
-                                        .then(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks))
+                                    botApi.sendMessages(data.callback_query.message.chat.id, aneks)
                                         .then(botApi.answerCallbackQuery.bind(botApi, data.callback_query.id))
                                 );
                             }));
