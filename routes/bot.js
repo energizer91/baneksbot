@@ -196,7 +196,7 @@ module.exports = function (express, mongo) {
                                 }).slice(0, 3);
 
                                 return resolve(botApi.sendMessages(data.callback_query.message.chat.id, aneks.map(function (comment, index) {
-                                    return (index + 1) + ' место:<br>' + comment.text;
+                                    return (index + 1) + ' место:\n' + comment.text;
                                 })));
                             }));
                     }
