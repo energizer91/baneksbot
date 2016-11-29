@@ -13,12 +13,19 @@ module.exports = function (express, mongo) {
                     return mongo.Anek.count().then(function (count) {
                         return botApi.sendMessage(message.chat.id, 'Всего анеков на данный момент: ' + count);
                     })
+                } else if (command[1] == 'id') {
+                    return botApi.sendMessage(message.chat.id, 'id текущего чата: ' + message.chat.id);
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
                         return botApi.sendMessage(message.chat.id, anek);
                     }).catch(console.error);
                 }
                 return mongo.Anek.random().then(function (anek) {
+                    return botApi.sendMessage(message.chat.id, anek);
+                })
+            },
+            '/anek_by_id': function (command, message) {
+                return mongo.Anek.findOne({post_id: command[1]}).then(function (anek) {
                     return botApi.sendMessage(message.chat.id, anek);
                 })
             },

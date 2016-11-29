@@ -5,6 +5,7 @@
 var botConfig = require('../config/telegram.json'),
     requestHelper = require('./request'),
     Queue = require('promise-queue'),
+    vkApi = require('./vk'),
     q = require('q'),
     botMethods = {
         sendRequest: function (request, params, method) {
@@ -44,6 +45,30 @@ var botConfig = require('../config/telegram.json'),
             var sendCommand = attachment.command;
             delete attachment.command;
 
+
+            if (attachment.audio) {
+                return vkApi.getPostById(357365).then(function (posts) {
+                    var post = posts.response[0],
+                        audio = post.attachments[0].audio,
+                        parameters = requestHelper.prepareConfig(audio.url, 'GET');
+
+                    console.log('sending audio', audio.url);
+
+                    return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
+                        var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
+                            parameters = requestHelper.prepareConfig(botUrl, 'POST');
+                        return requestHelper.sendFile(parameters, {
+                            chat_id: userId,
+                            title: attachment.title
+                        }, {
+                            type: 'audio',
+                            file: stream,
+                            name: attachment.id + '.mp3'
+                        });
+                    });
+                })
+
+            }
             attachment.chat_id = userId;
             return this.sendRequest(sendCommand, attachment);
         },

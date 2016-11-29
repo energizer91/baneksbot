@@ -16,6 +16,15 @@ module.exports = {
 
         return requestHelper.makeRequest(parameters, params);
     },
+    getPostById: function (postId, params) {
+        if (!params) {
+            params = {};
+        }
+
+        params.posts = config.group_id + '_' + postId;
+        console.log('Making VK request wall.getById', params);
+        return this.executeCommand('wall.getById', params, 'GET');
+    },
     getPosts: function (params) {
         if (!params) {
             params = {};

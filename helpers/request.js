@@ -6,10 +6,51 @@ var q = require('q'),
     http = require('http'),
     queryString = require('querystring'),
     url = require('url'),
+    formData = require('form-data'),
     https = require('https');
 
 module.exports = {
-    makeRequest: function (config, params) {
+    sendFile: function (config, params, file) {
+        if (!config) {
+            throw new Error('Config not specified');
+        }
+
+        if (!file) {
+            throw new Error ('File not specified');
+        }
+
+        var form = new formData();
+        for (var field in params) {
+            if (params.hasOwnProperty(field)) {
+                form.append(field, params[field]);
+            }
+        }
+
+        form.append(file.type, file.file, file.name);
+        config.headers = form.getHeaders();
+
+        return q.Promise(function (resolve, reject) {
+            form.submit(config, function (err, res) {
+                if (err) {
+                    return reject(err);
+                }
+
+                var result = '';
+
+                res.setEncoding('utf8');
+                res.on('end', function() {
+                    console.log('No more data in response.');
+                    console.log(result);
+                    return resolve(JSON.parse(result));
+                });
+                res.on('data', function (chunk) {
+                    console.log('BODY: ' + chunk);
+                    result += chunk;
+                });
+            });
+        })
+    },
+    makeRequest: function (config, params, returnStream) {
         if (!config) {
             throw new Error('Config not specified');
         }
@@ -19,16 +60,25 @@ module.exports = {
         }
 
         return q.Promise(function (resolve, reject) {
+
             var result = '',
-            req = (config.protocol == 'https:' ? https : http).request(config, function (res) {
+            req = (config.protocol == 'https:' ? https : http).request(config);
+
+            req.on('response', function (res) {
+                var code = res.statusCode;
+
                 //console.log('STATUS: ' + res.statusCode);
                 //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                if (params.returnStream) {
+                if (returnStream) {
                     return resolve(res);
                 }
                 res.setEncoding('utf8');
                 res.on('end', function() {
-                    //console.log('No more data in response.')
+                    //console.log('No more data in response.');
+                    if (code >= 400 && code <= 600) {
+                        return reject(new Error('An error occured with code ' + code + ': ' + result));
+                    }
+                    //console.log(result);
                     return resolve(JSON.parse(result));
                 });
                 res.on('data', function (chunk) {
@@ -38,7 +88,7 @@ module.exports = {
             });
 
             req.on('error', function(e) {
-                return reject('problem with request: ' + e.message);
+                return reject(e);
             });
 
             if ((config.method && config.method.toLowerCase() === 'post') && params) {
