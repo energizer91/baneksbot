@@ -46,14 +46,12 @@ var botConfig = require('../config/telegram.json'),
             if (typeof message == 'string') {
                 sendMessage = {
                     chat_id: userId,
-                    text: message,
-                    //parse_mode: 'HTML'
+                    text: message
                 };
             } else {
                 sendMessage = {
                     chat_id: userId,
                     text: message.text,
-                    //parse_mode: 'HTML',
                     reply_markup: !message.disableButtons ? JSON.stringify({
                         inline_keyboard: [
                             [
@@ -70,16 +68,10 @@ var botConfig = require('../config/telegram.json'),
                     }) : undefined
                 };
 
-                attachments = (message.attachments || []).map(function (attachment) {
-                    return {
-                        chat_id: userId,
-                        disableButtons: message.disableButtons,
-                        text: this.performAttachment(attachment)
-                    }
-                }, this);
-
-                return this.sendRequest('sendMessage', sendMessage).then(this.sendMessages.bind(this, userId, attachments));
+                attachments = (message.attachments || []).map(this.performAttachment.bind(this));
             }
+
+            return this.sendRequest('sendMessage', sendMessage).then(this.sendMessages.bind(this, userId, attachments));
         },
         sendMessages: function (userId, messages) {
             var messageQueue = new Queue(1, Infinity);
