@@ -4,10 +4,8 @@
 
 var botConfig = require('../config/telegram.json'),
     requestHelper = require('./request'),
+    Queue = require('promise-queue'),
     q = require('q'),
-    br2nl = function (text) {
-        return (text || '').replace(/<br>/g, '\n');
-    },
     botMethods = {
         sendRequest: function (request, params, method) {
             var botUrl = botConfig.url + botConfig.token + '/' + request,
@@ -16,6 +14,9 @@ var botConfig = require('../config/telegram.json'),
             return requestHelper.makeRequest(parameters, params);
         },
         sendInline: function (inlineId, results) {
+            var br2nl = function (text) {
+                    return (text || '').replace(/<br>/g, '\n');
+                };
             return this.sendRequest('answerInlineQuery', {
                 inline_query_id: inlineId,
                 results: JSON.stringify(results.map(function (result) {
@@ -29,16 +30,19 @@ var botConfig = require('../config/telegram.json'),
             if (!message) {
                 return;
             }
+            var messageQueue = new Queue(1, Infinity);
             if (typeof message == 'string') {
                 return this.sendRequest('sendMessage', {
                     chat_id: userId,
-                    text: br2nl(message)
+                    text: message,
+                    parse_mode: 'HTML'
                 });
             } else {
                 var messages = [
                     this.sendRequest('sendMessage', {
                         chat_id: userId,
-                        text: br2nl(message.text),
+                        text: message.text,
+                        parse_mode: 'HTML',
                         reply_markup: JSON.stringify({
                             inline_keyboard: [
                                 [
@@ -60,8 +64,16 @@ var botConfig = require('../config/telegram.json'),
                         text: this.performAttachment(attachment)
                     });
                 }, this));
-                return q.all(messages);
+                return messages.map(function (message) {
+                    return messageQueue.add(message);
+                });
             }
+        },
+        sendMessages: function (userId, messages) {
+            var messageQueue = new Queue(1, Infinity);
+            return (messages || []).map(function (message) {
+                return messageQueue.add(this.sendMessage.bind(this, userId, message));
+            }, this);
         },
         sendMessageToAdmin: function (text) {
             return this.sendMessage(botConfig.adminChat, text);
@@ -88,5 +100,7 @@ var botConfig = require('../config/telegram.json'),
             }
         }
     };
+
+Queue.configure(require('q').Promise);
 
 module.exports = botMethods;
