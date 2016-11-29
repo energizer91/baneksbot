@@ -29,6 +29,11 @@ module.exports = function (express, mongo) {
                     return botApi.sendMessage(message.chat.id, anek);
                 })
             },
+            '/find_user': function (command, message) {
+                return mongo.User.findOne({username: command[1]}).then(function (user) {
+                    return botApi.sendMessage(message.chat.id, 'Информация о пользователе ' + user.first_name + ' ' + user.last_name + ': ' + JSON.stringify(user));
+                })
+            },
             '/filin': function (command, message) {
                 return botApi.sendMessage(message.chat.id, 'Подтверждаю.');
             },
