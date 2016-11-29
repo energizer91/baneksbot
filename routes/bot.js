@@ -5,7 +5,6 @@ module.exports = function (express, mongo) {
     var router = express.Router(),
         vkApi = require('../helpers/vk'),
         q = require('q'),
-        requestHelper = require('../helpers/request'),
         botApi = require('../helpers/bot');
 
     var commands = {
@@ -208,7 +207,7 @@ module.exports = function (express, mongo) {
                                 });
 
                                 return botApi.answerCallbackQuery(data.callback_query.id)
-                                    .then(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks));
+                                    .finally(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks));
                             });
                     }
                 } else if (data.hasOwnProperty('inline_query')) {

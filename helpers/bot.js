@@ -65,7 +65,7 @@ var botConfig = require('../config/telegram.json'),
             } else {
                 sendMessage = {
                     chat_id: userId,
-                    text: message.text + ((message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : ''),
+                    text: message.text + ((message.attachments && message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : ''),
                     reply_markup: !message.disableButtons ? JSON.stringify({
                         inline_keyboard: [
                             [
@@ -147,7 +147,7 @@ var botConfig = require('../config/telegram.json'),
                     return {
                         command: 'sendAudio',
                         audio: attachment.audio.url,
-                        title: attachment.audio.title
+                        title: attachment.audio.artist + ' - ' + attachment.audio.title
                     };
                     break;
                 case 'poll':
