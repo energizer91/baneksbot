@@ -47,13 +47,13 @@ var botConfig = require('../config/telegram.json'),
                 sendMessage = {
                     chat_id: userId,
                     text: message,
-                    parse_mode: 'HTML'
+                    //parse_mode: 'HTML'
                 };
             } else {
                 sendMessage = {
                     chat_id: userId,
                     text: message.text,
-                    parse_mode: 'HTML',
+                    //parse_mode: 'HTML',
                     reply_markup: !message.disableButtons ? JSON.stringify({
                         inline_keyboard: [
                             [

@@ -201,7 +201,7 @@ module.exports = function (express, mongo) {
                                     return b.likes.count - a.likes.count;
                                 }).slice(0, 3).map(function (comment, index) {
                                     comment.text = (index + 1) + ' место:\n' + comment.text;
-                                    comment.reply_to_message_id = data.callback_query.message.id;
+                                    comment.reply_to_message_id = data.callback_query.message.message_id;
                                     comment.disableButtons = true;
                                     return comment;
                                 });
