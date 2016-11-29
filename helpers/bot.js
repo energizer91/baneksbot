@@ -37,9 +37,23 @@ var botConfig = require('../config/telegram.json'),
                 url: load.url
             });
         },
+        sendAttachment: function (userId, attachment) {
+            if (!attachment.command) {
+                throw new Error('Attachment type is undefined');
+            }
+            var sendCommand = attachment.command;
+            delete attachment.command;
+
+            attachment.chat_id = userId;
+            return this.sendRequest(sendCommand, attachment);
+        },
         sendMessage: function (userId, message) {
             if (!message) {
                 return;
+            }
+
+            if (message._doc && message._doc.copy_history && message._doc.copy_history.length) {
+                return this.sendMessage(userId, message._doc.copy_history[0]);
             }
             var sendMessage,
                 attachments = [];
@@ -51,7 +65,7 @@ var botConfig = require('../config/telegram.json'),
             } else {
                 sendMessage = {
                     chat_id: userId,
-                    text: message.text,
+                    text: message.text + ((message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : ''),
                     reply_markup: !message.disableButtons ? JSON.stringify({
                         inline_keyboard: [
                             [
@@ -71,7 +85,7 @@ var botConfig = require('../config/telegram.json'),
                 attachments = (message.attachments || []).map(this.performAttachment.bind(this));
             }
 
-            return this.sendRequest('sendMessage', sendMessage).then(this.sendMessages.bind(this, userId, attachments));
+            return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
         },
         sendMessages: function (userId, messages) {
             var messageQueue = new Queue(1, Infinity);
@@ -86,6 +100,12 @@ var botConfig = require('../config/telegram.json'),
             return this.sendRequest('getMe');
         },
         config: botConfig,
+        sendAttachments: function (userId, attachments) {
+            var attachmentQueue = new Queue(1, Infinity);
+            return (attachments || []).map(function (attachment) {
+                return attachmentQueue.add(this.sendAttachment.bind(this, userId, attachment));
+            }, this);
+        },
         performAttachment: function (attachment) {
             if (!attachment) {
                 return undefined;
@@ -93,14 +113,57 @@ var botConfig = require('../config/telegram.json'),
 
             switch (attachment.type) {
                 case 'photo':
-                    return attachment.photo.photo_2560
+                    return {
+                        command: 'sendPhoto',
+                        photo: attachment.photo.photo_2560
                         || attachment.photo.photo_1280
                         || attachment.photo.photo_604
                         || attachment.photo.photo_130
-                        || attachment.photo.photo_75;
+                        || attachment.photo.photo_75,
+                        caption: attachment.text
+                    };
                     break;
+                /*case 'video':
+                    return {
+                        command: 'sendVideo',
+                        video: 'https://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id,
+                        caption: attachment.video.title
+                    };
+                    break;*/
                 case 'video':
-                    return 'https://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
+                    return {
+                        command: 'sendMessage',
+                        text: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id
+                    };
+                    break;
+                case 'doc':
+                    return {
+                        command: 'sendDocument',
+                        document: attachment.doc.url,
+                        caption: attachment.doc.title
+                    };
+                    break;
+                case 'audio':
+                    return {
+                        command: 'sendAudio',
+                        audio: attachment.audio.url,
+                        title: attachment.audio.title
+                    };
+                    break;
+                case 'poll':
+                    return {
+                        command: 'sendMessage',
+                        text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map(function (answer, index) {
+                            return  (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)'
+                        }).join('\n'),
+                        parse_mode: 'markdown'
+                    };
+                    break;
+                case 'link':
+                    return {
+                        command: 'sendMessage',
+                        text: attachment.link.title + '\n' + attachment.link.url
+                    };
                     break;
                 default:
                     return undefined;

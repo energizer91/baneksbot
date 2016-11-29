@@ -23,6 +23,9 @@ module.exports = {
             req = (config.protocol == 'https:' ? https : http).request(config, function (res) {
                 //console.log('STATUS: ' + res.statusCode);
                 //console.log('HEADERS: ' + JSON.stringify(res.headers));
+                if (params.returnStream) {
+                    return resolve(res);
+                }
                 res.setEncoding('utf8');
                 res.on('end', function() {
                     //console.log('No more data in response.')

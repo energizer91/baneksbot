@@ -5,6 +5,7 @@ module.exports = function (express, mongo) {
     var router = express.Router(),
         vkApi = require('../helpers/vk'),
         q = require('q'),
+        requestHelper = require('../helpers/request'),
         botApi = require('../helpers/bot');
 
     var commands = {
