@@ -41,43 +41,43 @@ var botConfig = require('../config/telegram.json'),
             if (!message) {
                 return;
             }
-            var messageQueue = new Queue(1, Infinity);
+            var sendMessage,
+                attachments = [];
             if (typeof message == 'string') {
-                return this.sendRequest('sendMessage', {
+                sendMessage = {
                     chat_id: userId,
                     text: message,
                     parse_mode: 'HTML'
-                });
+                };
             } else {
-                var messages = [
-                    this.sendRequest('sendMessage', {
-                        chat_id: userId,
-                        text: message.text,
-                        parse_mode: 'HTML',
-                        reply_markup: !message.disableButtons ? JSON.stringify({
-                            inline_keyboard: [
-                                [
-                                    {
-                                        text: 'К анеку',
-                                        url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
-                                    },
-                                    {
-                                        text: 'Переделки',
-                                        callback_data: 'comment ' + message.post_id
-                                    }
-                                ]
+                sendMessage = {
+                    chat_id: userId,
+                    text: message.text,
+                    parse_mode: 'HTML',
+                    reply_markup: !message.disableButtons ? JSON.stringify({
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'К анеку',
+                                    url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
+                                },
+                                {
+                                    text: 'Переделки',
+                                    callback_data: 'comment ' + message.post_id
+                                }
                             ]
-                        }) : undefined
-                    })
-                ].concat((message.attachments || []).map(function (attachment) {
-                    return this.sendRequest('sendMessage', {
+                        ]
+                    }) : undefined
+                };
+
+                attachments = (message.attachments || []).map(function (attachment) {
+                    return {
                         chat_id: userId,
                         text: this.performAttachment(attachment)
-                    });
-                }, this));
-                return messages.map(function (message) {
-                    return messageQueue.add(message);
-                });
+                    }
+                }, this);
+
+                return this.sendRequest('sendMessage', sendMessage).then(this.sendMessages.bind(this, userId, attachments));
             }
         },
         sendMessages: function (userId, messages) {

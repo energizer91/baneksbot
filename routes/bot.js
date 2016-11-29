@@ -182,12 +182,18 @@ module.exports = function (express, mongo) {
         },
         performWebHook = function (data) {
             return q.Promise(function (resolve, reject) {
+                if (!data) {
+                    return reject(new Error('No webhook data specified'));
+                }
+
+                return resolve(data);
+            }).then(function (data) {
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
                     switch (queryData[0]) {
                         case 'comment':
                             var aneks = [];
-                            return resolve(getAllComments(queryData[1]).then(function (comments) {
+                            return getAllComments(queryData[1]).then(function (comments) {
                                 comments.forEach(function (comment) {
                                     aneks = aneks.concat(comment.response.items);
                                 });
@@ -195,28 +201,27 @@ module.exports = function (express, mongo) {
                                     return b.likes.count - a.likes.count;
                                 }).slice(0, 3).map(function (comment, index) {
                                     comment.text = (index + 1) + ' место:\n' + comment.text;
+                                    comment.reply_to_message_id = data.callback_query.message.id;
                                     comment.disableButtons = true;
                                     return comment;
                                 });
 
-                                return resolve(
-                                    botApi.answerCallbackQuery(data.callback_query.id)
-                                        .then(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks))
-                                );
-                            }));
+                                return botApi.answerCallbackQuery(data.callback_query.id)
+                                    .then(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks));
+                            });
                     }
                 } else if (data.hasOwnProperty('inline_query')) {
                     if (data.inline_query.query && data.inline_query.query.length < 3) {
-                        return reject(new Error('Too small inline query'));
+                        throw new Error('Too small inline query');
                     }
-                    return resolve(performInline(data.inline_query));
+                    return performInline(data.inline_query);
                 } else if (data.message) {
                     var message = data.message;
 
                     if (message.new_chat_member) {
-                        return resolve(botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!'));
+                        return botApi.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
                     } else if (message.new_chat_member) {
-                        return resolve(botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.'));
+                        return botApi.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
                     } else if (message.text) {
                         var command = (message.text || '').split(' ');
                         if (command[0].indexOf('@') >= 0) {
@@ -224,15 +229,15 @@ module.exports = function (express, mongo) {
                         }
 
                         if (commands[command[0]]) {
-                            return resolve(performCommand(command, data.message));
+                            return performCommand(command, data.message);
                         } else {
                             console.error('Unknown command', data);
-                            return reject(new Error('Command not found: ' + command.join(' ')));
+                            throw new Error('Command not found: ' + command.join(' '));
                         }
                     }
                 }
                 console.log(data);
-                return reject(new Error('No message specified'));
+                throw new Error('No message specified');
             });
         },
         clearDatabases = function () {
