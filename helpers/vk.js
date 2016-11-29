@@ -27,12 +27,12 @@ module.exports = {
     },
     getCommentsCount: function (postId) {
         return this.getComments({post_id: postId, offset: 0, count: 1}).then(function (count) {
-            return count.response.count;
+            return (count.response || {}).count || 0;
         })
     },
     getPostsCount: function () {
         return this.getPosts({offset: 0, count: 1}).then(function (count) {
-            return count.response.count;
+            return (count.response || {}).count || 0;
         })
     },
     getComments: function (params) {

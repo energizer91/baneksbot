@@ -194,7 +194,9 @@ module.exports = function (express, mongo) {
                                 aneks = aneks.sort(function (a, b) {
                                     return b.likes.count - a.likes.count;
                                 }).slice(0, 3).map(function (comment, index) {
-                                    return (index + 1) + ' место:\n' + comment.text;
+                                    comment.text = (index + 1) + ' место:\n' + comment.text;
+                                    comment.disableButtons = true;
+                                    return comment;
                                 });
 
                                 return resolve(

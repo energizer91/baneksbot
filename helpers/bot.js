@@ -54,7 +54,7 @@ var botConfig = require('../config/telegram.json'),
                         chat_id: userId,
                         text: message.text,
                         parse_mode: 'HTML',
-                        reply_markup: JSON.stringify({
+                        reply_markup: !message.disableButtons ? JSON.stringify({
                             inline_keyboard: [
                                 [
                                     {
@@ -67,7 +67,7 @@ var botConfig = require('../config/telegram.json'),
                                     }
                                 ]
                             ]
-                        })
+                        }) : undefined
                     })
                 ].concat((message.attachments || []).map(function (attachment) {
                     return this.sendRequest('sendMessage', {
@@ -100,7 +100,11 @@ var botConfig = require('../config/telegram.json'),
 
             switch (attachment.type) {
                 case 'photo':
-                    return attachment.photo.photo_2560 || attachment.photo.photo_1280;
+                    return attachment.photo.photo_2560
+                        || attachment.photo.photo_1280
+                        || attachment.photo.photo_604
+                        || attachment.photo.photo_130
+                        || attachment.photo.photo_75;
                     break;
                 case 'video':
                     return 'https://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
