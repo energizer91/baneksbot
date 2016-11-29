@@ -73,6 +73,7 @@ var botConfig = require('../config/telegram.json'),
                 attachments = (message.attachments || []).map(function (attachment) {
                     return {
                         chat_id: userId,
+                        disableButtons: message.disableButtons,
                         text: this.performAttachment(attachment)
                     }
                 }, this);
