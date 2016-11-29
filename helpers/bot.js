@@ -26,6 +26,17 @@ var botConfig = require('../config/telegram.json'),
                 cache_time: 0
             })
         },
+        answerCallbackQuery: function (queryId, load) {
+            if (!load) {
+                load = {};
+            }
+            return this.sendRequest('answerCallbackQuery', {
+                callback_query_id: queryId,
+                text: load.text,
+                show_alert: load.show_alert,
+                url: load.url
+            });
+        },
         sendMessage: function (userId, message) {
             if (!message) {
                 return;

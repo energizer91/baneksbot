@@ -193,11 +193,15 @@ module.exports = function (express, mongo) {
                                 });
                                 aneks = aneks.sort(function (a, b) {
                                     return b.likes.count - a.likes.count;
-                                }).slice(0, 3);
-
-                                return resolve(botApi.sendMessages(data.callback_query.message.chat.id, aneks.map(function (comment, index) {
+                                }).slice(0, 3).map(function (comment, index) {
                                     return (index + 1) + ' место:\n' + comment.text;
-                                })));
+                                });
+
+                                return resolve(
+                                    botApi.answerCallbackQuery(data.callback_query, {text: 'Ищу лучшие переделки'})
+                                        .then(botApi.sendMessages.bind(botApi, data.callback_query.message.chat.id, aneks))
+                                        .then(botApi.answerCallbackQuery.bind(botApi, data.callback_query))
+                                );
                             }));
                     }
                 } else if (data.hasOwnProperty('inline_query')) {
