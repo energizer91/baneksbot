@@ -162,8 +162,8 @@ module.exports = function (express, botApi, configs) {
         performCommand = function (command, data) {
             return commands[command[0]].call(botApi.bot, command, data);
         },
-        searchAneks = function (searchPhrase, limit) {
-            return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).exec().then(function (results) {
+        searchAneks = function (searchPhrase, limit, skip) {
+            return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
                 if (results.length) {
                     return results;
                 }
@@ -173,11 +173,16 @@ module.exports = function (express, botApi, configs) {
         },
         performInline = function (query) {
             var results = [],
+                aneks_count = 10,
                 searchAction;
             if (!query.query) {
-                searchAction = botApi.mongo.Anek.find({text: {$ne: ''}}).sort({date: -1}).limit(5).exec();
+                searchAction = botApi.mongo.Anek.find({text: {$ne: ''}})
+                    .sort({date: -1})
+                    .skip(query.offset || 0)
+                    .limit(aneks_count)
+                    .exec();
             } else {
-                searchAction = searchAneks(query.query, 5);
+                searchAction = searchAneks(query.query, aneks_count, query.offset || 0);
             }
             return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
@@ -194,9 +199,9 @@ module.exports = function (express, botApi, configs) {
                     };
                 });
 
-                return botApi.bot.sendInline(query.id, results);
+                return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             }).catch(function () {
-                return botApi.bot.sendInline(query.id, results);
+                return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             });
         },
         performWebHook = function (data) {

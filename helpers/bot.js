@@ -15,10 +15,11 @@ module.exports = function (configs) {
 
                 return requestHelper.makeRequest(parameters, params);
             },
-            sendInline: function (inlineId, results) {
+            sendInline: function (inlineId, results, next_offset) {
                 return this.sendRequest('answerInlineQuery', {
                     inline_query_id: inlineId,
                     results: JSON.stringify(results),
+                    next_offset: next_offset || 0,
                     cache_time: 0
                 })
             },
