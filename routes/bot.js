@@ -408,6 +408,13 @@ module.exports = function (express, botApi, configs) {
         });
     });
 
+    router.get('/users', function (req, res, next) {
+        var users = require('../config/users.json');
+        return mongo.User.insertMany(users).then(function (data) {
+            return res.json(data);
+        }).catch(next);
+    });
+
     router.get('/command', function (req, res, next) {
         return performWebHook({
             message: {
