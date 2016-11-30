@@ -40,12 +40,9 @@ module.exports = function () {
 
                     res.setEncoding('utf8');
                     res.on('end', function() {
-                        console.log('No more data in response.');
-                        console.log(result);
                         return resolve(JSON.parse(result));
                     });
                     res.on('data', function (chunk) {
-                        console.log('BODY: ' + chunk);
                         result += chunk;
                     });
                 });
@@ -77,7 +74,15 @@ module.exports = function () {
                     res.on('end', function() {
                         //console.log('No more data in response.');
                         if (code >= 400 && code <= 600) {
-                            return reject(new Error('An error occured with code ' + code + ': ' + result));
+                            var returnResult;
+                            console.error('An error occured with code ' + code);
+                            try {
+                                returnResult = JSON.parse(result);
+                            } catch(e) {
+                                returnResult = result;
+                            }
+
+                            return reject(returnResult);
                         }
                         //console.log(result);
                         return resolve(JSON.parse(result));

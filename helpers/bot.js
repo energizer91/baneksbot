@@ -113,13 +113,17 @@ module.exports = function (configs) {
                     attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
                 }
 
-                return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
+                return this.sendRequest('sendMessage', sendMessage).then(function (response) {
+                    return this.sendAttachments(userId, attachments).then(function () {
+                        return response;
+                    })
+                }.bind(this));
             },
             sendMessages: function (userId, messages) {
                 var messageQueue = new Queue(1, Infinity);
-                return (messages || []).map(function (message) {
-                    return messageQueue.add(this.sendMessage.bind(this, userId, message));
-                }, this);
+                return (messages || []).reduce(function (p, message) {
+                    return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message)));
+                }.bind(this), q.when());
             },
             sendMessageToAdmin: function (text) {
                 return this.sendMessage(botConfig.adminChat, text);
@@ -129,9 +133,9 @@ module.exports = function (configs) {
             },
             sendAttachments: function (userId, attachments) {
                 var attachmentQueue = new Queue(1, Infinity);
-                return (attachments || []).map(function (attachment) {
-                    return attachmentQueue.add(this.sendAttachment.bind(this, userId, attachment));
-                }, this);
+                return (attachments || []).reduce(function (p, attachment) {
+                    return p.then(attachmentQueue.add.bind(attachmentQueue, this.sendAttachment.bind(this, userId, attachment)));
+                }.bind(this), q.when());
             },
             performAttachment: function (postId, attachment) {
                 if (!attachment) {

@@ -162,6 +162,19 @@ module.exports = function (express, botApi, configs) {
         performCommand = function (command, data) {
             return commands[command[0]].call(botApi.bot, command, data);
         },
+        writeLog = function (data, result, error) {
+            var logRecord = new botApi.mongo.Log({
+                date: Math.floor(new Date().getTime() / 1000),
+                request: data,
+                response: result,
+                error: error
+            });
+
+            return logRecord.save()
+        },
+        updateUser = function (user) {
+            return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {upsert: true});
+        },
         searchAneks = function (searchPhrase, limit, skip) {
             return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
                 if (results.length) {
@@ -257,9 +270,17 @@ module.exports = function (express, botApi, configs) {
                         }
                     }
                 }
-                console.log(data);
+                console.error('unhandled message', data);
                 throw new Error('No message specified');
-            });
+            }).then(function (response) {
+                return writeLog(data, response).then(function () {
+                    return response;
+                })
+            }).catch(function (error) {
+                return writeLog(data, {}, error).then(function () {
+                    return error;
+                })
+            }).finally(updateUser.bind(this, (data.message || {}).from));
         },
         clearDatabases = function () {
             return q.all([

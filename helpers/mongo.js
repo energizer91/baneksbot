@@ -40,8 +40,14 @@ module.exports = function (configs) {
             first_name: String,
             last_name: String,
             user_id: Number,
-            subscribed: Boolean,
-            client: String
+            subscribed: {type: Boolean, default: false},
+            client: {type: String, default: 'web'}
+        }),
+        logSchema = mongoose.Schema({
+            date: Number,
+            request: Object,
+            response: Object,
+            error: Object
         });
 
     anekSchema.index({text: 'text'});
@@ -59,6 +65,7 @@ module.exports = function (configs) {
     return {
         Anek: mongoose.model('Anek', anekSchema),
         Comment: mongoose.model('Comment', commentSchema),
-        User: mongoose.model('User', userSchema)
+        User: mongoose.model('User', userSchema),
+        Log: mongoose.model('Log', logSchema)
     };
 };
