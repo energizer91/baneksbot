@@ -73,7 +73,8 @@ module.exports = function (configs) {
                         })
                 }
                 attachment.chat_id = userId;
-                return this.sendRequest(sendCommand, attachment);
+                return this.sendChatAction(userId, attachment.sendAction)
+                    .then(this.sendRequest.bind(this, sendCommand, attachment));
             },
             sendMessage: function (userId, message) {
                 if (!message) {
@@ -146,6 +147,7 @@ module.exports = function (configs) {
                     case 'photo':
                         return {
                             command: 'sendPhoto',
+                            sendAction: 'upload_photo',
                             photo: attachment.photo.photo_2560
                             || attachment.photo.photo_1280
                             || attachment.photo.photo_604
@@ -164,12 +166,14 @@ module.exports = function (configs) {
                     case 'video':
                         return {
                             command: 'sendMessage',
+                            sendAction: 'upload_video',
                             text: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id
                         };
                         break;
                     case 'doc':
                         return {
                             command: 'sendDocument',
+                            sendAction: 'upload_document',
                             document: attachment.doc.url,
                             caption: attachment.doc.title
                         };
@@ -185,6 +189,7 @@ module.exports = function (configs) {
                     case 'poll':
                         return {
                             command: 'sendMessage',
+                            sendAction: 'typing',
                             text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map(function (answer, index) {
                                 return  (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)'
                             }).join('\n'),
@@ -194,6 +199,7 @@ module.exports = function (configs) {
                     case 'link':
                         return {
                             command: 'sendMessage',
+                            sendAction: 'typing',
                             text: attachment.link.title + '\n' + attachment.link.url
                         };
                         break;

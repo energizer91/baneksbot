@@ -117,7 +117,7 @@ module.exports = function () {
                 hostname: parsedUrl.hostname,
                 port: parsedUrl.port,
                 path: parsedUrl.path,
-                method: method ? method.toUpperCase() : 'GET',
+                method: method && typeof method == 'string' ? method.toUpperCase() : 'GET',
                 headers: {}//,
                 //agent: parsedUrl.protocol == 'http:' ? agent : sslAgent
             }
