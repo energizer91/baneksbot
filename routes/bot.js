@@ -22,6 +22,27 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, anek);
                 })
             },
+            '/user': function (command, message) {
+                if (command[1] == 'count') {
+                    return botApi.mongo.User.count().then(function (count) {
+                        return botApi.bot.sendMessage(message.chat.id, 'Всего пользователей на данный момент: ' + count);
+                    })
+                } else if (command[1] == 'subscribed') {
+                    return botApi.mongo.User.find({subscribed: true}).count().then(function (count) {
+                        return botApi.bot.sendMessage(message.chat.id, 'Подписанных пользователей на данный момент: ' + count);
+                    })
+                } else if (command[1] == 'id') {
+                    return botApi.bot.sendMessage(message.chat.id, 'id текущего чата: ' + message.chat.id);
+                }
+                return botApi.mongo.User.findOne({user_id: command[1] || message.chat.id}).then(function (user) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.user_id + ':\n' +
+                        'Имя: ' + user.fisrt_name + '\n' +
+                        'Фамилия: ' + user.last_name + '\n' +
+                        'Ник: ' + user.username + '\n' +
+                        'Статус подписки: ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
+                        'Платформа: ' + user.client || 'Не выбрано');
+                })
+            },
             '/anek_by_id': function (command, message) {
                 return botApi.mongo.Anek.findOne({post_id: command[1]}).then(function (anek) {
                     return botApi.bot.sendMessage(message.chat.id, anek);

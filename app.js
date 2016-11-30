@@ -45,7 +45,7 @@ dbUpdater.on('close', function (code) {
     console.log('Aneks update process has been closed with code ' + code);
 });
 
-var childQueue = new Queue(5, Infinity);
+var childQueue = new Queue(1, Infinity);
 
 dbUpdater.on('message', function (m) {
     if (m.type == 'message' && m.message) {
