@@ -173,6 +173,9 @@ module.exports = function (express, botApi, configs) {
             return logRecord.save()
         },
         updateUser = function (user) {
+            if (!user) {
+                return {};
+            }
             return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {upsert: true});
         },
         searchAneks = function (searchPhrase, limit, skip) {
