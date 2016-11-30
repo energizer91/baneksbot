@@ -118,8 +118,8 @@ module.exports = function () {
                 port: parsedUrl.port,
                 path: parsedUrl.path,
                 method: method ? method.toUpperCase() : 'GET',
-                headers: {},
-                agent: parsedUrl.protocol == 'http:' ? agent : sslAgent
+                headers: {}//,
+                //agent: parsedUrl.protocol == 'http:' ? agent : sslAgent
             }
         }
     };
