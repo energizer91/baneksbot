@@ -11,6 +11,7 @@
     "debug": "~2.2.0",
     "express": "~4.13.1",
     "form-data": "^2.1.2",
+    "http-pooling-agent": "^1.0.0",
     "jade": "~1.11.0",
     "mongodb": "^2.2.11",
     "mongoose": "^4.7.0",

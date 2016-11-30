@@ -8,7 +8,14 @@ module.exports = function () {
         queryString = require('querystring'),
         url = require('url'),
         formData = require('form-data'),
-        https = require('https');
+        https = require('https'),
+        httpAgent = require('http-pooling-agent'),
+        agent = new httpAgent.Agent({
+            freeSocketsTimeout: 10000
+        }),
+        sslAgent = new httpAgent.SSL.Agent({
+            keepAliveMsecs: 5000
+        });
 
     return {
         sendFile: function (config, params, file) {
@@ -106,12 +113,13 @@ module.exports = function () {
         prepareConfig: function (targetUrl, method) {
             var parsedUrl = url.parse(targetUrl);
             return {
-                protocol: parsedUrl.protocol || 'http',
+                protocol: parsedUrl.protocol || 'http:',
                 hostname: parsedUrl.hostname,
                 port: parsedUrl.port,
                 path: parsedUrl.path,
                 method: method ? method.toUpperCase() : 'GET',
-                headers: {}
+                headers: {},
+                agent: parsedUrl.protocol == 'http:' ? agent : sslAgent
             }
         }
     };

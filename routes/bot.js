@@ -241,14 +241,18 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             });
         },
-        performWebHook = function (data) {
+        performWebHook = function (data, response) {
             return q.Promise(function (resolve, reject) {
+
+                response.status(200);
+                response.send('OK');
+
                 if (!data) {
                     return reject(new Error('No webhook data specified'));
                 }
 
                 return resolve(data);
-            }).then(function (data) {
+            }).then(function () {
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
                     switch (queryData[0]) {
@@ -301,6 +305,7 @@ module.exports = function (express, botApi, configs) {
                     return response;
                 })
             }).catch(function (error) {
+                console.error(error);
                 return writeLog(data, {}, error).then(function () {
                     return error;
                 })
@@ -389,14 +394,7 @@ module.exports = function (express, botApi, configs) {
 
     router.route('/webhook')
         .post(function (req, res) {
-            return performWebHook(req.body).then(function () {
-                res.status(200);
-                return res.send('OK');
-            }).catch(function (error) {
-                console.error(error, error.stack);
-                res.status(200);
-                return res.send('OK');
-            });
+            return performWebHook(req.body, res);
         });
 
     router.get('/redefine', function (req, res, next) {
