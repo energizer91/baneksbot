@@ -175,7 +175,7 @@ module.exports = function (express, botApi, configs) {
             var results = [],
                 searchAction;
             if (!query.query) {
-                searchAction = botApi.mongo.Anek.find().sort({date: -1}).limit(5).exec();
+                searchAction = botApi.mongo.Anek.find({text: {$ne: ''}}).sort({date: -1}).limit(5).exec();
             } else {
                 searchAction = searchAneks(query.query, 5);
             }
