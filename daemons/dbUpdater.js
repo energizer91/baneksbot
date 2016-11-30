@@ -4,8 +4,8 @@
 var q = require('q'),
     updateInProcess = false,
     forceDenyUpdate = false,
-    mongo = require('./mongo'),
-    vkApi = require('./vk');
+    mongo = require('./../helpers/mongo'),
+    vkApi = require('./../helpers/vk');
 
 var getAllAneks = function (start) {
         return vkApi.getPostsCount().then(function (counter) {
@@ -119,9 +119,9 @@ var getAllAneks = function (start) {
         }).done();
     };
 
-setTimeout(updateAneksTimer, 30000);
+//setTimeout(updateAneksTimer, 30000);
 
-setTimeout(refreshAneksTimer, 130000);
+//setTimeout(refreshAneksTimer, 130000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);

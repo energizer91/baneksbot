@@ -6,8 +6,8 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     fs = require('fs'),
     routes = require('./index')(express),
-    botApi = require('./helpers/bot'),
-    botDB = require('./helpers/mongo');
+    configs = require('./configs'),
+    botApi = require('./botApi')(configs);
 
 var app = express();
 
@@ -32,14 +32,14 @@ var files = fs.readdirSync(path.join(__dirname, 'routes'));
 
 for (var file in files) {
     if (files.hasOwnProperty(file)) {
-        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(express, botDB);
+        var routerEndpoint = require(path.join(__dirname, 'routes') + '/' + files[file])(express, botApi, configs);
         app.use('/api' + routerEndpoint.endPoint, routerEndpoint.router);
     }
 }
 
 var cp = require('child_process');
 
-var dbUpdater = cp.fork(path.join(__dirname, 'helpers/dbUpdater.js'));
+var dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
 
 dbUpdater.on('close', function (code) {
     console.log('Aneks update process has been closed with code ' + code);
@@ -49,7 +49,7 @@ var childQueue = new Queue(5, Infinity);
 
 dbUpdater.on('message', function (m) {
     if (m.type == 'message' && m.message) {
-        childQueue.add(botApi.sendMessage(m.userId, m.message));
+        childQueue.add(botApi.bot.sendMessage(m.userId, m.message));
     } else {
         console.log('PARENT got message:', m);
     }
