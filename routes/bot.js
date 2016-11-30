@@ -36,7 +36,7 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.mongo.User.findOne({user_id: command[1] || message.chat.id}).then(function (user) {
                     return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.user_id + ':\n' +
-                        'Имя: ' + user.fisrt_name + '\n' +
+                        'Имя: ' + user.first_name + '\n' +
                         'Фамилия: ' + user.last_name + '\n' +
                         'Ник: ' + user.username + '\n' +
                         'Статус подписки: ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
@@ -210,7 +210,7 @@ module.exports = function (express, botApi, configs) {
         },
         performInline = function (query) {
             var results = [],
-                aneks_count = 10,
+                aneks_count = 5,
                 searchAction;
             if (!query.query) {
                 searchAction = botApi.mongo.Anek.find({text: {$ne: ''}})
