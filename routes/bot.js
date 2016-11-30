@@ -3,7 +3,6 @@
  */
 module.exports = function (express, botApi, configs) {
     var router = express.Router(),
-        vkApi = require('../helpers/vk'),
         q = require('q');
 
     var commands = {
@@ -173,14 +172,24 @@ module.exports = function (express, botApi, configs) {
             });
         },
         performInline = function (query) {
-            var results = [];
-            return searchAneks(query.query, 5).then(function (aneks) {
+            var results = [],
+                searchAction;
+            if (!query) {
+                searchAction = botApi.mongo.Anek.find().sort({date: -1}).limit(5).exec();
+            } else {
+                searchAction = searchAneks(query.query, 5);
+            }
+            return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
                     return {
                         type: 'article',
                         id: anek.post_id.toString(),
                         title: 'Анекдот #' + anek.post_id,
-                        message_text: anek.text,
+                        input_message_content: {
+                            message_text: anek.text,
+                            parse_mode: 'HTML'
+                        },
+                        //message_text: anek.text,
                         description: anek.text.slice(0, 100),
                         parse_mode: 'Markdown'
                     };
@@ -222,9 +231,6 @@ module.exports = function (express, botApi, configs) {
                             });
                     }
                 } else if (data.hasOwnProperty('inline_query')) {
-                    if (data.inline_query.query && data.inline_query.query.length < 3) {
-                        throw new Error('Too small inline query');
-                    }
                     return performInline(data.inline_query);
                 } else if (data.message) {
                     var message = data.message;

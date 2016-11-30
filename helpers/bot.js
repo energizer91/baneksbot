@@ -16,15 +16,9 @@ module.exports = function (configs) {
                 return requestHelper.makeRequest(parameters, params);
             },
             sendInline: function (inlineId, results) {
-                var br2nl = function (text) {
-                    return (text || '').replace(/<br>/g, '\n');
-                };
                 return this.sendRequest('answerInlineQuery', {
                     inline_query_id: inlineId,
-                    results: JSON.stringify(results.map(function (result) {
-                        result.text = br2nl(result.text);
-                        return result;
-                    })),
+                    results: JSON.stringify(results),
                     cache_time: 0
                 })
             },
@@ -39,6 +33,12 @@ module.exports = function (configs) {
                     url: load.url
                 });
             },
+            sendChatAction: function (userId, action) {
+                return this.sendRequest('sendChatAction', {
+                    chat_id: userId,
+                    action: action
+                });
+            },
             sendAttachment: function (userId, attachment) {
                 if (!attachment.command) {
                     throw new Error('Attachment type is undefined');
@@ -48,27 +48,28 @@ module.exports = function (configs) {
 
 
                 if (attachment.audio) {
-                    return vkApi.getPostById(attachment.post_id).then(function (posts) {
-                        var post = posts.response[0],
-                            audio = post.attachments[0].audio,
-                            parameters = requestHelper.prepareConfig(audio.url, 'GET');
+                    return this.sendChatAction(userId, 'upload_audio')
+                        .then(vkApi.getPostById.bind(vkApi, attachment.post_id))
+                        .then(function (posts) {
+                            var post = posts.response[0],
+                                audio = post.attachments[0].audio,
+                                parameters = requestHelper.prepareConfig(audio.url, 'GET');
 
-                        console.log('sending audio', audio.url);
+                            console.log('sending audio', audio.url);
 
-                        return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
-                            var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
-                                parameters = requestHelper.prepareConfig(botUrl, 'POST');
-                            return requestHelper.sendFile(parameters, {
-                                chat_id: userId,
-                                title: attachment.title
-                            }, {
-                                type: 'audio',
-                                file: stream,
-                                name: attachment.id + '.mp3'
+                            return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
+                                var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
+                                    parameters = requestHelper.prepareConfig(botUrl, 'POST');
+                                return requestHelper.sendFile(parameters, {
+                                    chat_id: userId,
+                                    title: attachment.title
+                                }, {
+                                    type: 'audio',
+                                    file: stream,
+                                    name: attachment.id + '.mp3'
+                                });
                             });
-                        });
-                    })
-
+                        })
                 }
                 attachment.chat_id = userId;
                 return this.sendRequest(sendCommand, attachment);
