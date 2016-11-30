@@ -174,7 +174,7 @@ module.exports = function (express, botApi, configs) {
         performInline = function (query) {
             var results = [],
                 searchAction;
-            if (!query) {
+            if (!query.query) {
                 searchAction = botApi.mongo.Anek.find().sort({date: -1}).limit(5).exec();
             } else {
                 searchAction = searchAneks(query.query, 5);
@@ -190,8 +190,7 @@ module.exports = function (express, botApi, configs) {
                             parse_mode: 'HTML'
                         },
                         //message_text: anek.text,
-                        description: anek.text.slice(0, 100),
-                        parse_mode: 'Markdown'
+                        description: anek.text.slice(0, 100)
                     };
                 });
 
