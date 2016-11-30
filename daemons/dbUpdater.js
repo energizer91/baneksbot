@@ -4,8 +4,9 @@
 var q = require('q'),
     updateInProcess = false,
     forceDenyUpdate = false,
-    mongo = require('./../helpers/mongo'),
-    vkApi = require('./../helpers/vk');
+    configs = require('../configs'),
+    mongo = require('../helpers/mongo')(configs),
+    vkApi = require('../helpers/vk')(configs);
 
 var getAllAneks = function (start) {
         return vkApi.getPostsCount().then(function (counter) {
