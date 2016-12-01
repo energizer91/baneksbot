@@ -41,6 +41,8 @@ module.exports = function (configs) {
                 });
             },
             sendAttachment: function (userId, attachment) {
+                attachment = this.performAttachment(attachment);
+
                 if (!attachment.command) {
                     throw new Error('Attachment type is undefined');
                 }
@@ -50,26 +52,23 @@ module.exports = function (configs) {
 
                 if (attachment.audio) {
                     return this.sendChatAction(userId, 'upload_audio')
-                        .then(vkApi.getPostById.bind(vkApi, attachment.post_id))
-                        .then(function (posts) {
-                            var post = posts.response[0],
-                                audio = post.attachments[0].audio,
-                                parameters = requestHelper.prepareConfig(audio.url, 'GET');
+                        .then(function () {
+                        var parameters = requestHelper.prepareConfig(attachment.audio, 'GET');
 
-                            console.log('sending audio', audio.url);
+                        console.log('sending audio', attachment.audio);
 
-                            return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
-                                var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
-                                    parameters = requestHelper.prepareConfig(botUrl, 'POST');
-                                return requestHelper.sendFile(parameters, {
-                                    chat_id: userId,
-                                    title: attachment.title
-                                }, {
-                                    type: 'audio',
-                                    file: stream,
-                                    name: attachment.id + '.mp3'
-                                });
+                        return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
+                            var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
+                                parameters = requestHelper.prepareConfig(botUrl, 'POST');
+                            return requestHelper.sendFile(parameters, {
+                                chat_id: userId,
+                                title: attachment.title
+                            }, {
+                                type: 'audio',
+                                file: stream,
+                                name: attachment.id + '.mp3'
                             });
+                        });
                         })
                 }
                 attachment.chat_id = userId;
@@ -84,41 +83,51 @@ module.exports = function (configs) {
                 if (message._doc && message._doc.copy_history && message._doc.copy_history.length) {
                     return this.sendMessage(userId, message._doc.copy_history[0]);
                 }
-                var sendMessage,
-                    attachments = [];
+                var sendMessage;
                 if (typeof message == 'string') {
                     sendMessage = {
                         chat_id: userId,
                         text: message
                     };
                 } else {
+                    var buttons = [];
+
+                    if (!message.disableButtons) {
+                        buttons.push({
+                                text: 'К анеку',
+                                url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
+                            },
+                            {
+                                text: 'Переделки',
+                                callback_data: 'comment ' + message.post_id
+                            });
+                    }
+
+                    if (message.attachments) {
+                        buttons.push({
+                            text: 'Вложения',
+                            callback_data: 'attach ' + message.post_id
+                        })
+                    }
+
                     sendMessage = {
                         chat_id: userId,
                         text: message.text + ((message.attachments && message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : ''),
-                        reply_markup: !message.disableButtons ? JSON.stringify({
+                        reply_markup: JSON.stringify({
                             inline_keyboard: [
-                                [
-                                    {
-                                        text: 'К анеку',
-                                        url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
-                                    },
-                                    {
-                                        text: 'Переделки',
-                                        callback_data: 'comment ' + message.post_id
-                                    }
-                                ]
+                                buttons
                             ]
-                        }) : undefined
+                        })
                     };
 
-                    attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
+                    //attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
                 }
 
-                return this.sendRequest('sendMessage', sendMessage).then(function (response) {
+                return this.sendRequest('sendMessage', sendMessage)/*.then(function (response) {
                     return this.sendAttachments(userId, attachments).then(function () {
                         return response;
                     })
-                }.bind(this));
+                }.bind(this))*/;
             },
             sendMessages: function (userId, messages) {
                 var messageQueue = new Queue(1, Infinity);
@@ -138,7 +147,7 @@ module.exports = function (configs) {
                     return p.then(attachmentQueue.add.bind(attachmentQueue, this.sendAttachment.bind(this, userId, attachment)));
                 }.bind(this), q.when());
             },
-            performAttachment: function (postId, attachment) {
+            performAttachment: function (attachment) {
                 if (!attachment) {
                     return undefined;
                 }
@@ -182,8 +191,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendAudio',
                             audio: attachment.audio.url,
-                            title: attachment.audio.artist + ' - ' + attachment.audio.title,
-                            post_id: postId
+                            title: attachment.audio.artist + ' - ' + attachment.audio.title
                         };
                         break;
                     case 'poll':

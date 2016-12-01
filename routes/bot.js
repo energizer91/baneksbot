@@ -274,6 +274,20 @@ module.exports = function (express, botApi, configs) {
                                 return botApi.bot.answerCallbackQuery(data.callback_query.id)
                                     .finally(botApi.bot.sendMessages.bind(botApi.bot, data.callback_query.message.chat.id, aneks));
                             });
+                            break;
+                        case 'attach':
+                            return botApi.vk.getPostById(queryData[1]).then(function (posts) {
+                                var post = posts.response[0];
+
+                                if (!post) {
+                                    throw new Error('Post not found');
+                                }
+                                if (!post.attachments) {
+                                    throw new Error('Attachments not found');
+                                }
+
+                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments);
+                            })
                     }
                 } else if (data.hasOwnProperty('inline_query')) {
                     return performInline(data.inline_query);
