@@ -73,14 +73,14 @@ module.exports = function (express, botApi, configs) {
             '/user': function (command, message, user) {
                 if (command[1] == 'count') {
                     return botApi.mongo.User.count().then(function (count) {
-                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {count: count}));
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_count', {count: count}));
                     })
                 } else if (command[1] == 'subscribed') {
                     return botApi.mongo.User.find({subscribed: true}).count().then(function (count) {
-                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_subscribed_user_id', {count: count}));
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_subscribed_user_count', {count: count}));
                     })
                 } else if (command[1] == 'id') {
-                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {count: message.from.id}));
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
                 }
                 return botApi.mongo.User.findOne({user_id: command[1] || message.chat.id}).then(function (user) {
                     return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.user_id + ':\n' +
