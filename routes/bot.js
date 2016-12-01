@@ -263,7 +263,7 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             });
         },
-        performCallbackQuery = function (queryData) {
+        performCallbackQuery = function (queryData, data) {
             switch (queryData[0]) {
                 case 'comment':
                     var aneks = [];
@@ -343,7 +343,9 @@ module.exports = function (express, botApi, configs) {
                     return reject(new Error('No webhook data specified'));
                 }
 
-                updateUser((data.message || {}).from, function (err, user) {
+                var userObject = data.message || data.inline_query || data.callback_query;
+
+                updateUser((userObject || {}).from, function (err, user) {
                     if (err) {
                         console.error(err);
                         return resolve({});
@@ -353,7 +355,7 @@ module.exports = function (express, botApi, configs) {
             }).then(function (user) {
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
-                    return performCallbackQuery(queryData);
+                    return performCallbackQuery(queryData, data);
                 } else if (data.hasOwnProperty('inline_query')) {
                     return performInline(data.inline_query);
                 } else if (data.message) {
