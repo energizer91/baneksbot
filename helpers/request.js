@@ -131,6 +131,24 @@ module.exports = function () {
                 results.push(lastResponse);
                 return results;
             });
+        },
+        fulfillAllSequentally: function (method, requests) {
+            var results = [];
+            if (!requests.length) {
+                return [];
+            }
+            return requests.reduce(function (p, request) {
+                return p.then(function (result) {
+                    if (result) {
+                        results.push(result);
+                    }
+
+                    return request;
+                })
+            }).then(function (lastResponse) {
+                results.push(lastResponse);
+                return results;
+            });
         }
     };
 };

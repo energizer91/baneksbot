@@ -352,12 +352,12 @@ module.exports = function (express, botApi, configs) {
 
                 var userObject = data.message || data.inline_query || data.callback_query;
 
-                updateUser((userObject || {}).from, function (err, user) {
+                updateUser((userObject || {}), function (err, user) {
                     if (err) {
                         console.error(err);
                         return resolve({});
                     }
-                    return resolve(user);
+                    return resolve(user || {});
                 });
             }).then(function (user) {
                 if (data.hasOwnProperty('callback_query')) {
@@ -381,7 +381,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         if (commands[command[0]]) {
-                            return performCommand(command, message, user);
+                            return performCommand(command, message, user || {});
                         } else {
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));
