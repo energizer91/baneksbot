@@ -335,7 +335,7 @@ module.exports = function (express, botApi, configs) {
                     requests.push(botApi.vk.getComments({post_id: postId, offset: current, count: step}));
                 }
 
-                return q.all(requests);
+                return botApi.request.fulfillAll(requests);
             });
         },
         getAllAneks = function (start) {
@@ -356,12 +356,12 @@ module.exports = function (express, botApi, configs) {
                     requests.push(botApi.vk.getPosts({offset: current, count: step}));
                 }
 
-                return q.all(requests);
+                return botApi.request.fulfillAll(requests);
             })
         },
         redefineDatabase = function (count) {
             return getAllAneks(count).then(function (responses) {
-                return q.all(responses.map(function (response) {
+                return botApi.request.fulfillAll(responses.map(function (response) {
                     return botApi.mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
                         anek.post_id = anek.id;
                         anek.likes = anek.likes.count;

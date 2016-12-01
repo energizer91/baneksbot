@@ -6,6 +6,7 @@ var q = require('q'),
     forceDenyUpdate = false,
     configs = require('../configs'),
     mongo = require('../helpers/mongo')(configs),
+    requestApi = require('../helpers/request')(configs),
     vkApi = require('../helpers/vk')(configs);
 
 var getAllAneks = function (start) {
@@ -26,7 +27,7 @@ var getAllAneks = function (start) {
                 requests.push(vkApi.getPosts({offset: current, count: step}));
             }
 
-            return q.all(requests);
+            return requestApi.fulfillAll(requests);
         })
     },
     zipAneks = function (responses) {
@@ -40,9 +41,8 @@ var getAllAneks = function (start) {
     },
     redefineDatabase = function (count) {
         return getAllAneks(count).then(function (responses) {
-            return q.all(responses.map(function (response) {
+            return requestApi.fulfillAll(responses.map(function (response) {
                 return mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
-                    //anek.counter = ++counter;
                     anek.post_id = anek.id;
                     anek.likes = anek.likes.count;
                     anek.reposts = anek.reposts.count;
@@ -61,15 +61,17 @@ var getAllAneks = function (start) {
 
             responses.forEach(function (response) {
                 aneks = aneks.concat(response.response.items.reverse().map(function (anek) {
-                    return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
+                    return [{post_id: anek.post_id}, {
                         likes: anek.likes.count,
                         comments: anek.comments,
                         reposts: anek.reposts.count
-                    });
+                    }];
                 }))
             });
 
-            return q.all(aneks).catch(function (error) {
+            return requestApi.fulfillAll(aneks.map(function (anek) {
+                return mongo.Anek.findOneAndUpdate(anek[0], anek[1]);
+            })).catch(function (error) {
                 console.log(error);
                 return [];
             });

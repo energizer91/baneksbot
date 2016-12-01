@@ -8,14 +8,7 @@ module.exports = function () {
         queryString = require('querystring'),
         url = require('url'),
         formData = require('form-data'),
-        https = require('https'),
-        httpAgent = require('http-pooling-agent'),
-        agent = new httpAgent.Agent({
-            freeSocketsTimeout: 10000
-        }),
-        sslAgent = new httpAgent.SSL.Agent({
-            keepAliveMsecs: 5000
-        });
+        https = require('https');
 
     return {
         sendFile: function (config, params, file) {
@@ -118,9 +111,26 @@ module.exports = function () {
                 port: parsedUrl.port,
                 path: parsedUrl.path,
                 method: method && typeof method == 'string' ? method.toUpperCase() : 'GET',
-                headers: {}//,
-                //agent: parsedUrl.protocol == 'http:' ? agent : sslAgent
+                headers: {}
             }
+        },
+        fulfillAll: function (requests) {
+            var results = [];
+            if (!requests.length) {
+                return [];
+            }
+            return requests.reduce(function (p, request) {
+                return p.then(function (result) {
+                    if (result) {
+                        results.push(result);
+                    }
+
+                    return request;
+                })
+            }).then(function (lastResponse) {
+                results.push(lastResponse);
+                return results;
+            });
         }
     };
 };
