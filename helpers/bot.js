@@ -110,19 +110,18 @@ module.exports = function (configs) {
                         })
                     }
 
+                    sendMessage = {
+                        chat_id: userId,
+                        text: message.text + ((message.attachments && message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : '')
+                    };
+
                     if (buttons.length > 0) {
-                        buttonsWrapper = JSON.stringify({
+                        sendMessage.reply_markup = JSON.stringify({
                             inline_keyboard: [
                                 buttons
                             ]
                         });
                     }
-
-                    sendMessage = {
-                        chat_id: userId,
-                        text: message.text + ((message.attachments && message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : ''),
-                        reply_markup: buttonsWrapper
-                    };
 
                     //attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
                 }
