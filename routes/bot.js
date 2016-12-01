@@ -273,6 +273,14 @@ module.exports = function (express, botApi, configs) {
                                 });
 
                                 return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                                    .then(function () {
+                                        var editedMessage = {
+                                            message_id: data.callback_query.message.message_id,
+                                            disableComments: true
+                                        };
+
+                                        return botApi.bot.editMessageButtons(editedMessage);
+                                    })
                                     .finally(botApi.bot.sendMessages.bind(botApi.bot, data.callback_query.message.chat.id, aneks));
                             });
                             break;
@@ -288,6 +296,14 @@ module.exports = function (express, botApi, configs) {
                                 }
 
                                 return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                                    .then(function () {
+                                        var editedMessage = {
+                                            message_id: data.callback_query.message.message_id,
+                                            disableComments: true
+                                        };
+
+                                        return botApi.bot.editMessageButtons(editedMessage);
+                                    })
                                     .finally(botApi.bot.sendAttachments.bind(botApi.bot, data.callback_query.message.chat.id, post.attachments));
                             })
                     }

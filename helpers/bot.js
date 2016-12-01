@@ -74,6 +74,56 @@ module.exports = function (configs) {
                 return this.sendChatAction(userId, attachment.sendAction)
                     .then(this.sendRequest.bind(this, sendCommand, attachment));
             },
+            prepareButtons: function (message) {
+                var buttons = [];
+
+                if (!message.disableButtons) {
+                    buttons.push({
+                        text: 'К анеку',
+                        url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
+                    });
+
+                    if (!message.disableComments) {
+                        buttons.push({
+                            text: 'Переделки',
+                            callback_data: 'comment ' + message.post_id
+                        });
+                    }
+                }
+
+                if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
+                    buttons.push({
+                        text: 'Вложения',
+                        callback_data: 'attach ' + message.post_id
+                    })
+                }
+
+                return buttons;
+            },
+            editMessageButtons: function (message) {
+                if (!message) {
+                    return;
+                }
+
+                message.reply_markup = this.prepareButtons(message);
+
+                return this.sendRequest('editMessageReplyMarkup', message).then(function (response) {
+                    console.log(JSON.stringify(response));
+                    return response;
+                });
+            },
+            editMessage: function (message) {
+                if (!message) {
+                    return;
+                }
+
+                message.reply_markup = this.prepareButtons(message);
+
+                return this.sendRequest('editMessageText', message).then(function (response) {
+                    console.log(JSON.stringify(response));
+                    return response;
+                });
+            },
             sendMessage: function (userId, message) {
                 if (!message) {
                     return;
@@ -91,25 +141,7 @@ module.exports = function (configs) {
                         text: message
                     };
                 } else {
-                    var buttons = [];
-
-                    if (!message.disableButtons) {
-                        buttons.push({
-                                text: 'К анеку',
-                                url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
-                            },
-                            {
-                                text: 'Переделки',
-                                callback_data: 'comment ' + message.post_id
-                            });
-                    }
-
-                    if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
-                        buttons.push({
-                            text: 'Вложения',
-                            callback_data: 'attach ' + message.post_id
-                        })
-                    }
+                    var buttons = this.prepareButtons(message);
 
                     sendMessage = {
                         chat_id: userId,
@@ -127,12 +159,11 @@ module.exports = function (configs) {
                     if (message.forceAttachments) {
                         attachments = (message.attachments || []);
                     }
-
-                    //attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
                 }
 
                 return this.sendRequest('sendMessage', sendMessage).then(function (response) {
                     return this.sendAttachments(userId, attachments).then(function () {
+                        console.log(JSON.stringify(response));
                         return response;
                     })
                 }.bind(this));
