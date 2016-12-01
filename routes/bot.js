@@ -267,8 +267,8 @@ module.exports = function (express, botApi, configs) {
                                 }).slice(0, 3).map(function (comment, index) {
                                     comment.text = (index + 1) + ' место:\n' + comment.text;
                                     comment.reply_to_message_id = data.callback_query.message.message_id;
-                                    comment.post_id = queryData[1];
                                     comment.disableButtons = true;
+                                    comment.forceAttachments = true;
                                     return comment;
                                 });
 

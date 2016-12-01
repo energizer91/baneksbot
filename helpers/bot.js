@@ -82,15 +82,16 @@ module.exports = function (configs) {
                 if (message._doc && message._doc.copy_history && message._doc.copy_history.length) {
                     return this.sendMessage(userId, message._doc.copy_history[0]);
                 }
-                var sendMessage;
+                var sendMessage,
+                    attachments = [];
+
                 if (typeof message == 'string') {
                     sendMessage = {
                         chat_id: userId,
                         text: message
                     };
                 } else {
-                    var buttons = [],
-                        buttonsWrapper;
+                    var buttons = [];
 
                     if (!message.disableButtons) {
                         buttons.push({
@@ -103,7 +104,7 @@ module.exports = function (configs) {
                             });
                     }
 
-                    if (message.attachments && message.attachments.length > 0) {
+                    if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
                         buttons.push({
                             text: 'Вложения',
                             callback_data: 'attach ' + message.post_id
@@ -123,14 +124,18 @@ module.exports = function (configs) {
                         });
                     }
 
+                    if (message.forceAttachments) {
+                        attachments = (message.attachments || []);
+                    }
+
                     //attachments = (message.attachments || []).map(this.performAttachment.bind(this, message.post_id));
                 }
 
-                return this.sendRequest('sendMessage', sendMessage)/*.then(function (response) {
+                return this.sendRequest('sendMessage', sendMessage).then(function (response) {
                     return this.sendAttachments(userId, attachments).then(function () {
                         return response;
                     })
-                }.bind(this))*/;
+                }.bind(this));
             },
             sendMessages: function (userId, messages) {
                 var messageQueue = new Queue(1, Infinity);
