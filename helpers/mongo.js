@@ -17,6 +17,7 @@ module.exports = function (configs) {
 
     var anekSchema = mongoose.Schema({
             attachments: Array,
+            copy_history: Array,
             date: Number,
             from_id: Number,
             post_id: {type: Number, index: true},
