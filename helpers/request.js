@@ -143,10 +143,17 @@ module.exports = function () {
                         results.push(result);
                     }
 
-                    return request;
+                    return method(request);
+                }).catch(function (error) {
+                    console.error('Sequental fullfilment error');
+                    console.error(error);
                 })
             }).then(function (lastResponse) {
                 results.push(lastResponse);
+                return results;
+            }).catch(function (error) {
+                console.error('Sequental fullfilment error');
+                console.error(error);
                 return results;
             });
         }
