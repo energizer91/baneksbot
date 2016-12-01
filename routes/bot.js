@@ -6,21 +6,33 @@ module.exports = function (express, botApi, configs) {
         q = require('q');
 
     var commands = {
-            '/anek': function (command, message) {
+            '/anek': function (command, message, user) {
                 if (command[1] == 'count') {
                     return botApi.mongo.Anek.count().then(function (count) {
-                        return botApi.bot.sendMessage(message.chat.id, 'Всего анеков на данный момент: ' + count);
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), user.language);
                     })
                 } else if (command[1] == 'id') {
-                    return botApi.bot.sendMessage(message.chat.id, 'id текущего чата: ' + message.chat.id);
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_chat_id', {chat_id: message.chat.id}), user.language);
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return botApi.mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
-                        return botApi.bot.sendMessage(message.chat.id, anek);
+                        return botApi.bot.sendMessage(message.chat.id, anek, user.language);
                     }).catch(console.error);
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
-                    return botApi.bot.sendMessage(message.chat.id, anek);
+                    return botApi.bot.sendMessage(message.chat.id, anek, user.language);
                 })
+            },
+            '/english': function (command, message, user) {
+                user.language = 'english';
+                return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'language_change'));
+                });
+            },
+            '/russian': function (command, message, user) {
+                user.language = 'russian';
+                return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'language_change'));
+                });
             },
             '/broadcast': function (command, message, user) {
                 if (!user.admin) {
@@ -28,33 +40,47 @@ module.exports = function (express, botApi, configs) {
                 }
 
                 if (command.length <= 1) {
-                    return botApi.bot.sendMessage(message.chat.id, 'Отсутствует текст рассылки');
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'broadcast_text_missing'));
                 }
 
                 command.splice(0, 1);
 
-                return botApi.mongo.User.find({/*subscribed: true*/user_id: {$in: [85231140, 5630968, 226612010]}}).then(function (users) {
+                return botApi.mongo.User.find({subscribed: true/*user_id: {$in: [85231140, 5630968, 226612010]}*/}).then(function (users) {
                     return botApi.request.fulfillAll(users.map(function (user) {
                         return this.sendMessage(user.user_id, command.join(' '));
                     }, botApi.bot));
-                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Рассылка окончена'));
+                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Рассылка окончена.'));
 
+            },
+            '/grant': function (command, message, user) {
+                if (!user.admin) {
+                    throw new Error('Unauthorized access');
+                }
+
+                if (command.length <= 1) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Введите id пользователя.');
+                }
+
+                return botApi.mongo.User.findOneAndUpdate({user_id: parseInt(command[1])}, {admin: true}).then(function () {
+                    return botApi.bot.sendMessage(parseInt(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
+                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Привилегии присвоены.'));
             },
             '/happy_birthday': function (command, message) {
                 return botApi.bot.sendMessageToAdmin('Вас поздравляет с днем рождения пользователь ' +
-                    '' + message.from.first_name + ' ' + message.from.last_name + '(' + message.from.id + ')!');
+                    '' + message.from.first_name + ' ' + message.from.last_name + ' (' + message.from.id + ')!')
+                    .then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Большое спасибо! Мой создатель будет вам очень признателен.'))
             },
-            '/user': function (command, message) {
+            '/user': function (command, message, user) {
                 if (command[1] == 'count') {
                     return botApi.mongo.User.count().then(function (count) {
-                        return botApi.bot.sendMessage(message.chat.id, 'Всего пользователей на данный момент: ' + count);
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {count: count}));
                     })
                 } else if (command[1] == 'subscribed') {
                     return botApi.mongo.User.find({subscribed: true}).count().then(function (count) {
-                        return botApi.bot.sendMessage(message.chat.id, 'Подписанных пользователей на данный момент: ' + count);
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_subscribed_user_id', {count: count}));
                     })
                 } else if (command[1] == 'id') {
-                    return botApi.bot.sendMessage(message.chat.id, 'id текущего чата: ' + message.chat.id);
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {count: message.from.id}));
                 }
                 return botApi.mongo.User.findOne({user_id: command[1] || message.chat.id}).then(function (user) {
                     return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.user_id + ':\n' +
@@ -67,7 +93,7 @@ module.exports = function (express, botApi, configs) {
             },
             '/anek_by_id': function (command, message) {
                 return botApi.mongo.Anek.findOne({post_id: command[1]}).then(function (anek) {
-                    return botApi.bot.sendMessage(message.chat.id, anek);
+                    return botApi.bot.sendMessage(message.chat.id, anek, user.language);
                 })
             },
             '/find_user': function (command, message) {
@@ -75,20 +101,20 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.first_name + ' ' + user.last_name + ': ' + JSON.stringify(user));
                 })
             },
-            '/filin': function (command, message) {
-                return botApi.bot.sendMessage(message.chat.id, 'Подтверждаю.');
+            '/filin': function (command, message, user) {
+                return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'filin'));
             },
-            '/krevet': function (command, message) {
-                return botApi.bot.sendMessage(message.chat.id, 'кревет-кревет, и в рот кревет жопу два кревета.');
+            '/krevet': function (command, message, user) {
+                return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'krevet'));
             },
             '/do_rock': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, 'денис');
             },
-            '/start': function (command, message) {
-                return botApi.bot.sendMessage(message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.');
+            '/start': function (command, message, user) {
+                return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
             },
-            '/help': function (command, message) {
-                return botApi.bot.sendMessage(message.chat.id, 'Просто отправь мне /anek и обещаю, мы подружимся.');
+            '/help': function (command, message, user) {
+                return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
             },
             '/chat': function (command, message) {
                 if (!configs.bot.baneksLink) {
@@ -96,22 +122,22 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
-            '/find': function (command, message) {
+            '/find': function (command, message, user) {
                 command.splice(0, 1);
 
                 var searchPhrase = command.join(' ');
                 if (!searchPhrase.length) {
-                    if (searchPhrase.length < 4) {
-                        return botApi.bot.sendMessage(message.chat.id, 'Слишком короткий запрос.');
+                    if (searchPhrase.length < 4 && searchPhrase.length > 0) {
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_short'));
                     }
-                    return botApi.bot.sendMessage(message.chat.id, 'Отправь /find поисковый запрос для поиска анека.');
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
                 }
 
                 return searchAneks(searchPhrase, 1).then(function (aneks) {
-                    return botApi.bot.sendMessage(message.chat.id, aneks[0]);
+                    return botApi.bot.sendMessage(message.chat.id, aneks[0], user.language);
                 }).catch(function (error) {
                     console.error(error);
-                    return botApi.bot.sendMessage(message.chat.id, 'Сор, бро. Ничего не нашел');
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_not_found'));
                 })
             },
             '/subscribe': function (command, message) {
@@ -119,23 +145,12 @@ module.exports = function (express, botApi, configs) {
                     if (user) {
                         if (!user.subscribed) {
                             return botApi.mongo.User.update({_id: user.id}, {subscribed: true}).then(function () {
-                                return botApi.bot.sendMessage(message.from.id, 'Окей, подпишем тебя снова.');
+                                return botApi.bot.sendMessage(user.user_id, botApi.dict.translate(user.language, 'subscribe_success', {first_name: user.first_name}));
                             });
                         } else {
-                            return botApi.bot.sendMessage(user.user_id, 'Чувак, тыж уже подписан?!');
+                            return botApi.bot.sendMessage(user.user_id, botApi.dict.translate(user.language, 'subscribe_fail'));
                         }
                     }
-                    var newUser = new botApi.mongo.User({
-                        user_id: message.from.id,
-                        first_name: message.from.first_name,
-                        last_name: message.from.last_name,
-                        username: message.from.username,
-                        platform: 'web',
-                        subscribed: true
-                    });
-                    return newUser.save().then(function (user) {
-                        return botApi.bot.sendMessage(user.user_id, 'Окей, ' + user.first_name + '. Буду присылать тебе анеки по мере поступления.');
-                    });
                 }).catch(function (error) {
                     console.log(error);
                     return botApi.bot.sendMessageToAdmin('subscribe fail' + JSON.stringify(error));
@@ -145,16 +160,16 @@ module.exports = function (express, botApi, configs) {
                 return botApi.mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user && user.subscribed) {
                         return botApi.mongo.User.update({_id: user.id}, {subscribed: false}).then(function () {
-                            return botApi.bot.sendMessage(message.from.id, 'Хорошо, больше не буду отправлять =(');
+                            return botApi.bot.sendMessage(message.from.id, botApi.dict.translate(user.language, 'unsubscribe_success'));
                         });
                     }
-                    return botApi.bot.sendMessage(message.from.id, 'Чувак, ты и так не подписан.');
+                    return botApi.bot.sendMessage(message.from.id, botApi.dict.translate(user.language, 'unsubscribe_fail'));
                 }).catch(function (error) {
                     console.log(error);
                     return botApi.bot.sendMessageToAdmin('unsubscribe fail' + JSON.stringify(error));
                 });
             },
-            '/top_day': function (command, message) {
+            '/top_day': function (command, message, user) {
                 var count = Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
                 return botApi.mongo.Anek
                     .find({})
@@ -163,10 +178,10 @@ module.exports = function (express, botApi, configs) {
                     .limit(count)
                     .exec()
                     .then(function (aneks) {
-                        return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за сутки:'].concat(aneks));
+                        return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_daily', {count: count})].concat(aneks), user.language);
                     });
             },
-            '/top_week': function (command, message) {
+            '/top_week': function (command, message, user) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
                 return botApi.mongo.Anek
                     .find({})
@@ -175,10 +190,10 @@ module.exports = function (express, botApi, configs) {
                     .limit(count)
                     .exec()
                     .then(function (aneks) {
-                        return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за неделю:'].concat(aneks));
+                        return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_weekly', {count: count})].concat(aneks), user.language);
                     });
             },
-            '/top_month': function (command, message) {
+            '/top_month': function (command, message, user) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
                 return botApi.mongo.Anek
                     .find({})
@@ -187,10 +202,10 @@ module.exports = function (express, botApi, configs) {
                     .limit(count)
                     .exec()
                     .then(function (aneks) {
-                        return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за месяц:'].concat(aneks));
+                        return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_monthly', {count: count})].concat(aneks), user.language);
                     });
             },
-            '/top_ever': function (command, message) {
+            '/top_ever': function (command, message, user) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
                 return botApi.mongo.Anek
                     .find({})
@@ -198,7 +213,7 @@ module.exports = function (express, botApi, configs) {
                     .limit(count)
                     .exec()
                     .then(function (aneks) {
-                        return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за все время:'].concat(aneks));
+                        return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_ever', {count: count})].concat(aneks), user.language);
                     });
             }
         },
@@ -248,7 +263,7 @@ module.exports = function (express, botApi, configs) {
                     return {
                         type: 'article',
                         id: anek.post_id.toString(),
-                        title: 'Анекдот #' + anek.post_id,
+                        title: botApi.dict.translate(data.language, 'anek_number', {number: anek.post_id}),
                         input_message_content: {
                             message_text: anek.text,
                             parse_mode: 'HTML'
@@ -274,7 +289,7 @@ module.exports = function (express, botApi, configs) {
                         aneks = aneks.sort(function (a, b) {
                             return b.likes.count - a.likes.count;
                         }).slice(0, 3).map(function (comment, index) {
-                            comment.text = (index + 1) + ' место:\n' + comment.text;
+                            comment.text = botApi.dict.translate(data.language, 'th_place', {nth: (index + 1)}) + comment.text;
                             comment.reply_to_message_id = data.callback_query.message.message_id;
                             comment.disableButtons = true;
                             comment.forceAttachments = true;
@@ -283,7 +298,7 @@ module.exports = function (express, botApi, configs) {
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .finally(function () {
-                                return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks)
+                                return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, data.language)
                                 // .finally(function () {
                                 //     var editedMessage = {
                                 //         chat_id: data.callback_query.message.chat.id,
@@ -309,14 +324,6 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .then(function () {
-                                var editedMessage = {
-                                    message_id: data.callback_query.message.message_id,
-                                    disableComments: true
-                                };
-
-                                return botApi.bot.editMessageButtons(editedMessage);
-                            })
                             .finally(function () {
                                 return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
                                 // .finally(function () {
@@ -355,8 +362,10 @@ module.exports = function (express, botApi, configs) {
             }).then(function (user) {
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
+                    data.language = user.language;
                     return performCallbackQuery(queryData, data);
                 } else if (data.hasOwnProperty('inline_query')) {
+                    data.inline_query.language = user.language;
                     return performInline(data.inline_query);
                 } else if (data.message) {
                     var message = data.message;
@@ -372,7 +381,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         if (commands[command[0]]) {
-                            return performCommand(command, data.message, user);
+                            return performCommand(command, message, user);
                         } else {
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));

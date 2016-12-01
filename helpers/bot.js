@@ -5,6 +5,7 @@
 module.exports = function (configs) {
     var botConfig = configs.bot,
         requestHelper = require('./request')(configs),
+        dict = require('./dictionary'),
         Queue = require('promise-queue'),
         q = require('q'),
         botMethods = {
@@ -74,18 +75,18 @@ module.exports = function (configs) {
                 return this.sendChatAction(userId, attachment.sendAction)
                     .then(this.sendRequest.bind(this, sendCommand, attachment));
             },
-            prepareButtons: function (message) {
+            prepareButtons: function (message, language) {
                 var buttons = [];
 
                 if (!message.disableButtons) {
                     buttons.push({
-                        text: 'К анеку',
+                        text: dict.translate(language, 'go_to_anek'),
                         url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
                     });
 
                     if (!message.disableComments) {
                         buttons.push({
-                            text: 'Переделки',
+                            text: dict.translate(language, 'comments'),
                             callback_data: 'comment ' + message.post_id
                         });
                     }
@@ -93,7 +94,7 @@ module.exports = function (configs) {
 
                 if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
                     buttons.push({
-                        text: 'Вложения',
+                        text: dict.translate(language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
                     })
                 }
@@ -124,7 +125,7 @@ module.exports = function (configs) {
                     return response;
                 });
             },
-            sendMessage: function (userId, message) {
+            sendMessage: function (userId, message, language) {
                 if (!message) {
                     return;
                 }
@@ -141,7 +142,7 @@ module.exports = function (configs) {
                         text: message
                     };
                 } else {
-                    var buttons = this.prepareButtons(message);
+                    var buttons = this.prepareButtons(message, language);
 
                     sendMessage = {
                         chat_id: userId,
@@ -168,10 +169,10 @@ module.exports = function (configs) {
                     })
                 }.bind(this));
             },
-            sendMessages: function (userId, messages) {
+            sendMessages: function (userId, messages, language) {
                 var messageQueue = new Queue(1, Infinity);
                 return (messages || []).reduce(function (p, message) {
-                    return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message)));
+                    return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, language)));
                 }.bind(this), q.when());
             },
             sendMessageToAdmin: function (text) {

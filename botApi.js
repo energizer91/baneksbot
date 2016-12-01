@@ -8,6 +8,7 @@ module.exports = function (configs) {
         mongo: require('./helpers/mongo')(configs),
         mysql: require('./helpers/mysql')(configs),
         request: require('./helpers/request')(configs),
-        vk: require('./helpers/vk')(configs)
+        vk: require('./helpers/vk')(configs),
+        dict: require('./helpers/dictionary')
     }
 };
