@@ -91,7 +91,7 @@ module.exports = function (express, botApi, configs) {
                         'Платформа: ' + user.client || 'Не выбрано');
                 })
             },
-            '/anek_by_id': function (command, message) {
+            '/anek_by_id': function (command, message, user) {
                 return botApi.mongo.Anek.findOne({post_id: command[1]}).then(function (anek) {
                     return botApi.bot.sendMessage(message.chat.id, anek, user.language);
                 })
