@@ -41,6 +41,7 @@ module.exports = function (configs) {
             last_name: String,
             user_id: Number,
             subscribed: {type: Boolean, default: false},
+            admin: {type: Boolean, default: false},
             client: {type: String, default: 'web'}
         }),
         logSchema = mongoose.Schema({

@@ -22,6 +22,28 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, anek);
                 })
             },
+            '/broadcast': function (command, message, user) {
+                if (!user.admin) {
+                    throw new Error('Unauthorized access');
+                }
+
+                if (command.length <= 1) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Отсутствует текст рассылки');
+                }
+
+                command.splice(0, 1);
+
+                return botApi.mongo.User.find({/*subscribed: true*/user_id: {$in: [85231140, 5630968, 226612010]}}).then(function (users) {
+                    return botApi.request.fulfillAll(users.map(function (user) {
+                        return this.sendMessage(user.user_id, command.join(' '));
+                    }, botApi.bot));
+                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Рассылка окончена'));
+
+            },
+            '/happy_birthday': function (command, message) {
+                return botApi.bot.sendMessageToAdmin('Вас поздравляет с днем рождения пользователь ' +
+                    '' + message.from.first_name + ' ' + message.from.last_name + '(' + message.from.id + ')!');
+            },
             '/user': function (command, message) {
                 if (command[1] == 'count') {
                     return botApi.mongo.User.count().then(function (count) {
@@ -133,7 +155,7 @@ module.exports = function (express, botApi, configs) {
                 });
             },
             '/top_day': function (command, message) {
-                var count =  Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
+                var count = Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
                 return botApi.mongo.Anek
                     .find({})
                     .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 }})
@@ -154,7 +176,7 @@ module.exports = function (express, botApi, configs) {
                     .exec()
                     .then(function (aneks) {
                         return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за неделю:'].concat(aneks));
-                });
+                    });
             },
             '/top_month': function (command, message) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
@@ -166,7 +188,7 @@ module.exports = function (express, botApi, configs) {
                     .exec()
                     .then(function (aneks) {
                         return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за месяц:'].concat(aneks));
-                });
+                    });
             },
             '/top_ever': function (command, message) {
                 var count =  Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
@@ -177,11 +199,11 @@ module.exports = function (express, botApi, configs) {
                     .exec()
                     .then(function (aneks) {
                         return botApi.bot.sendMessages(message.chat.id, ['Топ ' + count + ' за все время:'].concat(aneks));
-                });
+                    });
             }
         },
-        performCommand = function (command, data) {
-            return commands[command[0]].call(botApi.bot, command, data);
+        performCommand = function (command, data, user) {
+            return commands[command[0]].call(botApi.bot, command, data, user);
         },
         writeLog = function (data, result, error) {
             var logRecord = new botApi.mongo.Log({
@@ -193,11 +215,11 @@ module.exports = function (express, botApi, configs) {
 
             return logRecord.save()
         },
-        updateUser = function (user) {
+        updateUser = function (user, callback) {
             if (!user) {
                 return {};
             }
-            return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {upsert: true});
+            return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {upsert: true}, callback);
         },
         searchAneks = function (searchPhrase, limit, skip) {
             return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
@@ -241,6 +263,76 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             });
         },
+        performCallbackQuery = function (queryData) {
+            switch (queryData[0]) {
+                case 'comment':
+                    var aneks = [];
+                    return getAllComments(queryData[1]).then(function (comments) {
+                        comments.forEach(function (comment) {
+                            aneks = aneks.concat(comment.response.items);
+                        });
+                        aneks = aneks.sort(function (a, b) {
+                            return b.likes.count - a.likes.count;
+                        }).slice(0, 3).map(function (comment, index) {
+                            comment.text = (index + 1) + ' место:\n' + comment.text;
+                            comment.reply_to_message_id = data.callback_query.message.message_id;
+                            comment.disableButtons = true;
+                            comment.forceAttachments = true;
+                            return comment;
+                        });
+
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                            .finally(function () {
+                                return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks)
+                                // .finally(function () {
+                                //     var editedMessage = {
+                                //         chat_id: data.callback_query.message.chat.id,
+                                //         message_id: data.callback_query.message.message_id,
+                                //         disableComments: true
+                                //     };
+                                //
+                                //     return botApi.bot.editMessageButtons(editedMessage);
+                                // })
+                                // message editing is temporary disabled
+                            });
+                    });
+                    break;
+                case 'attach':
+                    return botApi.vk.getPostById(queryData[1]).then(function (posts) {
+                        var post = posts.response[0];
+
+                        if (!post) {
+                            throw new Error('Post not found');
+                        }
+                        if (!post.attachments) {
+                            throw new Error('Attachments not found');
+                        }
+
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                            .then(function () {
+                                var editedMessage = {
+                                    message_id: data.callback_query.message.message_id,
+                                    disableComments: true
+                                };
+
+                                return botApi.bot.editMessageButtons(editedMessage);
+                            })
+                            .finally(function () {
+                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
+                                // .finally(function () {
+                                //     var editedMessage = {
+                                //             chat_id: data.callback_query.message.chat.id,
+                                //             message_id: data.callback_query.message.message_id,
+                                //             forceAttachments: false
+                                //         };
+                                //
+                                //         return botApi.bot.editMessageButtons(editedMessage);
+                                //     })
+                                // message editing is temporary disabled
+                            });
+                    })
+            }
+        },
         performWebHook = function (data, response) {
             return q.Promise(function (resolve, reject) {
 
@@ -251,76 +343,17 @@ module.exports = function (express, botApi, configs) {
                     return reject(new Error('No webhook data specified'));
                 }
 
-                return resolve(data);
-            }).then(function () {
+                updateUser((data.message || {}).from, function (err, user) {
+                    if (err) {
+                        console.error(err);
+                        return resolve({});
+                    }
+                    return resolve(user);
+                });
+            }).then(function (user) {
                 if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
-                    switch (queryData[0]) {
-                        case 'comment':
-                            var aneks = [];
-                            return getAllComments(queryData[1]).then(function (comments) {
-                                comments.forEach(function (comment) {
-                                    aneks = aneks.concat(comment.response.items);
-                                });
-                                aneks = aneks.sort(function (a, b) {
-                                    return b.likes.count - a.likes.count;
-                                }).slice(0, 3).map(function (comment, index) {
-                                    comment.text = (index + 1) + ' место:\n' + comment.text;
-                                    comment.reply_to_message_id = data.callback_query.message.message_id;
-                                    comment.disableButtons = true;
-                                    comment.forceAttachments = true;
-                                    return comment;
-                                });
-
-                                return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                                    .finally(function () {
-                                        return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks)
-                                            // .finally(function () {
-                                            //     var editedMessage = {
-                                            //         chat_id: data.callback_query.message.chat.id,
-                                            //         message_id: data.callback_query.message.message_id,
-                                            //         disableComments: true
-                                            //     };
-                                            //
-                                            //     return botApi.bot.editMessageButtons(editedMessage);
-                                            // })
-                                    });
-                            });
-                            break;
-                        case 'attach':
-                            return botApi.vk.getPostById(queryData[1]).then(function (posts) {
-                                var post = posts.response[0];
-
-                                if (!post) {
-                                    throw new Error('Post not found');
-                                }
-                                if (!post.attachments) {
-                                    throw new Error('Attachments not found');
-                                }
-
-                                return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                                    .then(function () {
-                                        var editedMessage = {
-                                            message_id: data.callback_query.message.message_id,
-                                            disableComments: true
-                                        };
-
-                                        return botApi.bot.editMessageButtons(editedMessage);
-                                    })
-                                    .finally(function () {
-                                        return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
-                                            // .finally(function () {
-                                            //     var editedMessage = {
-                                            //             chat_id: data.callback_query.message.chat.id,
-                                            //             message_id: data.callback_query.message.message_id,
-                                            //             forceAttachments: false
-                                            //         };
-                                            //
-                                            //         return botApi.bot.editMessageButtons(editedMessage);
-                                            //     })
-                                    });
-                            })
-                    }
+                    return performCallbackQuery(queryData);
                 } else if (data.hasOwnProperty('inline_query')) {
                     return performInline(data.inline_query);
                 } else if (data.message) {
@@ -337,7 +370,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         if (commands[command[0]]) {
-                            return performCommand(command, data.message);
+                            return performCommand(command, data.message, user);
                         } else {
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));
@@ -355,7 +388,7 @@ module.exports = function (express, botApi, configs) {
                 return writeLog(data, {}, error).then(function () {
                     return error;
                 })
-            }).finally(updateUser.bind(this, (data.message || {}).from));
+            }).finally();
         },
         clearDatabases = function () {
             return q.all([
@@ -432,10 +465,14 @@ module.exports = function (express, botApi, configs) {
         }).catch(next);
     });
 
-    router.get('/toAdmin', function (req, res, next) {
-        return botApi.bot.sendMessageToAdmin(req.query.text || '').then(function (response) {
-            return res.send(JSON.stringify(response));
-        }).catch(next);
+    router.get('/grant', function (req, res) {
+        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+            return res.send('Unauthorized')
+        }
+
+        return botApi.mongo.User.findOneAndUpdate({user_id: 5630968}, {admin: true}).then(function () {
+            return res.send('ok');
+        });
     });
 
     router.route('/webhook')
@@ -444,6 +481,10 @@ module.exports = function (express, botApi, configs) {
         });
 
     router.get('/redefine', function (req, res, next) {
+        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+            return res.send('Unauthorized')
+        }
+
         return clearDatabases().then(redefineDatabase.bind(this, 0)).then(function (response) {
             return res.json('success ' + response.length);
         }).catch(function (error) {
@@ -453,6 +494,10 @@ module.exports = function (express, botApi, configs) {
     });
 
     router.get('/users', function (req, res, next) {
+        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+            return res.send('Unauthorized')
+        }
+
         var users = require('../config/users.json');
         return botApi.mongo.User.insertMany(users).then(function (data) {
             return res.json(data);
@@ -460,6 +505,9 @@ module.exports = function (express, botApi, configs) {
     });
 
     router.get('/command', function (req, res, next) {
+        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+            return res.send('Unauthorized')
+        }
         return performWebHook({
             message: {
                 text: req.query.query,
@@ -473,7 +521,7 @@ module.exports = function (express, botApi, configs) {
                     id: configs.bot.adminChat
                 }
             }
-        }).then(function (response) {
+        }, res).then(function (response) {
             return res.json(response);
         }).catch(next);
     });
