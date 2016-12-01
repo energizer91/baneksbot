@@ -286,7 +286,8 @@ module.exports = function (express, botApi, configs) {
                                     throw new Error('Attachments not found');
                                 }
 
-                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments);
+                                return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                                    .finally(botApi.bot.sendAttachments.bind(botApi.bot, data.callback_query.message.chat.id, post.attachments));
                             })
                     }
                 } else if (data.hasOwnProperty('inline_query')) {

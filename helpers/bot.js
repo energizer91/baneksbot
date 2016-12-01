@@ -6,7 +6,6 @@ module.exports = function (configs) {
     var botConfig = configs.bot,
         requestHelper = require('./request')(configs),
         Queue = require('promise-queue'),
-        vkApi = require('./vk')(configs),
         q = require('q'),
         botMethods = {
             sendRequest: function (request, params, method) {
@@ -103,7 +102,7 @@ module.exports = function (configs) {
                             });
                     }
 
-                    if (message.attachments) {
+                    if (message.attachments || message.attachments.length > 0) {
                         buttons.push({
                             text: 'Вложения',
                             callback_data: 'attach ' + message.post_id
