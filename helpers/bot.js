@@ -102,7 +102,7 @@ module.exports = function (configs) {
                             });
                     }
 
-                    if (message.attachments || message.attachments.length > 0) {
+                    if (message.attachments && message.attachments.length > 0) {
                         buttons.push({
                             text: 'Вложения',
                             callback_data: 'attach ' + message.post_id
