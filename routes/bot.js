@@ -263,7 +263,7 @@ module.exports = function (express, botApi, configs) {
                     return {
                         type: 'article',
                         id: anek.post_id.toString(),
-                        title: botApi.dict.translate(data.language, 'anek_number', {number: anek.post_id}),
+                        title: botApi.dict.translate(query.language, 'anek_number', {number: anek.post_id}),
                         input_message_content: {
                             message_text: anek.text,
                             parse_mode: 'HTML'
