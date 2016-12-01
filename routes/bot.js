@@ -271,17 +271,21 @@ module.exports = function (express, botApi, configs) {
                                     comment.forceAttachments = true;
                                     return comment;
                                 });
+                                console.log('callback_query', data.callback_query);
 
                                 return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                                    .then(function () {
-                                        var editedMessage = {
-                                            message_id: data.callback_query.message.message_id,
-                                            disableComments: true
-                                        };
+                                    .finally(function () {
+                                        return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks)
+                                            .finally(function () {
+                                            var editedMessage = {
+                                                chat_id: data.callback_query.message.chat.id,
+                                                message_id: data.callback_query.message.message_id,
+                                                disableComments: true
+                                            };
 
-                                        return botApi.bot.editMessageButtons(editedMessage);
-                                    })
-                                    .finally(botApi.bot.sendMessages.bind(botApi.bot, data.callback_query.message.chat.id, aneks));
+                                            return botApi.bot.editMessageButtons(editedMessage);
+                                        })
+                                    });
                             });
                             break;
                         case 'attach':
@@ -304,7 +308,18 @@ module.exports = function (express, botApi, configs) {
 
                                         return botApi.bot.editMessageButtons(editedMessage);
                                     })
-                                    .finally(botApi.bot.sendAttachments.bind(botApi.bot, data.callback_query.message.chat.id, post.attachments));
+                                    .finally(function () {
+                                        return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
+                                            .finally(function () {
+                                                var editedMessage = {
+                                                    chat_id: data.callback_query.message.chat.id,
+                                                    message_id: data.callback_query.message.message_id,
+                                                    forceAttachments: false
+                                                };
+
+                                                return botApi.bot.editMessageButtons(editedMessage);
+                                            })
+                                    });
                             })
                     }
                 } else if (data.hasOwnProperty('inline_query')) {

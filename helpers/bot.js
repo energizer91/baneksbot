@@ -120,7 +120,7 @@ module.exports = function (configs) {
                 message.reply_markup = this.prepareButtons(message);
 
                 return this.sendRequest('editMessageText', message).then(function (response) {
-                    console.log(JSON.stringify(response));
+                    //console.log(JSON.stringify(response));
                     return response;
                 });
             },
@@ -163,7 +163,7 @@ module.exports = function (configs) {
 
                 return this.sendRequest('sendMessage', sendMessage).then(function (response) {
                     return this.sendAttachments(userId, attachments).then(function () {
-                        console.log(JSON.stringify(response));
+                        //console.log(JSON.stringify(response));
                         return response;
                     })
                 }.bind(this));
