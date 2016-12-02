@@ -6,6 +6,7 @@ module.exports = function () {
     var q = require('q'),
         url = require('url'),
         requestLimiter = require('request-rate-limiter'),
+        request = require('request'),
         limiter = new requestLimiter({
             rate: 30,
             interval: 1
@@ -17,16 +18,30 @@ module.exports = function () {
                 throw new Error('URL not specified');
             }
 
-            return limiter.request({
-                url: url,
-                method: 'POST',
-                formData: params || {}
-            }).then(function (response) {
-                if (returnStream) {
-                    return response;
-                }
+            return limiter.request().then(function (backoff) {
+                return q.Promise(function (resolve, reject) {
+                    return request({
+                        url: url,
+                        method: 'POST',
+                        formData: params || {}
+                    }, function(err, response, body) {
+                        if (err) {
+                            return reject(err);
+                        }
+                        else if (response.statusCode === 429) {
 
-                return JSON.parse(response.body);
+                            // we have to back off. this callback will be called again as soon as the remote enpoint
+                            // should accept requests again. no need to queue your callback another time on the limiter.
+                            backoff();
+                        }
+                        else {
+                            if (returnStream) {
+                                return resolve(response);
+                            }
+                            return resolve(JSON.parse(body));
+                        }
+                    });
+                });
             });
         },
         prepareConfig: function (targetUrl, method) {
