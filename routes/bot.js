@@ -234,7 +234,7 @@ module.exports = function (express, botApi, configs) {
             if (!user) {
                 return {};
             }
-            return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {upsert: true}, callback);
+            return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {new: true, upsert: true}, callback);
         },
         searchAneks = function (searchPhrase, limit, skip) {
             return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
