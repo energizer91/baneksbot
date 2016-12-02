@@ -20,7 +20,7 @@ module.exports = function (configs) {
             copy_history: Array,
             date: Number,
             from_id: Number,
-            post_id: {type: Number, index: true},
+            post_id: Number,
             owner_id: Number,
             signer_id: Number,
             is_pinned: Boolean,
@@ -53,8 +53,6 @@ module.exports = function (configs) {
             error: Object
         });
 
-    anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "TextIndex", default_language: "russian"});
-
     anekSchema.statics.random = function() {
         var self = this;
         return self.count().then(function (count) {
@@ -64,6 +62,9 @@ module.exports = function (configs) {
     };
 
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
+
+    anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
+
 
     return {
         Anek: mongoose.model('Anek', anekSchema),
