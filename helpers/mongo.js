@@ -53,7 +53,7 @@ module.exports = function (configs) {
             error: Object
         });
 
-    anekSchema.index({text: 'text'});
+    anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "TextIndex", default_language: "russian"});
 
     anekSchema.statics.random = function() {
         var self = this;

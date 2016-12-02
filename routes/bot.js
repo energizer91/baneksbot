@@ -515,28 +515,6 @@ module.exports = function (express, botApi, configs) {
         }).catch(next);
     });
 
-    router.get('/command', function (req, res, next) {
-        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
-            return res.send('Unauthorized')
-        }
-        return performWebHook({
-            message: {
-                text: req.query.query,
-                chat: {
-                    id: configs.bot.adminChat
-                },
-                from: {
-                    first_name: 'Alexander',
-                    last_name: 'Bareyko',
-                    username: 'energizer91',
-                    id: configs.bot.adminChat
-                }
-            }
-        }, res).then(function (response) {
-            return res.json(response);
-        }).catch(next);
-    });
-
     return {
         endPoint: '/bot',
         router: router
