@@ -65,6 +65,11 @@ app.get('/enableUpdate', function (req, res) {
     return res.send('Update has been enabled');
 });
 
+app.get('/testMessage', function (req, res) {
+    dbUpdater.send({type: 'service', action: 'message', value: configs.bot.adminChat});
+    return res.send('Update has been enabled');
+});
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
     var err = new Error('Not Found');
