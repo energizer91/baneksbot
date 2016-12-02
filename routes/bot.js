@@ -16,7 +16,9 @@ module.exports = function (express, botApi, configs) {
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return botApi.mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
                         return botApi.bot.sendMessage(message.chat.id, anek, user.language);
-                    }).catch(console.error);
+                    }).catch(function (error) {
+                        console.log(error);
+                    });
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
                     return botApi.bot.sendMessage(message.chat.id, anek, user.language);
@@ -297,7 +299,7 @@ module.exports = function (express, botApi, configs) {
                         });
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .finally(function () {
+                            .then(function () {
                                 return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, data.language)
                                 // .finally(function () {
                                 //     var editedMessage = {
@@ -324,7 +326,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .finally(function () {
+                            .then(function () {
                                 return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
                                 // .finally(function () {
                                 //     var editedMessage = {
@@ -399,7 +401,7 @@ module.exports = function (express, botApi, configs) {
                 return writeLog(data, {}, error).then(function () {
                     return error;
                 })
-            }).finally();
+            });
         },
         clearDatabases = function () {
             return q.all([
