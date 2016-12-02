@@ -8,13 +8,14 @@ module.exports = function (configs) {
 
     return {
         executeCommand: function(command, params, method) {
-            var vkUrl = config.url + command;
+            var vkUrl = config.url + command,
+                parameters = requestHelper.prepareConfig(vkUrl, method);
 
             if (config.api_version) {
                 params.v = config.api_version;
             }
 
-            return requestHelper.makeRequest(vkUrl, params);
+            return requestHelper.makeRequest(parameters, params);
         },
         getPostById: function (postId, params) {
             if (!params) {

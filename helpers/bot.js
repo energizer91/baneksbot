@@ -9,10 +9,11 @@ module.exports = function (configs) {
         Queue = require('promise-queue'),
         q = require('q'),
         botMethods = {
-            sendRequest: function (request, params) {
-                var botUrl = botConfig.url + botConfig.token + '/' + request;
+            sendRequest: function (request, params, method) {
+                var botUrl = botConfig.url + botConfig.token + '/' + request,
+                    parameters = requestHelper.prepareConfig(botUrl, method);
 
-                return requestHelper.makeRequest(botUrl, params);
+                return requestHelper.makeRequest(parameters, params);
             },
             sendInline: function (inlineId, results, next_offset) {
                 return this.sendRequest('answerInlineQuery', {
@@ -26,10 +27,12 @@ module.exports = function (configs) {
                 if (!load) {
                     load = {};
                 }
-
-                load.callback_query_id = queryId;
-
-                return this.sendRequest('answerCallbackQuery', load);
+                return this.sendRequest('answerCallbackQuery', {
+                    callback_query_id: queryId,
+                    text: load.text,
+                    show_alert: load.show_alert,
+                    url: load.url
+                });
             },
             sendChatAction: function (userId, action) {
                 return this.sendRequest('sendChatAction', {
@@ -46,18 +49,29 @@ module.exports = function (configs) {
                 var sendCommand = attachment.command;
                 delete attachment.command;
 
-                attachment.chat_id = userId;
 
-                if (attachment.useStream) {
-                    return this.sendChatAction(userId, attachment.sendAction)
-                        .then(requestHelper.makeRequest.bind(this, attachment[attachment.type], {}, true))
-                        .then(function (stream) {
-                            attachment[attachment.type] = stream;
-                            return stream
+                if (attachment.audio) {
+                    return this.sendChatAction(userId, 'upload_audio')
+                        .then(function () {
+                        var parameters = requestHelper.prepareConfig(attachment.audio, 'GET');
+
+                        console.log('sending audio', attachment.audio);
+
+                        return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
+                            var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
+                                parameters = requestHelper.prepareConfig(botUrl, 'POST');
+                            return requestHelper.sendFile(parameters, {
+                                chat_id: userId,
+                                title: attachment.title
+                            }, {
+                                type: 'audio',
+                                file: stream,
+                                name: attachment.id + '.mp3'
+                            });
+                        });
                         })
-                        .then(this.sendRequest.bind(this, sendCommand, attachment))
                 }
-
+                attachment.chat_id = userId;
                 return this.sendChatAction(userId, attachment.sendAction)
                     .then(this.sendRequest.bind(this, sendCommand, attachment));
             },
@@ -189,7 +203,7 @@ module.exports = function (configs) {
                             || attachment.photo.photo_604
                             || attachment.photo.photo_130
                             || attachment.photo.photo_75,
-                            caption: attachment.text || ''
+                            caption: attachment.text
                         };
                         break;
                     /*case 'video':
@@ -211,16 +225,13 @@ module.exports = function (configs) {
                             command: 'sendDocument',
                             sendAction: 'upload_document',
                             document: attachment.doc.url,
-                            caption: attachment.doc.title || ''
+                            caption: attachment.doc.title
                         };
                         break;
                     case 'audio':
                         return {
                             command: 'sendAudio',
                             audio: attachment.audio.url,
-                            sendAction: 'upload_audio',
-                            useStream: true,
-                            type: 'audio',
                             title: attachment.audio.artist + ' - ' + attachment.audio.title
                         };
                         break;

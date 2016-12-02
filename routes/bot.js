@@ -16,9 +16,7 @@ module.exports = function (express, botApi, configs) {
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return botApi.mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
                         return botApi.bot.sendMessage(message.chat.id, anek, user.language);
-                    }).catch(function (error) {
-                        console.log(error);
-                    });
+                    }).catch(console.error);
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
                     return botApi.bot.sendMessage(message.chat.id, anek, user.language);
@@ -299,7 +297,7 @@ module.exports = function (express, botApi, configs) {
                         });
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .then(function () {
+                            .finally(function () {
                                 return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, data.language)
                                 // .finally(function () {
                                 //     var editedMessage = {
@@ -326,7 +324,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .then(function () {
+                            .finally(function () {
                                 return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
                                 // .finally(function () {
                                 //     var editedMessage = {
@@ -354,12 +352,12 @@ module.exports = function (express, botApi, configs) {
 
                 var userObject = data.message || data.inline_query || data.callback_query;
 
-                updateUser((userObject || {}), function (err, user) {
+                updateUser((userObject || {}).from, function (err, user) {
                     if (err) {
                         console.error(err);
                         return resolve({});
                     }
-                    return resolve(user || {});
+                    return resolve(user);
                 });
             }).then(function (user) {
                 if (data.hasOwnProperty('callback_query')) {
@@ -383,7 +381,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         if (commands[command[0]]) {
-                            return performCommand(command, message, user || {});
+                            return performCommand(command, message, user);
                         } else {
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));
@@ -401,7 +399,7 @@ module.exports = function (express, botApi, configs) {
                 return writeLog(data, {}, error).then(function () {
                     return error;
                 })
-            });
+            }).finally();
         },
         clearDatabases = function () {
             return q.all([
