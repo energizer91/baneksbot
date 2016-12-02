@@ -42,7 +42,13 @@ module.exports = function (configs) {
         },
         getPostsCount: function () {
             return this.getPosts({offset: 0, count: 1}).then(function (count) {
-                return (count.response || {}).count || 0;
+                var postCount = (count.response || {}).count || 0;
+
+                if (postCount > 0 && count.response.items[0].is_pinned) {
+                    postCount--;
+                }
+
+                return postCount;
             })
         },
         getComments: function (params) {
