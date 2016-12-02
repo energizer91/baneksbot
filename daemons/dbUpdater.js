@@ -100,7 +100,7 @@ var getAllAneks = function (start) {
             return mongo.User.find({subscribed: true/*user_id: {$in: [85231140, 5630968, 226612010]}*/}).then(function (users) {
                 aneks.forEach(function (anek) {
                     users.forEach(function (user) {
-                        process.send({type: 'message', userId: user.user_id, message: anek});
+                        process.send({type: 'message', userId: user.user_id, message: anek, language: user.language});
                     })
                 });
             });
@@ -133,6 +133,11 @@ process.on('message', function(m) {
             case 'update':
                 console.log('Switch automatic updates to', m.value);
                 forceDenyUpdate = !m.value;
+                break;
+            case 'message':
+                mongo.User.findOne({user_id: m.value}).then(function (user) {
+                    process.send({type: 'message', userId: user.user_id, message: 'Проверка', language: user.language});
+                    });
                 break;
             default:
                 console.log('Unknown service command');
