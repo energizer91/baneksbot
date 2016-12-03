@@ -76,16 +76,16 @@ module.exports = function (configs) {
                     .then(this.sendRequest.bind(this, sendCommand, attachment));
             },
             prepareButtons: function (message, language) {
-                var buttons = [];
+                var buttons = [[]];
 
                 if (!message.disableButtons) {
-                    buttons.push({
+                    buttons[0].push({
                         text: dict.translate(language, 'go_to_anek'),
                         url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
                     });
 
                     if (!message.disableComments) {
-                        buttons.push({
+                        buttons[0].push({
                             text: dict.translate(language, 'comments'),
                             callback_data: 'comment ' + message.post_id
                         });
@@ -93,7 +93,8 @@ module.exports = function (configs) {
                 }
 
                 if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
-                    buttons.push({
+                    buttons.push([]);
+                    buttons[1].push({
                         text: dict.translate(language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
                     })
@@ -152,9 +153,7 @@ module.exports = function (configs) {
 
                     if (buttons.length > 0) {
                         sendMessage.reply_markup = JSON.stringify({
-                            inline_keyboard: [
-                                buttons
-                            ]
+                            inline_keyboard: buttons
                         });
                     }
 
