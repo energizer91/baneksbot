@@ -96,9 +96,7 @@ module.exports = function (configs) {
                 }
 
                 if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
-                    if (!buttons.length) {
-                        buttons.push([]);
-                    }
+                    buttons.push([]);
                     buttons[buttons.length - 1].push({
                         text: dict.translate(language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
