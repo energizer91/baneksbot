@@ -82,13 +82,13 @@ module.exports = function (configs) {
                     if (!buttons.length) {
                         buttons.push([]);
                     }
-                    buttons[0].push({
+                    buttons[buttons.length - 1].push({
                         text: dict.translate(language, 'go_to_anek'),
                         url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
                     });
 
                     if (!message.disableComments) {
-                        buttons[0].push({
+                        buttons[buttons.length - 1].push({
                             text: dict.translate(language, 'comments'),
                             callback_data: 'comment ' + message.post_id
                         });
@@ -99,7 +99,7 @@ module.exports = function (configs) {
                     if (!buttons.length) {
                         buttons.push([]);
                     }
-                    buttons[1].push({
+                    buttons[buttons.length - 1].push({
                         text: dict.translate(language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
                     })
