@@ -122,9 +122,9 @@ var getAllAneks = function (start) {
         }).done();
     };
 
-//setTimeout(updateAneksTimer, 30000);
+setTimeout(updateAneksTimer, 30000);
 
-//setTimeout(refreshAneksTimer, 130000);
+setTimeout(refreshAneksTimer, 130000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
