@@ -131,8 +131,11 @@ module.exports = function (configs) {
                 }
 
                 if (message && message.copy_history && message.copy_history.length && message.post_id) {
-                    message.copy_history[0].post_id = message.post_id;
-                    return this.sendMessage(userId, message.copy_history[0], language);
+                    var insideMessage = message.copy_history[0];
+                    insideMessage.post_id = message.post_id;
+                    insideMessage.from_id = message.from_id;
+                    insideMessage.text = message.text + (message.text.length ? '\n' : '') + insideMessage.text;
+                    return this.sendMessage(userId, insideMessage, language);
                 }
                 var sendMessage,
                     attachments = [];

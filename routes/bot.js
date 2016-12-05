@@ -298,7 +298,7 @@ module.exports = function (express, botApi, configs) {
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .finally(function () {
-                                return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, data.language)
+                                return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, data.language);
                                 // .finally(function () {
                                 //     var editedMessage = {
                                 //         chat_id: data.callback_query.message.chat.id,
@@ -319,13 +319,18 @@ module.exports = function (express, botApi, configs) {
                         if (!post) {
                             throw new Error('Post not found');
                         }
-                        if (!post.attachments) {
+
+                        if (!post.attachments && !post.copy_history) {
                             throw new Error('Attachments not found');
+                        }
+
+                        while (!post.attachments && post.copy_history) {
+                            post = post.copy_history[0];
                         }
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .finally(function () {
-                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments)
+                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments);
                                 // .finally(function () {
                                 //     var editedMessage = {
                                 //             chat_id: data.callback_query.message.chat.id,
