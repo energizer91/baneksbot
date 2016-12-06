@@ -8,46 +8,16 @@ module.exports = function () {
         queryString = require('querystring'),
         url = require('url'),
         formData = require('form-data'),
+        RateLimiter = require('request-rate-limiter'),
+        limiter = new RateLimiter({
+            rate: 30,
+            interval: 1,
+            backoffCode: 429,
+            backOffTime: 300
+        }),
         https = require('https');
 
     return {
-        sendFile: function (config, params, file) {
-            if (!config) {
-                throw new Error('Config not specified');
-            }
-
-            if (!file) {
-                throw new Error ('File not specified');
-            }
-
-            var form = new formData();
-            for (var field in params) {
-                if (params.hasOwnProperty(field)) {
-                    form.append(field, params[field]);
-                }
-            }
-
-            form.append(file.type, file.file, file.name);
-            config.headers = form.getHeaders();
-
-            return q.Promise(function (resolve, reject) {
-                form.submit(config, function (err, res) {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    var result = '';
-
-                    res.setEncoding('utf8');
-                    res.on('end', function() {
-                        return resolve(JSON.parse(result));
-                    });
-                    res.on('data', function (chunk) {
-                        result += chunk;
-                    });
-                });
-            })
-        },
         makeRequest: function (config, params, returnStream) {
             if (!config) {
                 throw new Error('Config not specified');
@@ -59,60 +29,85 @@ module.exports = function () {
 
             return q.Promise(function (resolve, reject) {
 
-                var result = '',
-                    req = (config.protocol == 'https:' ? https : http).request(config);
-
-                req.on('response', function (res) {
-                    var code = res.statusCode;
-
-                    //console.log('STATUS: ' + res.statusCode);
-                    //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                    if (returnStream) {
-                        return resolve(res);
+                limiter.request(function (err, backoff) {
+                    if (err) {
+                        return reject(err);
                     }
-                    res.setEncoding('utf8');
-                    res.on('end', function() {
-                        //console.log('No more data in response.');
-                        if (code >= 400 && code <= 600) {
+
+                    if ((config.method && config.method.toLowerCase() === 'post') && params) {
+                        //req.write(queryString.stringify(params));
+                        var form = new formData();
+                        for (var field in params) {
+                            if (params.hasOwnProperty(field)) {
+                                form.append(field, params[field]);
+                            }
+                        }
+
+                        config.headers = form.getHeaders();
+                    }
+
+                    var result = '',
+                        req = (config.protocol == 'https:' ? https : http).request(config);
+
+                    req.on('response', function (res) {
+                        var code = res.statusCode;
+
+                        //console.log('STATUS: ' + res.statusCode);
+                        //console.log('HEADERS: ' + JSON.stringify(res.headers));
+                        if (returnStream) {
+                            return resolve(res);
+                        }
+                        res.setEncoding('utf8');
+                        res.on('end', function() {
                             var returnResult;
-                            console.error('An error occured with code ' + code);
                             try {
                                 returnResult = JSON.parse(result);
                             } catch(e) {
                                 returnResult = result;
                             }
-
-                            return reject(returnResult);
-                        }
-                        //console.log(result);
-                        return resolve(JSON.parse(result));
+                            //console.log('No more data in response.');
+                            if (code == 429) {
+                                backoff();
+                            }
+                            if (code >= 400 && code <= 600) {
+                                console.error('An error occured with code ' + code);
+                                return reject(returnResult);
+                            }
+                            //console.log(result);
+                            return resolve(returnResult);
+                        });
+                        res.on('data', function (chunk) {
+                            //console.log('BODY: ' + chunk);
+                            result += chunk;
+                        });
                     });
-                    res.on('data', function (chunk) {
-                        //console.log('BODY: ' + chunk);
-                        result += chunk;
+
+                    req.on('error', function(e) {
+                        return reject(e);
                     });
-                });
 
-                req.on('error', function(e) {
-                    return reject(e);
-                });
+                    if ((config.method && config.method.toLowerCase() === 'post') && params) {
+                        form.pipe(req);
 
-                if ((config.method && config.method.toLowerCase() === 'post') && params) {
-                    req.write(queryString.stringify(params));
-                }
-                req.end();
+                        form.on('end', function () {
+                            req.end();
+                        })
+                    } else {
+                        req.end();
+                    }
+                });
             });
         },
         prepareConfig: function (targetUrl, method) {
             var parsedUrl = url.parse(targetUrl);
-            return {
-                protocol: parsedUrl.protocol || 'http:',
-                hostname: parsedUrl.hostname,
-                port: parsedUrl.port,
-                path: parsedUrl.path,
-                method: method && typeof method == 'string' ? method.toUpperCase() : 'GET',
-                headers: {}
+            if (!parsedUrl.protocol) {
+                parsedUrl.protocol = 'http:';
             }
+
+            parsedUrl.method = method && typeof method == 'string' ? method.toUpperCase() : 'GET';
+            parsedUrl.headers = {};
+
+            return parsedUrl;
         },
         fulfillAll: function (requests) {
             var results = [];

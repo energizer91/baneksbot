@@ -49,31 +49,25 @@ module.exports = function (configs) {
                 var sendCommand = attachment.command;
                 delete attachment.command;
 
-
-                if (attachment.audio) {
-                    return this.sendChatAction(userId, 'upload_audio')
-                        .then(function () {
-                        var parameters = requestHelper.prepareConfig(attachment.audio, 'GET');
-
-                        console.log('sending audio', attachment.audio);
-
-                        return requestHelper.makeRequest(parameters, {}, true).then(function (stream) {
-                            var botUrl = botConfig.url + botConfig.token + '/' + 'sendAudio',
-                                parameters = requestHelper.prepareConfig(botUrl, 'POST');
-                            return requestHelper.sendFile(parameters, {
-                                chat_id: userId,
-                                title: attachment.title
-                            }, {
-                                type: 'audio',
-                                file: stream,
-                                name: attachment.id + '.mp3'
-                            });
-                        });
-                        })
-                }
                 attachment.chat_id = userId;
                 return this.sendChatAction(userId, attachment.sendAction)
-                    .then(this.sendRequest.bind(this, sendCommand, attachment));
+                    .then(function () {
+                        if (attachment.useStream) {
+                            var parameters = requestHelper.prepareConfig(attachment[attachment.type], 'GET');
+
+                            console.log('sending stream', attachment[attachment.type]);
+
+                            return requestHelper.makeRequest(parameters, {}, attachment.useStream).then(function (stream) {
+                                var botUrl = botConfig.url + botConfig.token + '/' + sendCommand,
+                                    parameters = requestHelper.prepareConfig(botUrl, 'POST');
+
+                                attachment[attachment.type] = stream;
+                                delete attachment.useStream;
+                                return requestHelper.makeRequest(parameters, attachment);
+                            });
+                        }
+                        return this.sendRequest(sendCommand, attachment);
+                    }.bind(this));
             },
             prepareButtons: function (message, language) {
                 var buttons = [];
@@ -236,6 +230,9 @@ module.exports = function (configs) {
                     case 'audio':
                         return {
                             command: 'sendAudio',
+                            type: 'audio',
+                            sendAction: 'upload_audio',
+                            useStream: true,
                             audio: attachment.audio.url,
                             title: attachment.audio.artist + ' - ' + attachment.audio.title
                         };
