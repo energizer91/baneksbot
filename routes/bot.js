@@ -349,7 +349,7 @@ module.exports = function (express, botApi, configs) {
             return q.Promise(function (resolve, reject) {
 
                 response.status(200);
-                response.send('OK');
+                response.json({status: 'OK'});
 
                 if (!data) {
                     return reject(new Error('No webhook data specified'));

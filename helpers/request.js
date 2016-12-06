@@ -13,8 +13,8 @@ module.exports = function () {
             rate: 30,
             interval: 1,
             backoffCode: 429,
-            backOffTime: 100,
-            maxWaitingTime: 120
+            backOffTime: 10,
+            maxWaitingTime: 300
         }),
         https = require('https');
 
@@ -30,11 +30,7 @@ module.exports = function () {
 
             return q.Promise(function (resolve, reject) {
 
-                limiter.request(function (err, backoff) {
-                    if (err) {
-                        return reject(err);
-                    }
-
+                limiter.request().then(function (backoff) {
                     if ((config.method && config.method.toLowerCase() === 'post') && params) {
                         //req.write(queryString.stringify(params));
                         var form = new formData();
@@ -68,7 +64,8 @@ module.exports = function () {
                             }
                             //console.log('No more data in response.');
                             if (code == 429) {
-                                backoff();
+                                console.log('backin\' off request in', returnResult.parameters.retry_after);
+                                return backoff();
                             }
                             if (code >= 400 && code <= 600) {
                                 console.error('An error occured with code ' + code);
@@ -96,6 +93,8 @@ module.exports = function () {
                     } else {
                         req.end();
                     }
+                }).catch(function (err) {
+                    return reject(err);
                 });
             });
         },
