@@ -10,11 +10,11 @@ module.exports = function () {
         formData = require('form-data'),
         RateLimiter = require('request-rate-limiter'),
         limiter = new RateLimiter({
-            rate: 20,
+            rate: 30,
             interval: 1,
             backoffCode: 429,
-            backOffTime: 200,
-            maxWaitingTime: 300
+            backOffTime: 100,
+            maxWaitingTime: 120
         }),
         https = require('https');
 
