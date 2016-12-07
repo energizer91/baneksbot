@@ -49,7 +49,7 @@ var childQueue = new Queue(1, Infinity);
 
 dbUpdater.on('message', function (m) {
     if (m.type == 'message' && m.message) {
-        childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.language));
+        childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
     } else {
         console.log('PARENT got message:', m);
     }

@@ -69,21 +69,25 @@ module.exports = function (configs) {
                         return this.sendRequest(sendCommand, attachment);
                     }.bind(this));
             },
-            prepareButtons: function (message, language) {
+            prepareButtons: function (message, params) {
                 var buttons = [];
 
-                if (!message.disableButtons) {
+                if (!params) {
+                    params = {};
+                }
+
+                if (!params.disableButtons) {
                     if (!buttons.length) {
                         buttons.push([]);
                     }
                     buttons[buttons.length - 1].push({
-                        text: dict.translate(language, 'go_to_anek'),
+                        text: dict.translate(params.language, 'go_to_anek'),
                         url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
                     });
 
-                    if (!message.disableComments) {
+                    if (!params.disableComments) {
                         buttons[buttons.length - 1].push({
-                            text: dict.translate(language, 'comments'),
+                            text: dict.translate(params.language, 'comments'),
                             callback_data: 'comment ' + message.post_id
                         });
                     }
@@ -92,7 +96,7 @@ module.exports = function (configs) {
                 if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
                     buttons.push([]);
                     buttons[buttons.length - 1].push({
-                        text: dict.translate(language, 'attachments'),
+                        text: dict.translate(params.language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
                     })
                 }
@@ -123,9 +127,13 @@ module.exports = function (configs) {
                     return response;
                 });
             },
-            sendMessage: function (userId, message, language) {
+            sendMessage: function (userId, message, params) {
                 if (!message) {
                     return;
+                }
+
+                if (!params) {
+                    params = {};
                 }
 
                 if (message && message.copy_history && message.copy_history.length && message.post_id) {
@@ -133,7 +141,7 @@ module.exports = function (configs) {
                     insideMessage.post_id = message.post_id;
                     insideMessage.from_id = message.from_id;
                     insideMessage.text = message.text + (message.text.length ? '\n' : '') + insideMessage.text;
-                    return this.sendMessage(userId, insideMessage, language);
+                    return this.sendMessage(userId, insideMessage, params);
                 }
                 var sendMessage,
                     attachments = [];
@@ -144,7 +152,7 @@ module.exports = function (configs) {
                         text: message
                     };
                 } else {
-                    var buttons = this.prepareButtons(message, language);
+                    var buttons = this.prepareButtons(message, params);
 
                     sendMessage = {
                         chat_id: userId,
@@ -157,8 +165,12 @@ module.exports = function (configs) {
                         });
                     }
 
-                    if (message.forceAttachments) {
+                    if (params.forceAttachments) {
                         attachments = (message.attachments || []);
+                    }
+
+                    if (params.parse_mode) {
+                        sendMessage.parse_mode = params.parse_mode;
                     }
                 }
 
@@ -169,10 +181,10 @@ module.exports = function (configs) {
                     })
                 }.bind(this));
             },
-            sendMessages: function (userId, messages, language) {
+            sendMessages: function (userId, messages, params) {
                 var messageQueue = new Queue(1, Infinity);
                 return (messages || []).reduce(function (p, message) {
-                    return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, language)));
+                    return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, params)));
                 }.bind(this), q.when());
             },
             sendMessageToAdmin: function (text) {
