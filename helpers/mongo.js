@@ -48,7 +48,7 @@ module.exports = function (configs) {
             client: {type: String, default: 'web'}
         }),
         logSchema = mongoose.Schema({
-            date: Number,
+            date: Date,
             request: Object,
             response: Object,
             error: Object
@@ -65,6 +65,7 @@ module.exports = function (configs) {
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
     anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
+    logSchema.index({date: 1}, {expireAfterSeconds: 10});
 
 
     return {

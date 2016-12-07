@@ -145,18 +145,17 @@ module.exports = function (express, botApi, configs) {
                 }
             },
             '/unfeedback': function (command, message, user) {
-                if (!user.feedback_mode) {
+                if (command[1] && user.admin) {
+                    command.splice(0, 1);
+
+                    var userId = command.splice(0, 1)[0];
+
+                    return botApi.mongo.User.findOneAndUpdate({user_id: userId}, {feedback_mode: false}).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Режим службы поддержки для пользователя ' + userId + ' отключен.');
+                    });
+                } else if (!user.feedback_mode) {
                     return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи и так отключен.');
                 } else {
-                    if (command[1] && user.admin) {
-                        command.splice(0, 1);
-
-                        var userId = command.splice(0, 1)[0];
-
-                        return botApi.mongo.User.findOneAndUpdate({user_id: userId}, {feedback_mode: false}).then(function () {
-                            return botApi.bot.sendMessage(message.chat.id, 'Режим службы поддержки для пользователя ' + userId + ' отключен.');
-                        });
-                    }
                     user.feedback_mode = false;
                     return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
                         return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи отключен.');
@@ -263,7 +262,7 @@ module.exports = function (express, botApi, configs) {
         },
         writeLog = function (data, result, error) {
             var logRecord = new botApi.mongo.Log({
-                date: Math.floor(new Date().getTime() / 1000),
+                date: new Date(),
                 request: data,
                 response: result,
                 error: error
