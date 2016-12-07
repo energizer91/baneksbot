@@ -127,6 +127,42 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
+            '/feedback': function (command, message, user) {
+                if (command[1] && user.admin) {
+                    command.splice(0, 1);
+
+                    var userId = command.splice(0, 1)[0];
+
+                    return botApi.bot.sendMessage(userId, 'Сообщение от службы поддержки: ' + command.join(' '));
+                } else if (user.feedback_mode) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме обратной связи.');
+                } else {
+                    user.feedback_mode = true;
+                    return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи включен. Вы можете писать сюда' +
+                            'любой текст (кроме команд) и он будет автоматически переведен в команду поддержки');
+                    });
+                }
+            },
+            '/unfeedback': function (command, message, user) {
+                if (!user.feedback_mode) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи и так отключен.');
+                } else {
+                    if (command[1] && user.admin) {
+                        command.splice(0, 1);
+
+                        var userId = command.splice(0, 1)[0];
+
+                        return botApi.mongo.User.findOneAndUpdate({user_id: userId}, {feedback_mode: false}).then(function () {
+                            return botApi.bot.sendMessage(message.chat.id, 'Режим службы поддержки для пользователя ' + userId + ' отключен.');
+                        });
+                    }
+                    user.feedback_mode = false;
+                    return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи отключен.');
+                    });
+                }
+            },
             '/find': function (command, message, user) {
                 command.splice(0, 1);
 
@@ -393,6 +429,12 @@ module.exports = function (express, botApi, configs) {
                         if (commands[command[0]]) {
                             return performCommand(command, message, user);
                         } else {
+                            if (user.feedback_mode) {
+                                message.text = 'Сообщение от пользователя ' + message.chat.id +
+                                    ' (' + (message.chat.first_name || '') + ' ' +
+                                    (message.chat.last_name || '') + '): ' + message.text;
+                                return botApi.bot.sendMessageToAdmin(message);
+                            }
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));
                         }
@@ -409,7 +451,7 @@ module.exports = function (express, botApi, configs) {
                 return writeLog(data, {}, error).then(function () {
                     return error;
                 })
-            }).finally();
+            });
         },
         clearDatabases = function () {
             return q.all([
