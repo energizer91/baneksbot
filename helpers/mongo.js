@@ -44,6 +44,7 @@ module.exports = function (configs) {
             subscribed: {type: Boolean, default: false},
             feedback_mode: {type: Boolean, default: false},
             admin: {type: Boolean, default: false},
+            banned: {type: Boolean, default: false},
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'}
         }),
@@ -65,7 +66,7 @@ module.exports = function (configs) {
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
     anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
-    logSchema.index({date: 1}, {expireAfterSeconds: 10});
+    logSchema.index({date: 1}, {expireAfterSeconds: 60 * 60 * 24 * 7});
 
 
     return {

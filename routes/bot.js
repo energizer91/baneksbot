@@ -65,11 +65,6 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(parseInt(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
                 }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Привилегии присвоены.'));
             },
-            '/happy_birthday': function (command, message) {
-                return botApi.bot.sendMessageToAdmin('Вас поздравляет с днем рождения пользователь ' +
-                    '' + message.from.first_name + ' ' + message.from.last_name + ' (' + message.from.id + ')!')
-                    .then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Большое спасибо! Мой создатель будет вам очень признателен.'))
-            },
             '/user': function (command, message, user) {
                 if (command[1] == 'count') {
                     return botApi.mongo.User.count().then(function (count) {
@@ -84,11 +79,15 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.mongo.User.findOne({user_id: command[1] || message.chat.id}).then(function (user) {
                     return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.user_id + ':\n' +
-                        'Имя: ' + user.first_name + '\n' +
-                        'Фамилия: ' + user.last_name + '\n' +
-                        'Ник: ' + user.username + '\n' +
+                        'Имя: ' + (user.first_name || 'Не указано') + '\n' +
+                        'Фамилия: ' + (user.last_name || 'Не указано') + '\n' +
+                        'Ник: ' + (user.username || 'Не указано') + '\n' +
                         'Статус подписки: ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
-                        'Платформа: ' + user.client || 'Не выбрано');
+                        'Статус обратной связи: ' + (user.feedback_mode ? 'Включен' : 'Выключен') + '\n' +
+                        'Статус администратора: ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
+                        'Статус бана: ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
+                        'Язык: ' + (user.language || 'Не выбран') + '\n' +
+                        'Платформа: ' + (user.client || 'Не выбрана'));
                 })
             },
             '/anek_by_id': function (command, message, user) {
@@ -140,7 +139,8 @@ module.exports = function (express, botApi, configs) {
                     user.feedback_mode = true;
                     return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
                         return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи включен. Вы можете писать сюда' +
-                            'любой текст (кроме команд) и он будет автоматически переведен в команду поддержки');
+                            ' любой текст (кроме команд) и он будет автоматически переведен в команду поддержки. Для остановки' +
+                            ' режима поддержки отправьте /unfeedback');
                     });
                 }
             },
@@ -159,6 +159,28 @@ module.exports = function (express, botApi, configs) {
                     user.feedback_mode = false;
                     return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
                         return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи отключен.');
+                    });
+                }
+            },
+            '/ban': function (command, message, user) {
+                if (command[1] && user.admin) {
+                    command.splice(0, 1);
+
+                    var userId = command.splice(0, 1)[0];
+
+                    return botApi.mongo.User.findOneAndUpdate({user_id: userId}, {banned: true}).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Пользователь ' + userId + ' забанен.');
+                    });
+                }
+            },
+            '/unban': function (command, message, user) {
+                if (command[1] && user.admin) {
+                    command.splice(0, 1);
+
+                    var userId = command.splice(0, 1)[0];
+
+                    return botApi.mongo.User.findOneAndUpdate({user_id: userId}, {banned: false}).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Пользователь ' + userId + ' разбанен.');
                     });
                 }
             },
@@ -428,7 +450,7 @@ module.exports = function (express, botApi, configs) {
                         if (commands[command[0]]) {
                             return performCommand(command, message, user);
                         } else {
-                            if (user.feedback_mode) {
+                            if (user.feedback_mode && !user.banned) {
                                 message.text = 'Сообщение от пользователя ' + message.chat.id +
                                     ' (' + (message.chat.first_name || '') + ' ' +
                                     (message.chat.last_name || '') + '): ' + message.text;
