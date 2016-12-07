@@ -111,7 +111,12 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendMessage(message.chat.id, 'денис');
             },
             '/start': function (command, message, user) {
-                return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
+                if (command[1] && botApi.dict.languageExists(command[1])) {
+                    user.language = command[1];
+                }
+                return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
+                });
             },
             '/help': function (command, message, user) {
                 return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
