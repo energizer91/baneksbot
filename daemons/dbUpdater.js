@@ -12,8 +12,8 @@ var q = require('q'),
 var getAllAneks = function (start) {
         return vkApi.getPostsCount().then(function (counter) {
             var requests = [],
-                current = counter - (start || 0),
-                goal = 0,
+                current = counter.count - (start || 0),
+                goal = counter.hasPinned ? 1 : 0,
                 maxStep = 100,
                 step = maxStep;
 

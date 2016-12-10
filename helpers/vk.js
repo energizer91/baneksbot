@@ -44,11 +44,12 @@ module.exports = function (configs) {
             return this.getPosts({offset: 0, count: 1}).then(function (count) {
                 var postCount = (count.response || {}).count || 0;
 
-                if (postCount > 0 && count.response.items[0].is_pinned) {
+                /*if (postCount > 0 && count.response.items[0].is_pinned) {
                     postCount--;
                 }
 
-                return postCount;
+                return postCount;*/
+                return {count: postCount, hasPinned: count.response.items ? count.response.items[0].is_pinned : false};
             })
         },
         getComments: function (params) {

@@ -482,8 +482,7 @@ module.exports = function (express, botApi, configs) {
         },
         clearDatabases = function () {
             return q.all([
-                botApi.mongo.Anek.remove({}),
-                botApi.mongo.Comment.remove({})
+                botApi.mongo.Anek.remove({})
             ]);
         },
         getAllComments = function (postId) {
@@ -510,8 +509,8 @@ module.exports = function (express, botApi, configs) {
         getAllAneks = function (start) {
             return botApi.vk.getPostsCount().then(function (counter) {
                 var requests = [],
-                    current = counter - (start || 0),
-                    goal = 0,
+                    current = counter.count - (start || 0),
+                    goal = counter.hasPinned ? 1 : 0,
                     maxStep = 100,
                     step = maxStep;
 
