@@ -69,6 +69,7 @@ module.exports = function () {
                             }
                             if (code >= 400 && code <= 600) {
                                 console.error('An error occured with code ' + code);
+                                console.error(returnResult);
                                 return reject(returnResult);
                             }
                             //console.log(result);
