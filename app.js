@@ -37,37 +37,65 @@ for (var file in files) {
     }
 }
 
-var cp = require('child_process');
+var cp = require('child_process'),
+    dbUpdater,
+    childQueue = new Queue(1, Infinity),
+    startDaemon = function () {
+        dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
 
-var dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
+        dbUpdater.on('close', function (code, signal) {
+            console.log('Aneks update process has been closed with code ' + code + 'and signal ' + signal);
+            botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + 'and signal ' + signal);
+        });
 
-dbUpdater.on('close', function (code) {
-    console.log('Aneks update process has been closed with code ' + code);
+        dbUpdater.on('message', function (m) {
+            if (m.type == 'message' && m.message) {
+                childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
+            } else {
+                console.log('PARENT got message:', m);
+            }
+        });
+    };
+
+startDaemon();
+
+app.get('/startDaemon', function (req, res) {
+    if (dbUpdater && dbUpdater.connected) {
+        dbUpdater.kill();
+    }
+    startDaemon();
+    return res.send('Updater has been started');
 });
 
-var childQueue = new Queue(1, Infinity);
-
-dbUpdater.on('message', function (m) {
-    if (m.type == 'message' && m.message) {
-        childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
-    } else {
-        console.log('PARENT got message:', m);
+app.get('/stopDaemon', function (req, res) {
+    if (dbUpdater && dbUpdater.connected) {
+        dbUpdater.kill();
     }
+    return res.send('Updater has been stopped');
 });
 
 app.get('/disableUpdate', function (req, res) {
-    dbUpdater.send({type: 'service', action: 'update', value: false});
-    return res.send('Update has been disabled');
+    if (dbUpdater && dbUpdater.connected) {
+        dbUpdater.send({type: 'service', action: 'update', value: false});
+        return res.send('Update has been disabled');
+    }
+    return res.send('Updater is destroyed');
 });
 
 app.get('/enableUpdate', function (req, res) {
-    dbUpdater.send({type: 'service', action: 'update', value: true});
-    return res.send('Update has been enabled');
+    if (dbUpdater && dbUpdater.connected) {
+        dbUpdater.send({type: 'service', action: 'update', value: true});
+        return res.send('Update has been enabled');
+    }
+    return res.send('Updater is destroyed');
 });
 
 app.get('/testMessage', function (req, res) {
-    dbUpdater.send({type: 'service', action: 'message', value: configs.bot.adminChat});
-    return res.send('Update has been enabled');
+    if (dbUpdater && dbUpdater.connected) {
+        dbUpdater.send({type: 'service', action: 'message', value: configs.bot.adminChat});
+        return res.send('Update has been enabled');
+    }
+    return res.send('Updater is destroyed');
 });
 
 // catch 404 and forward to error handler
