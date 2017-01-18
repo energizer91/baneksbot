@@ -44,8 +44,8 @@ var cp = require('child_process'),
         dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
 
         dbUpdater.on('close', function (code, signal) {
-            console.log('Aneks update process has been closed with code ' + code + 'and signal ' + signal);
-            botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + 'and signal ' + signal);
+            console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+            botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
         });
 
         dbUpdater.on('message', function (m) {
