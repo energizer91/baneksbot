@@ -463,11 +463,15 @@ module.exports = function (express, botApi, configs) {
                     });
                 case 'spam':
                     return botApi.mongo.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true}).then(function () {
-                        return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как спам.');
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id).then(function () {
+                            return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как спам.');
+                        });
                     });
                 case 'unspam':
                     return botApi.mongo.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false}).then(function () {
-                        return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как нормальный.');
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id).then(function () {
+                            return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как нормальный.');
+                        });
                     });
             }
         },
