@@ -19,8 +19,56 @@ module.exports = function (express, botApi, configs) {
                     }).catch(console.error);
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
-                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language});
+                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language, admin: user.admin});
                 })
+            },
+            '/spam': function (command, message, user) {
+                if (!user.admin) {
+                    throw new Error('Unauthorized access');
+                }
+
+                if (command.length <= 1) {
+                    return botApi.mongo.Anek.find({spam: true}).then(function (aneks) {
+                        var spamList = aneks.map(function (anek) {
+                            return anek.post_id;
+                        });
+
+                        if (!spamList.length) {
+                            return botApi.bot.sendMessage(message.chat.id, 'Спам лист пуст.');
+                        }
+
+                        return botApi.bot.sendMessage(message.chat.id, 'Анеки в спам листе:\n' + spamList.join('\n'));
+                    });
+                }
+
+                return botApi.mongo.Anek.findOneAndUpdate({post_id: command[1]}, {spam: true}).then(function () {
+                    return botApi.bot.sendMessage(message.chat.id, 'Анек занесен в спам лист.');
+                })
+            },
+            '/unspam': function (command, message, user) {
+                if (!user.admin) {
+                    throw new Error('Unauthorized access');
+                }
+
+                if (command.length <= 1) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Укажите id анека из спам листа /spam');
+                }
+
+                return botApi.mongo.Anek.findOneAndUpdate({post_id: command[1]}, {spam: false}).then(function () {
+                    return botApi.bot.sendMessage(message.chat.id, 'Анек изъят из спам листа.');
+                })
+            },
+            '/keyboard': function (command, message, user) {
+                var keyboardToggle = !user.keyboard;
+                return botApi.mongo.User.findOneAndUpdate({user_id: message.chat.id}, {keyboard: keyboardToggle}).then(function () {
+                    var params = {};
+                    if (keyboardToggle) {
+                        params.keyboard = true;
+                    } else {
+                        params.remove_keyboard = true;
+                    }
+                    return botApi.bot.sendMessage(message.chat.id, 'Клавиатура ' + (keyboardToggle ? 'включена' : 'отключена' + '.'), params);
+                });
             },
             '/english': function (command, message, user) {
                 user.language = 'english';
@@ -412,7 +460,15 @@ module.exports = function (express, botApi, configs) {
                                 //     })
                                 // message editing is temporary disabled
                             });
-                    })
+                    });
+                case 'spam':
+                    return botApi.mongo.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true}).then(function () {
+                        return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как спам.');
+                    });
+                case 'unspam':
+                    return botApi.mongo.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false}).then(function () {
+                        return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Анек помечен как нормальный.');
+                    });
             }
         },
         performWebHook = function (data, response) {

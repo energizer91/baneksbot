@@ -27,6 +27,7 @@ module.exports = function (configs) {
             likes: Number,
             post_type: String,
             reposts: Number,
+            spam: {type: Boolean, default: false},
             text: String
         }),
         commentSchema = mongoose.Schema({
@@ -44,6 +45,7 @@ module.exports = function (configs) {
             subscribed: {type: Boolean, default: false},
             feedback_mode: {type: Boolean, default: false},
             admin: {type: Boolean, default: false},
+            keyboard: {type: Boolean, default: false},
             banned: {type: Boolean, default: false},
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'}

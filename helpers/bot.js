@@ -69,6 +69,25 @@ module.exports = function (configs) {
                         return this.sendRequest(sendCommand, attachment);
                     }.bind(this));
             },
+            prepareKeyboard: function () {
+                return {
+                    keyboard: [
+                        [
+                            {text: '/anek'}
+                        ],
+                        [
+                            {text: '/top_day'},
+                            {text: '/top_week'},
+                            {text: '/top_month'},
+                            {text: '/top_ever'}
+                        ],
+                        [
+                            {text: '/keyboard'}
+                        ]
+                    ],
+                    resize_keyboard: true
+                }
+            },
             prepareButtons: function (message, params) {
                 var buttons = [];
 
@@ -98,6 +117,20 @@ module.exports = function (configs) {
                     buttons[buttons.length - 1].push({
                         text: dict.translate(params.language, 'attachments'),
                         callback_data: 'attach ' + message.post_id
+                    })
+                }
+
+                if (params.admin && message.spam) {
+                    buttons.push([]);
+                    buttons[buttons.length - 1].push({
+                        text: 'Ne spam',
+                        callback_data: 'unspam ' + message.post_id
+                    })
+                } else if (params.admin && !message.spam) {
+                    buttons.push([]);
+                    buttons[buttons.length - 1].push({
+                        text: 'Spam',
+                        callback_data: 'spam ' + message.post_id
                     })
                 }
 
@@ -144,7 +177,8 @@ module.exports = function (configs) {
                     return this.sendMessage(userId, insideMessage, params);
                 }
                 var sendMessage,
-                    attachments = [];
+                    attachments = [],
+                    buttons = [];
 
                 if (typeof message == 'string') {
                     sendMessage = {
@@ -152,18 +186,12 @@ module.exports = function (configs) {
                         text: message
                     };
                 } else {
-                    var buttons = this.prepareButtons(message, params);
+                    buttons = this.prepareButtons(message, params);
 
                     sendMessage = {
                         chat_id: userId,
                         text: message.text + ((message.attachments && message.attachments.length > 0) ? '\n(Вложений: ' + message.attachments.length + ')' : '')
                     };
-
-                    if (buttons.length > 0) {
-                        sendMessage.reply_markup = JSON.stringify({
-                            inline_keyboard: buttons
-                        });
-                    }
 
                     if (params.forceAttachments) {
                         attachments = (message.attachments || []);
@@ -172,6 +200,26 @@ module.exports = function (configs) {
                     if (params.parse_mode) {
                         sendMessage.parse_mode = params.parse_mode;
                     }
+                }
+
+                if (params.keyboard || params.remove_keyboard || buttons.length) {
+                    sendMessage.reply_markup = {};
+                }
+
+                if (params.keyboard) {
+                    sendMessage.reply_markup = this.prepareKeyboard();
+                }
+
+                if (params.remove_keyboard) {
+                    sendMessage.reply_markup.remove_keyboard = true;
+                }
+
+                if (buttons.length > 0) {
+                    sendMessage.reply_markup.inline_keyboard = buttons;
+                }
+
+                if (sendMessage.reply_markup) {
+                    sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
                 }
 
                 return this.sendRequest('sendMessage', sendMessage).then(function (response) {
