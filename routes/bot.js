@@ -59,6 +59,9 @@ module.exports = function (express, botApi, configs) {
                 })
             },
             '/keyboard': function (command, message, user) {
+                if (message.chat.id !== message.from.id) {
+                    return botApi.bot.sendMessage(message.chat.id, 'Запрещено использовать клавиатуры в группах.');
+                }
                 var keyboardToggle = !user.keyboard;
                 return botApi.mongo.User.findOneAndUpdate({user_id: message.chat.id}, {keyboard: keyboardToggle}).then(function () {
                     var params = {};
@@ -136,6 +139,7 @@ module.exports = function (express, botApi, configs) {
                           'Админ:     ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
                           'Бан:       ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
                           'Язык:      ' + (user.language || 'Не выбран') + '\n' +
+                          'Клавиатура:' + (user.keyboard ? 'Включена' : 'Выключена') + '\n' +
                           'Платформа: ' + (user.client || 'Не выбрана') + '```'
                 }, {disableButtons: true, parse_mode: 'Markdown'});
             },
