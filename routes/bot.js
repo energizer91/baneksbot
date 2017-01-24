@@ -19,7 +19,7 @@ module.exports = function (express, botApi, configs) {
                     }).catch(console.error);
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
-                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language, admin: user.admin});
+                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language, admin: user.admin && (message.chat.id === message.from.id)});
                 })
             },
             '/spam': function (command, message, user) {
