@@ -131,16 +131,16 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendMessage(message.chat.id, {
                     text: '```\n' +
                           'User ' + user.user_id + ':\n' +
-                          'Имя:       ' + (user.first_name || 'Не указано') + '\n' +
-                          'Фамилия:   ' + (user.last_name || 'Не указано') + '\n' +
-                          'Ник:       ' + (user.username || 'Не указано') + '\n' +
-                          'Подписка:  ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
-                          'Фидбэк:    ' + (user.feedback_mode ? 'Включен' : 'Выключен') + '\n' +
-                          'Админ:     ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
-                          'Бан:       ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
-                          'Язык:      ' + (user.language || 'Не выбран') + '\n' +
-                          'Клавиатура:' + (user.keyboard ? 'Включена' : 'Выключена') + '\n' +
-                          'Платформа: ' + (user.client || 'Не выбрана') + '```'
+                          'Имя:        ' + (user.first_name    || 'Не указано') + '\n' +
+                          'Фамилия:    ' + (user.last_name     || 'Не указано') + '\n' +
+                          'Ник:        ' + (user.username      || 'Не указано') + '\n' +
+                          'Подписка:   ' + (user.subscribed     ? 'Подписан' : 'Не подписан') + '\n' +
+                          'Фидбэк:     ' + (user.feedback_mode  ? 'Включен'  : 'Выключен') + '\n' +
+                          'Админ:      ' + (user.admin          ? 'Присвоен' : 'Не присвоен') + '\n' +
+                          'Бан:        ' + (user.banned         ? 'Забанен'  : 'Не забанен') + '\n' +
+                          'Язык:       ' + (user.language      || 'Не выбран') + '\n' +
+                          'Клавиатура: ' + (user.keyboard       ? 'Включена' : 'Выключена') + '\n' +
+                          'Платформа:  ' + (user.client        || 'Не выбрана') + '```'
                 }, {disableButtons: true, parse_mode: 'Markdown'});
             },
             '/anek_by_id': function (command, message, user) {
