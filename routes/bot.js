@@ -156,6 +156,9 @@ module.exports = function (express, botApi, configs) {
             '/filin': function (command, message, user) {
                 return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'filin'));
             },
+            '/bret': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, 'Удолил');
+            },
             '/krevet': function (command, message, user) {
                 return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'krevet'));
             },
