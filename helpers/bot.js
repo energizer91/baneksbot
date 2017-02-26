@@ -222,6 +222,10 @@ module.exports = function (configs) {
                     sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
                 }
 
+                if (message.reply_to_message_id) {
+                    sendMessage.reply_to_message_id = message.reply_to_message_id;
+                }
+
                 return this.sendRequest('sendMessage', sendMessage).then(function (response) {
                     return this.sendAttachments(userId, attachments).then(function () {
                         //console.log(JSON.stringify(response));
@@ -257,6 +261,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendPhoto',
                             sendAction: 'upload_photo',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             photo: attachment.photo.photo_2560
                             || attachment.photo.photo_1280
                             || attachment.photo.photo_604
@@ -276,6 +281,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendMessage',
                             sendAction: 'upload_video',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             text: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id
                         };
                         break;
@@ -283,6 +289,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendDocument',
                             sendAction: 'upload_document',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             document: attachment.doc.url,
                             caption: attachment.doc.title
                         };
@@ -292,6 +299,7 @@ module.exports = function (configs) {
                             command: 'sendAudio',
                             type: 'audio',
                             sendAction: 'upload_audio',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             useStream: true,
                             audio: attachment.audio.url,
                             title: attachment.audio.artist + ' - ' + attachment.audio.title
@@ -301,6 +309,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendMessage',
                             sendAction: 'typing',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map(function (answer, index) {
                                 return  (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)'
                             }).join('\n'),
@@ -311,6 +320,7 @@ module.exports = function (configs) {
                         return {
                             command: 'sendMessage',
                             sendAction: 'typing',
+                            reply_to_message_id: attachment.reply_to_message_id,
                             text: attachment.link.title + '\n' + attachment.link.url
                         };
                         break;

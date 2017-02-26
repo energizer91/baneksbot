@@ -414,7 +414,9 @@ module.exports = function (express, botApi, configs) {
                             return b.likes.count - a.likes.count;
                         }).slice(0, 3).map(function (comment, index) {
                             comment.text = botApi.dict.translate(params.language, 'th_place', {nth: (index + 1)}) + comment.text;
-                            comment.reply_to_message_id = data.callback_query.message.message_id;
+                            if (data && data.callback_query && data.callback_query.message && data.callback_query.message.message_id) {
+                                comment.reply_to_message_id = data.callback_query.message.message_id;
+                            }
                             return comment;
                         });
 
@@ -455,7 +457,12 @@ module.exports = function (express, botApi, configs) {
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .finally(function () {
-                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments);
+                                return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments.map(function (attachment) {
+                                    if (data && data.callback_query && data.callback_query.message && data.callback_query.message.message_id) {
+                                        attachment.reply_to_message_id = data.callback_query.message.message_id;
+                                    }
+                                    return attachment;
+                                }));
                                 // .finally(function () {
                                 //     var editedMessage = {
                                 //             chat_id: data.callback_query.message.chat.id,
