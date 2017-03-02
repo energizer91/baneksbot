@@ -251,7 +251,7 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
                 }
 
-                return searchAneksElastic(searchPhrase, 1).then(function (aneks) {
+                return performSearch(searchPhrase, 1).then(function (aneks) {
                     return botApi.bot.sendMessage(message.chat.id, aneks[0], {language: user.language});
                 }).catch(function (error) {
                     console.error(error);
@@ -392,6 +392,13 @@ module.exports = function (express, botApi, configs) {
                 });
             });
         },
+        performSearch = function (searchPhrase, limit, skip) {
+            if (configs.mongo.searchEngine === 'elastic') {
+                return searchAneksElastic(searchPhrase, limit, skip);
+            }
+
+            return searchAneks(searchPhrase, limit, skip);
+        },
         performInline = function (query, params) {
             var results = [],
                 aneks_count = 5,
@@ -406,7 +413,7 @@ module.exports = function (express, botApi, configs) {
                     .limit(aneks_count)
                     .exec();
             } else {
-                searchAction = searchAneksElastic(query.query, aneks_count, query.offset || 0);
+                searchAction = performSearch(query.query, aneks_count, query.offset || 0);
             }
             return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
