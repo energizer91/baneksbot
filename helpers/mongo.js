@@ -66,6 +66,16 @@ module.exports = function (configs) {
         });
     };
 
+    anekSchema.statics.convertIds = function (ids) {
+        if (Array.isArray(ids)) {
+            return ids.map(function (id) {
+                return mongoose.Types.ObjectId(id._id);
+            })
+        }
+
+        return [];
+    };
+
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
     anekSchema.plugin(mongoosastic, {

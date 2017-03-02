@@ -397,9 +397,13 @@ module.exports = function (express, botApi, configs) {
                     }
 
                     if (results && results.hits && results.hits.hits) {
-                        return resolve(results.hits.hits.map(function (hit) {
-                            return hit._source;
-                        }));
+                        return botApi.mongo.Anek.find({_id: {$in: botApi.mongo.Anek.convertIds(results.hits.hits)}}, function (err, aneks) {
+                            if (err) {
+                                return reject(err);
+                            }
+
+                            return resolve(aneks);
+                        });
                     }
 
                     return reject(new Error('Nothing was found.'));
@@ -420,14 +424,14 @@ module.exports = function (express, botApi, configs) {
                     .limit(aneks_count)
                     .exec();
             } else {
-                searchAction = searchAneks(query.query, aneks_count, query.offset || 0);
+                searchAction = searchAneksElastic(query.query, aneks_count, query.offset || 0);
             }
             return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
                     return {
                         type: 'article',
                         id: anek.post_id.toString(),
-                        title: botApi.dict.translate(params.language, 'anek_number', {number: anek.post_id}),
+                        title: botApi.dict.translate(params.language, 'anek_number', {number: anek.post_id || 0}),
                         input_message_content: {
                             message_text: anek.text,
                             parse_mode: 'HTML'
