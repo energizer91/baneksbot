@@ -258,6 +258,24 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_not_found'));
                 })
             },
+            '/find_elastic': function (command, message, user) {
+                command.splice(0, 1);
+
+                var searchPhrase = command.join(' ');
+                if (!searchPhrase.length) {
+                    if (searchPhrase.length < 4 && searchPhrase.length > 0) {
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_short'));
+                    }
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
+                }
+
+                return searchAneksElastic(searchPhrase, 1).then(function (aneks) {
+                    return botApi.bot.sendMessage(message.chat.id, aneks[0], {language: user.language});
+                }).catch(function (error) {
+                    console.error(error);
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_not_found'));
+                })
+            },
             '/subscribe': function (command, message) {
                 return botApi.mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user) {
@@ -356,6 +374,15 @@ module.exports = function (express, botApi, configs) {
         },
         searchAneks = function (searchPhrase, limit, skip) {
             return botApi.mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
+                if (results.length) {
+                    return results;
+                }
+
+                throw new Error('Nothing was found.');
+            });
+        },
+        searchAneksElastic = function (searchPhrase, limit, skip) {
+            return botApi.mongo.Anek.search({query_string: {query: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
                 if (results.length) {
                     return results;
                 }

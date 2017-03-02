@@ -13,6 +13,7 @@
     "form-data": "^2.1.2",
     "jade": "~1.11.0",
     "mongodb": "^2.2.11",
+    "mongoosastic": "^4.3.0",
     "mongoose": "^4.7.0",
     "morgan": "~1.6.1",
     "mysql": "^2.9.0",

@@ -4,6 +4,7 @@
 
 module.exports = function (configs) {
     var mongoose = require('mongoose'),
+        mongoosastic = require('mongoosastic'),
         config = configs.mongo,
         db = mongoose.connection;
 
@@ -28,7 +29,7 @@ module.exports = function (configs) {
             post_type: String,
             reposts: Number,
             spam: {type: Boolean, default: false},
-            text: String
+            text: {type: String, es_indexed: true}
         }),
         commentSchema = mongoose.Schema({
             comment_id: Number,
@@ -67,7 +68,9 @@ module.exports = function (configs) {
 
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
-    anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
+    anekSchema.plugin(mongoosastic);
+
+    //anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
     logSchema.index({date: 1}, {expireAfterSeconds: 60 * 60 * 24 * 7});
 
 
