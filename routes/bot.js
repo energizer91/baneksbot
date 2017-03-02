@@ -388,8 +388,10 @@ module.exports = function (express, botApi, configs) {
                         return reject(err);
                     }
 
-                    if (results.length) {
-                        return resolve(results);
+                    if (results && results.hits && results.hits.hits) {
+                        return resolve(results.hits.hits.map(function (hit) {
+                            return hit._source;
+                        }));
                     }
 
                     return reject(new Error('Nothing was found.'));

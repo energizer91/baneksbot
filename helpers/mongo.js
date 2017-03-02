@@ -68,7 +68,11 @@ module.exports = function (configs) {
 
     mongoose.connect('mongodb://' + config.server + '/' + config.database);
 
-    anekSchema.plugin(mongoosastic);
+    anekSchema.plugin(mongoosastic, {
+        hosts: [
+            'localhost:9200'
+        ]
+    });
 
     //anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
     logSchema.index({date: 1}, {expireAfterSeconds: 60 * 60 * 24 * 7});
