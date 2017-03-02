@@ -251,24 +251,6 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
                 }
 
-                return searchAneks(searchPhrase, 1).then(function (aneks) {
-                    return botApi.bot.sendMessage(message.chat.id, aneks[0], {language: user.language});
-                }).catch(function (error) {
-                    console.error(error);
-                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_not_found'));
-                })
-            },
-            '/find_elastic': function (command, message, user) {
-                command.splice(0, 1);
-
-                var searchPhrase = command.join(' ');
-                if (!searchPhrase.length) {
-                    if (searchPhrase.length < 4 && searchPhrase.length > 0) {
-                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_short'));
-                    }
-                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
-                }
-
                 return searchAneksElastic(searchPhrase, 1).then(function (aneks) {
                     return botApi.bot.sendMessage(message.chat.id, aneks[0], {language: user.language});
                 }).catch(function (error) {
