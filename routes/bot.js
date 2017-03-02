@@ -382,12 +382,14 @@ module.exports = function (express, botApi, configs) {
             });
         },
         searchAneksElastic = function (searchPhrase, limit, skip) {
-            return botApi.mongo.Anek.search({query_string: {query: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
-                if (results.length) {
-                    return results;
-                }
+            return Q.promise(function (resolve, reject) {
+                return botApi.mongo.Anek.search({query_string: {query: searchPhrase}}, function (results) {
+                    if (results.length) {
+                        return resolve(results);
+                    }
 
-                throw new Error('Nothing was found.');
+                    return reject(new Error('Nothing was found.'));
+                });
             });
         },
         performInline = function (query, params) {
