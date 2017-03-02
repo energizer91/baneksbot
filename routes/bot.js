@@ -383,7 +383,15 @@ module.exports = function (express, botApi, configs) {
         },
         searchAneksElastic = function (searchPhrase, limit, skip) {
             return q.Promise(function (resolve, reject) {
-                return botApi.mongo.Anek.search({query_string: {query: searchPhrase}}, function (err, results) {
+                return botApi.mongo.Anek.esSearch({
+                    from: skip,
+                    size: limit,
+                    query: {
+                        query_string: {
+                            query: searchPhrase
+                        }
+                    }
+                }, function (err, results) {
                     if (err) {
                         return reject(err);
                     }
