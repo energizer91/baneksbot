@@ -55,6 +55,16 @@ var cp = require('child_process'),
                 console.log('PARENT got message:', m);
             }
         });
+    },
+    sendUpdaterMessage = function (res, message, responseText) {
+        if (dbUpdater && dbUpdater.connected) {
+            if (message && message.type && message.action) {
+                dbUpdater.send(message);
+                return res.send(responseText);
+            }
+            return res.send('Message is not defined properly');
+        }
+        return res.send('Updater is destroyed');
     };
 
 startDaemon();
@@ -75,27 +85,19 @@ app.get('/stopDaemon', function (req, res) {
 });
 
 app.get('/disableUpdate', function (req, res) {
-    if (dbUpdater && dbUpdater.connected) {
-        dbUpdater.send({type: 'service', action: 'update', value: false});
-        return res.send('Update has been disabled');
-    }
-    return res.send('Updater is destroyed');
+    return sendUpdaterMessage(res, {type: 'service', action: 'update', value: false}, 'Update has been disabled');
 });
 
 app.get('/enableUpdate', function (req, res) {
-    if (dbUpdater && dbUpdater.connected) {
-        dbUpdater.send({type: 'service', action: 'update', value: true});
-        return res.send('Update has been enabled');
-    }
-    return res.send('Updater is destroyed');
+    return sendUpdaterMessage(res, {type: 'service', action: 'update', value: true}, 'Update has been enabled');
 });
 
 app.get('/testMessage', function (req, res) {
-    if (dbUpdater && dbUpdater.connected) {
-        dbUpdater.send({type: 'service', action: 'message', value: configs.bot.adminChat});
-        return res.send('Update has been enabled');
-    }
-    return res.send('Updater is destroyed');
+    return sendUpdaterMessage(res, {type: 'service', action: 'message', value: configs.bot.adminChat}, 'Message has been send');
+});
+
+app.get('/synchronizeDatabase', function (req, res) {
+    return sendUpdaterMessage(res, {type: 'service', action: 'synchronize'}, 'Synchronize process has been started');
 });
 
 // catch 404 and forward to error handler

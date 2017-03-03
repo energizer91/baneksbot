@@ -120,6 +120,25 @@ var getAllAneks = function (start) {
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).done();
+    },
+    synchronizeDatabase = function () {
+        if (configs.mongo.searchEngine !== 'elastic') {
+            console.log('Database synchronizing is only available on elasticsearch engine');
+            return;
+        }
+
+        var stream = mongo.Anek.synchronize(),
+            count = 0;
+
+        stream.on('data', function () {
+            count++;
+        });
+        stream.on('close', function () {
+            console.log('indexed ' + count + ' documents!');
+        });
+        stream.on('error', function (err) {
+            console.log(err);
+        });
     };
 
 setTimeout(updateAneksTimer, 30000);
@@ -133,6 +152,10 @@ process.on('message', function(m) {
             case 'update':
                 console.log('Switch automatic updates to', m.value);
                 forceDenyUpdate = !m.value;
+                break;
+            case 'synchronize':
+                console.log('Start database synchronizing');
+                synchronizeDatabase();
                 break;
             case 'message':
                 mongo.User.findOne({user_id: m.value}).then(function (user) {
