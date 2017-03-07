@@ -35,7 +35,7 @@ module.exports = function () {
                         //req.write(queryString.stringify(params));
                         var form = new formData();
                         for (var field in params) {
-                            if (params.hasOwnProperty(field)) {
+                            if (params.hasOwnProperty(field) && params[field]) {
                                 form.append(field, params[field]);
                             }
                         }
