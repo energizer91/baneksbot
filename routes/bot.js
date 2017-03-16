@@ -224,7 +224,7 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
             '/suggest': performSuggest,
-            '/predlojka': performSuggest,
+            '/comment': performSuggest,
             '/feedback': function (command, message, user) {
                 if (command[1] && user.admin) {
                     command.splice(0, 1);
