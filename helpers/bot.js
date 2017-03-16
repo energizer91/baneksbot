@@ -163,6 +163,10 @@ module.exports = function (configs) {
                     message.reply_markup = JSON.stringify({inline_keyboard: newButtons});
                 }
 
+                if (message.chat && message.chat.id) {
+                    message.chat_id = message.chat.id;
+                }
+
                 return this.sendRequest('editMessageReplyMarkup', message).then(function (response) {
                     return response;
                 });
