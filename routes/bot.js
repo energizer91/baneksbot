@@ -559,6 +559,7 @@ module.exports = function (express, botApi, configs) {
                 case 's_a':
                     return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true})
                         .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))
+                        .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
                         .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
                 case 's_d':
                     return botApi.mongo.Suggest.findOneAndRemove({_id: botApi.mongo.Suggest.convertId(queryData[1])})
