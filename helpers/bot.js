@@ -32,6 +32,9 @@ module.exports = function (configs) {
                     text: load.text,
                     show_alert: load.show_alert,
                     url: load.url
+                }).catch(function (error) {
+                    console.error(error);
+                    return {};
                 });
             },
             sendChatAction: function (userId, action) {
@@ -171,6 +174,9 @@ module.exports = function (configs) {
 
                 return this.sendRequest('editMessageReplyMarkup', message).then(function (response) {
                     return response;
+                }).catch(function (error) {
+                    console.error('Editing message error', error);
+                    return {};
                 });
             },
             editMessage: function (message) {
@@ -261,6 +267,15 @@ module.exports = function (configs) {
             },
             sendMessageToAdmin: function (text) {
                 return this.sendMessage(botConfig.adminChat, text);
+            },
+            sendMessageToChannel: function (message) {
+                return this.sendMessage(configs.bot.baneksChannel, message);
+            },
+            forwardMessageToChannel: function (message) {
+                if (!configs.bot.baneksChannel) {
+                    return;
+                }
+                return this.forwardMessage(configs.bot.baneksChannel, message);
             },
             forwardMessage: function (userId, message, params) {
                 var buttons = this.prepareButtons(message, params),

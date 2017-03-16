@@ -5,7 +5,35 @@ module.exports = function (express, botApi, configs) {
     var router = express.Router(),
         q = require('q');
 
-    var commands = {
+    var performSuggest = function (command, message, user) {
+            if (command[1] && (user.editor || user.admin)) {
+                if (command[1] == 'list') {
+                    return botApi.mongo.Suggest.find({approved: false}).then(function (suggests) {
+                        return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент').then(function () {
+                            return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true});
+                        })
+                    })
+                }
+            } else if (user.suggest_mode) {
+                return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
+            } else {
+                return botApi.mongo.Suggest.find({user: user.id}).count().then(function (suggestsLength) {
+                    if (suggestsLength > 5) {
+                        throw new Error('Слишком много предложений в ожидании.');
+                    }
+
+                    user.suggest_mode = true;
+                    return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                        return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
+                            ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
+                            'добавлен в ваш список предложки.');
+                    });
+                }).catch(function (error) {
+                    return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
+                });
+            }
+        },
+        commands = {
             '/anek': function (command, message, user) {
                 if (command[1] == 'count') {
                     return botApi.mongo.Anek.count().then(function (count) {
@@ -195,34 +223,8 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
-            '/suggest': function (command, message, user) {
-                if (command[1] && (user.editor || user.admin)) {
-                    if (command[1] == 'list') {
-                        return botApi.mongo.Suggest.find({approved: false}).then(function (suggests) {
-                            return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент').then(function () {
-                                return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true});
-                            })
-                        })
-                    }
-                } else if (user.suggest_mode) {
-                    return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
-                } else {
-                    return botApi.mongo.Suggest.find({user: user.id}).count().then(function (suggestsLength) {
-                        if (suggestsLength > 5) {
-                            throw new Error('Слишком много предложений в ожидании.');
-                        }
-
-                        user.suggest_mode = true;
-                        return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
-                            return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
-                                ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
-                                'добавлен в ваш список предложки.');
-                        });
-                    }).catch(function (error) {
-                        return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
-                    });
-                }
-            },
+            '/suggest': performSuggest,
+            '/predlojka': performSuggest,
             '/feedback': function (command, message, user) {
                 if (command[1] && user.admin) {
                     command.splice(0, 1);
@@ -565,10 +567,12 @@ module.exports = function (express, botApi, configs) {
                         });
                     });
                 case 's_a':
-                    return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true})
-                        .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))
-                        .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
-                        .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
+                    return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true}).then(function (suggest) {
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                            .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
+                            .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest))
+                            .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
+                    });
                 case 's_d':
                     return botApi.mongo.Suggest.findOneAndRemove({_id: botApi.mongo.Suggest.convertId(queryData[1])})
                         .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))
