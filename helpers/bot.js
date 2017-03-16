@@ -301,8 +301,12 @@ module.exports = function (configs) {
                 } else if (message.document && message.document.file_id) {
                     commandType = 'sendDocument';
                     sendMessage.document = message.document.file_id;
+                } else if (message.photo && message.photo.length > 0) {
+                    commandType = 'sendPhoto';
+                    sendMessage.photo = message.photo[message.photo.length - 1].file_id;
                 } else {
                     commandType = 'sendMessage';
+                    sendMessage.text = 'Пустое сообщение';
                 }
 
                 return this.sendRequest(commandType, sendMessage);
