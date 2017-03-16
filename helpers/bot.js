@@ -306,7 +306,7 @@ module.exports = function (configs) {
                     sendMessage.photo = message.photo[message.photo.length - 1].file_id;
                 } else {
                     commandType = 'sendMessage';
-                    sendMessage.text = 'Пустое сообщение';
+                    sendMessage.text = sendMessage.text || 'Пустое сообщение';
                 }
 
                 return this.sendRequest(commandType, sendMessage);
