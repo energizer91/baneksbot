@@ -207,11 +207,19 @@ module.exports = function (express, botApi, configs) {
                 } else if (user.suggest_mode) {
                     return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
                 } else {
-                    user.suggest_mode = true;
-                    return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
-                        return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
-                            ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
-                            'добавлен в ваш список предложки.');
+                    return botApi.mongo.Suggest.find({user: user.id}).count().then(function (suggestsLength) {
+                        if (suggestsLength > 5) {
+                            throw new Error('Слишком много предложений в ожидании.');
+                        }
+
+                        user.suggest_mode = true;
+                        return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                            return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
+                                ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
+                                'добавлен в ваш список предложки.');
+                        });
+                    }).catch(function (error) {
+                        return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
                     });
                 }
             },
@@ -607,19 +615,11 @@ module.exports = function (express, botApi, configs) {
 
                         suggest.user = user;
 
-                        return botApi.mongo.Suggest.find({user: user.id}).count().then(function (suggestsLength) {
-                            if (suggestsLength > 5) {
-                                throw new Error('Слишком много предложений в ожидании.');
-                            }
-
-                            return new botApi.mongo.Suggest(suggest).save().then(function () {
-                                user.suggest_mode = false;
-                                return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user);
-                            });
+                        return new botApi.mongo.Suggest(suggest).save().then(function () {
+                            user.suggest_mode = false;
+                            return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user);
                         }).then(function () {
                             return botApi.bot.sendMessage(user.user_id, 'Предложка успешно добавлена');
-                        }).catch(function (error) {
-                            return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
                         });
                     } else if (message.text) {
                         var command = (message.text || '').split(' ');
