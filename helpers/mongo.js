@@ -45,11 +45,47 @@ module.exports = function (configs) {
             user_id: Number,
             subscribed: {type: Boolean, default: false},
             feedback_mode: {type: Boolean, default: false},
+            suggest_mode: {type: Boolean, default: false},
             admin: {type: Boolean, default: false},
+            editor: {type: Boolean, default: false},
             keyboard: {type: Boolean, default: false},
             banned: {type: Boolean, default: false},
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'}
+        }),
+        suggestSchema = mongoose.Schema({
+            user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
+            message_id: Number,
+            text: String,
+            audio: {
+                file_id: String,
+                duration: Number,
+                performer: String,
+                title: String,
+                mime_type: String,
+                file_size: Number
+            },
+            document: {
+                file_id: String,
+                file_name: String,
+                title: String,
+                mime_type: String,
+                file_size: Number
+            },
+            photo: [{
+                file_id: String,
+                width: Number,
+                height: Number,
+                file_size: Number
+            }],
+            voice: {
+                file_id: String,
+                duration: Number,
+                mime_type: String,
+                file_size: Number
+            },
+            caption: String,
+            approved: {type: Boolean, default: false}
         }),
         logSchema = mongoose.Schema({
             date: Date,
@@ -64,6 +100,12 @@ module.exports = function (configs) {
             var rand = Math.floor(Math.random() * count);
             return self.findOne().skip(rand).exec();
         });
+    };
+
+    suggestSchema.statics.convertId = function (id) {
+        if (id) {
+            return mongoose.Types.ObjectId(id);
+        }
     };
 
     anekSchema.statics.convertIds = function (ids) {
@@ -93,6 +135,7 @@ module.exports = function (configs) {
         Anek: mongoose.model('Anek', anekSchema),
         Comment: mongoose.model('Comment', commentSchema),
         User: mongoose.model('User', userSchema),
+        Suggest: mongoose.model('Suggest', suggestSchema),
         Log: mongoose.model('Log', logSchema)
     };
 };

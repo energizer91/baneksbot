@@ -96,55 +96,74 @@ module.exports = function (configs) {
                 }
 
                 if (!params.disableButtons) {
-                    if (!buttons.length) {
+                    if (message && message.from_id && message.post_id) {
                         buttons.push([]);
-                    }
-                    buttons[buttons.length - 1].push({
-                        text: dict.translate(params.language, 'go_to_anek'),
-                        url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
-                    });
-
-                    if (!params.disableComments) {
                         buttons[buttons.length - 1].push({
-                            text: dict.translate(params.language, 'comments'),
-                            callback_data: 'comment ' + message.post_id
+                            text: dict.translate(params.language, 'go_to_anek'),
+                            url: 'https://vk.com/wall' + message.from_id + '_' + message.post_id
+                        });
+
+                        if (!params.disableComments) {
+                            buttons[buttons.length - 1].push({
+                                text: dict.translate(params.language, 'comments'),
+                                callback_data: 'comment ' + message.post_id
+                            });
+                        }
+                    }
+
+                    if (message.attachments && message.attachments.length > 0 && !params.forceAttachments) {
+                        buttons.push([]);
+                        buttons[buttons.length - 1].push({
+                            text: dict.translate(params.language, 'attachments'),
+                            callback_data: 'attach ' + message.post_id
+                        })
+                    }
+
+                    if (message.post_id) {
+                        if (params.admin && message.spam) {
+                            buttons.push([]);
+                            buttons[buttons.length - 1].push({
+                                text: 'Ne spam',
+                                callback_data: 'unspam ' + message.post_id
+                            })
+                        } else if (params.admin && !message.spam) {
+                            buttons.push([]);
+                            buttons[buttons.length - 1].push({
+                                text: 'Spam',
+                                callback_data: 'spam ' + message.post_id
+                            })
+                        }
+                    }
+
+                    if (params.editor && params.suggest) {
+                        buttons.push([]);
+                        buttons[buttons.length - 1].push({
+                            text: 'Принять',
+                            callback_data: 's_a ' + message._id
+                        });
+                        buttons[buttons.length - 1].push({
+                            text: 'Отклонить',
+                            callback_data: 's_d ' + message._id
                         });
                     }
                 }
 
-                if (message.attachments && message.attachments.length > 0 && !message.forceAttachments) {
-                    buttons.push([]);
-                    buttons[buttons.length - 1].push({
-                        text: dict.translate(params.language, 'attachments'),
-                        callback_data: 'attach ' + message.post_id
-                    })
-                }
-
-                if (params.admin && message.spam) {
-                    buttons.push([]);
-                    buttons[buttons.length - 1].push({
-                        text: 'Ne spam',
-                        callback_data: 'unspam ' + message.post_id
-                    })
-                } else if (params.admin && !message.spam) {
-                    buttons.push([]);
-                    buttons[buttons.length - 1].push({
-                        text: 'Spam',
-                        callback_data: 'spam ' + message.post_id
-                    })
-                }
-
                 return buttons;
             },
-            editMessageButtons: function (message) {
+            editMessageButtons: function (message, buttons) {
                 if (!message) {
                     return;
                 }
 
-                message.reply_markup = this.prepareButtons(message);
+                if (buttons) {
+                    message.reply_markup = JSON.stringify({inline_keyboard: buttons});
+                } else {
+                    var newButtons = this.prepareButtons(message);
+
+                    message.reply_markup = JSON.stringify({inline_keyboard: newButtons});
+                }
 
                 return this.sendRequest('editMessageReplyMarkup', message).then(function (response) {
-                    console.log(JSON.stringify(response));
                     return response;
                 });
             },
@@ -226,12 +245,7 @@ module.exports = function (configs) {
                     sendMessage.reply_to_message_id = message.reply_to_message_id;
                 }
 
-                return this.sendRequest('sendMessage', sendMessage).then(function (response) {
-                    return this.sendAttachments(userId, attachments).then(function () {
-                        //console.log(JSON.stringify(response));
-                        return response;
-                    })
-                }.bind(this));
+                return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
             },
             sendMessages: function (userId, messages, params) {
                 var messageQueue = new Queue(1, Infinity);
@@ -241,6 +255,42 @@ module.exports = function (configs) {
             },
             sendMessageToAdmin: function (text) {
                 return this.sendMessage(botConfig.adminChat, text);
+            },
+            forwardMessage: function (userId, message, params) {
+                var buttons = this.prepareButtons(message, params),
+                    sendMessage = {
+                        chat_id: userId,
+                        text: message.text,
+                        caption: message.caption
+                    },
+                    commandType = '';
+
+                if (buttons.length) {
+                    sendMessage.reply_markup = {};
+                    sendMessage.reply_markup.inline_keyboard = buttons;
+                    sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
+                }
+
+                if (message.audio && message.audio.file_id) {
+                    commandType = 'sendAudio';
+                    sendMessage.audio = message.audio.file_id;
+                } else if (message.voice && message.voice.file_id) {
+                    commandType = 'sendVoice';
+                    sendMessage.voice = message.voice.file_id;
+                } else if (message.document && message.document.file_id) {
+                    commandType = 'sendDocument';
+                    sendMessage.document = message.document.file_id;
+                } else {
+                    commandType = 'sendMessage';
+                }
+
+                return this.sendRequest(commandType, sendMessage);
+            },
+            forwardMessages: function (userId, messages, params) {
+                var messageQueue = new Queue(1, Infinity);
+                return (messages || []).reduce(function (p, message) {
+                    return p.then(messageQueue.add.bind(messageQueue, this.forwardMessage.bind(this, userId, message, params)));
+                }.bind(this), q.when());
             },
             getMe: function () {
                 return this.sendRequest('getMe');

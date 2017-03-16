@@ -122,28 +122,43 @@ var getAllAneks = function (start) {
         }).done();
     },
     synchronizeDatabase = function () {
-        if (configs.mongo.searchEngine !== 'elastic') {
-            console.log('Database synchronizing is only available on elasticsearch engine');
-            return;
-        }
+        return checkUpdateProgress('Initializing aneks refresh').then(function () {
+            return q.Promise(function (resolve, reject, progress) {
+                if (configs.mongo.searchEngine !== 'elastic') {
+                    console.log('Database synchronizing is only available on elasticsearch engine');
+                    return;
+                }
 
-        var stream = mongo.Anek.synchronize(),
-            count = 0;
+                var stream = mongo.Anek.synchronize(),
+                    count = 0;
 
-        stream.on('data', function () {
-            count++;
-        });
-        stream.on('close', function () {
-            console.log('indexed ' + count + ' documents!');
-        });
-        stream.on('error', function (err) {
-            console.log(err);
-        });
+                updateInProcess = true;
+
+                stream.on('data', function () {
+                    count++;
+                    progress(count);
+                });
+                stream.on('close', function () {
+                    return resolve(count);
+                });
+                stream.on('error', function (err) {
+                    return reject(err);
+                });
+            });
+        }).then(function (count) {
+            console.log(new Date(), 'Successfully indexed', count, 'records');
+        }).finally(function () {
+            updateInProcess = false;
+        }).catch(function (error) {
+            console.error(new Date(), 'An error occured: ' + error.message);
+        }).done();
     };
 
-setTimeout(updateAneksTimer, 30000);
+setTimeout(updateAneksTimer, 30 * 1000);
 
-setTimeout(refreshAneksTimer, 130000);
+setTimeout(refreshAneksTimer, 130 * 1000);
+
+setTimeout(synchronizeDatabase, 60 * 60 * 1000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
@@ -160,7 +175,7 @@ process.on('message', function(m) {
             case 'message':
                 mongo.User.findOne({user_id: m.value}).then(function (user) {
                     process.send({type: 'message', userId: user.user_id, message: 'Проверка', params: {language: user.language}});
-                    });
+                });
                 break;
             default:
                 console.log('Unknown service command');
