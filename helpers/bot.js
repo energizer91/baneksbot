@@ -167,6 +167,8 @@ module.exports = function (configs) {
                     message.chat_id = message.chat.id;
                 }
 
+                message.text = 'Решение принято';
+
                 return this.sendRequest('editMessageReplyMarkup', message).then(function (response) {
                     return response;
                 });
