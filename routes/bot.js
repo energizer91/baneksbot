@@ -9,9 +9,17 @@ module.exports = function (express, botApi, configs) {
             if (message && message.chat && message.from && (message.chat.id != message.from.id)) {
                 return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
             }
-            if (command[1] && (user.editor || user.admin)) {
+            if (command[1]) {
                 if (command[1] == 'list') {
-                    return botApi.mongo.Suggest.find({approved: false}).then(function (suggests) {
+                    var query = {
+                        approved: false
+                    };
+
+                    if (!(user.editor || user.admin)) {
+                        query.user = user.id;
+                    }
+
+                    return botApi.mongo.Suggest.find(query).then(function (suggests) {
                         return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент').then(function () {
                             return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] == 'native')});
                         })
@@ -650,6 +658,14 @@ module.exports = function (express, botApi, configs) {
                                 });
                             });
                         });
+                    } else if (message.reply_message && message.reply_message.forward_from) {
+                        return botApi.mongo.User.findOne({user_id: message.reply_message.forward_from.id}).then(function (feedbackUser) {
+                            if (feedbackUser.feedback_mode) {
+                                return performCommand(['/feedback', message.reply_message.forward_from.id, message.text], message, user);
+                            }
+
+                            throw new Error('Unknown reply action');
+                        })
                     } else if (message.text) {
                         var command = (message.text || '').split(' ');
                         if (command[0].indexOf('@') >= 0) {
@@ -660,10 +676,11 @@ module.exports = function (express, botApi, configs) {
                             return performCommand(command, message, user);
                         } else {
                             if (user.feedback_mode && !user.banned) {
-                                message.text = 'Сообщение от пользователя ' + message.chat.id +
+                                /*message.text = 'Сообщение от пользователя ' + message.chat.id +
                                     ' (' + (message.chat.first_name || '') + ' ' +
                                     (message.chat.last_name || '') + '): ' + message.text;
-                                return botApi.bot.sendMessageToAdmin(message);
+                                return botApi.bot.sendMessageToAdmin(message);*/
+                                return botApi.bot.forwardMessage(configs.bot.adminChat, message, {native: true});
                             }
                             console.error('Unknown command', data);
                             throw new Error('Command not found: ' + command.join(' '));

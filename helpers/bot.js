@@ -140,22 +140,29 @@ module.exports = function (configs) {
                         }
                     }
 
-                    if (params.editor && params.suggest) {
+                    if (params.suggest) {
                         buttons.push([]);
-                        if (message.public) {
+                        if (params.editor) {
+                            if (message.public) {
+                                buttons[buttons.length - 1].push({
+                                    text: '+',
+                                    callback_data: 's_a ' + message._id
+                                });
+                            }
                             buttons[buttons.length - 1].push({
-                                text: '+',
-                                callback_data: 's_a ' + message._id
+                                text: 'Анон',
+                                callback_data: 's_aa ' + message._id
+                            });
+                            buttons[buttons.length - 1].push({
+                                text: '-',
+                                callback_data: 's_d ' + message._id
+                            });
+                        } else {
+                            buttons[buttons.length - 1].push({
+                                text: 'Удалить',
+                                callback_data: 's_d ' + message._id
                             });
                         }
-                        buttons[buttons.length - 1].push({
-                            text: 'Анон',
-                            callback_data: 's_aa ' + message._id
-                        });
-                        buttons[buttons.length - 1].push({
-                            text: '-',
-                            callback_data: 's_d ' + message._id
-                        });
                     }
                 }
 
