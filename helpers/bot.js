@@ -304,6 +304,13 @@ module.exports = function (configs) {
                 } else if (message.photo && message.photo.length > 0) {
                     commandType = 'sendPhoto';
                     sendMessage.photo = message.photo[message.photo.length - 1].file_id;
+                } else if (params.native) {
+                    commandType = 'forwardMessage';
+                    sendMessage = {
+                        chat_id: userId,
+                        from_chat_id: userId,
+                        message_id: message.message_id
+                    }
                 } else {
                     commandType = 'sendMessage';
                     sendMessage.text = sendMessage.text || 'Пустое сообщение';

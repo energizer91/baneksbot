@@ -13,7 +13,7 @@ module.exports = function (express, botApi, configs) {
                 if (command[1] == 'list') {
                     return botApi.mongo.Suggest.find({approved: false}).then(function (suggests) {
                         return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент').then(function () {
-                            return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true});
+                            return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] == 'native')});
                         })
                     })
                 }
