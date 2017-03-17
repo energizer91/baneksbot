@@ -29,7 +29,7 @@ module.exports = function (express, botApi, configs) {
                     return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
                         return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
                             ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
-                            'добавлен в ваш список предложки.');
+                            'добавлен в ваш список предложки анонимно.');
                     });
                 }).catch(function (error) {
                     return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
@@ -588,6 +588,12 @@ module.exports = function (express, botApi, configs) {
                     return botApi.mongo.Suggest.findOneAndRemove({_id: botApi.mongo.Suggest.convertId(queryData[1])})
                         .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))
                         .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []));
+                case 's_da':
+                    return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {public: true}).then(function () {
+                        return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                            .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
+                            .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение будет опубликовано неанонимно.'));
+                    });
             }
 
             throw new Error('Unknown callback query ' + queryData);
@@ -629,11 +635,20 @@ module.exports = function (express, botApi, configs) {
 
                         suggest.user = user;
 
-                        return new botApi.mongo.Suggest(suggest).save().then(function () {
+                        return new botApi.mongo.Suggest(suggest).save().then(function (newSuggest) {
                             user.suggest_mode = false;
-                            return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user);
-                        }).then(function () {
-                            return botApi.bot.sendMessage(user.user_id, 'Предложка успешно добавлена');
+                            return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
+                                return botApi.bot.sendMessage(user.user_id, {text: 'Предложка успешно добавлена.'}, {
+                                    buttons: [
+                                        [
+                                            {
+                                                text: 'Сделать неанонимным',
+                                                callback_data: 's_da ' + newSuggest._id
+                                            }
+                                        ]
+                                    ]
+                                });
+                            });
                         });
                     } else if (message.text) {
                         var command = (message.text || '').split(' ');

@@ -88,7 +88,8 @@ module.exports = function (configs) {
                 file_size: Number
             },
             caption: String,
-            approved: {type: Boolean, default: false}
+            approved: {type: Boolean, default: false},
+            public: {type: Boolean, default: false}
         }),
         logSchema = mongoose.Schema({
             date: Date,

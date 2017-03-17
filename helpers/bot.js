@@ -98,7 +98,9 @@ module.exports = function (configs) {
                     params = {};
                 }
 
-                if (!params.disableButtons) {
+                if (params.buttons) {
+                    buttons = params.buttons;
+                } else if (!params.disableButtons) {
                     if (message && message.from_id && message.post_id) {
                         buttons.push([]);
                         buttons[buttons.length - 1].push({
@@ -140,10 +142,12 @@ module.exports = function (configs) {
 
                     if (params.editor && params.suggest) {
                         buttons.push([]);
-                        buttons[buttons.length - 1].push({
-                            text: '+',
-                            callback_data: 's_a ' + message._id
-                        });
+                        if (message.public) {
+                            buttons[buttons.length - 1].push({
+                                text: '+',
+                                callback_data: 's_a ' + message._id
+                            });
+                        }
                         buttons[buttons.length - 1].push({
                             text: 'Анон',
                             callback_data: 's_aa ' + message._id
