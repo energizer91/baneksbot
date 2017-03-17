@@ -6,6 +6,9 @@ module.exports = function (express, botApi, configs) {
         q = require('q');
 
     var performSuggest = function (command, message, user) {
+            if (message && message.chat && message.from && (message.chat.id != message.from.id)) {
+                return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
+            }
             if (command[1] && (user.editor || user.admin)) {
                 if (command[1] == 'list') {
                     return botApi.mongo.Suggest.find({approved: false}).then(function (suggests) {

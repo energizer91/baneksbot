@@ -149,6 +149,7 @@ var getAllAneks = function (start) {
             console.log(new Date(), 'Successfully indexed', count, 'records');
         }).finally(function () {
             updateInProcess = false;
+            setTimeout(synchronizeDatabase, 60 * 60 * 1000);
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).done();
