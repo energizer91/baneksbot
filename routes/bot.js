@@ -658,10 +658,10 @@ module.exports = function (express, botApi, configs) {
                                 });
                             });
                         });
-                    } else if (message.reply_message && message.reply_message.forward_from) {
-                        return botApi.mongo.User.findOne({user_id: message.reply_message.forward_from.id}).then(function (feedbackUser) {
+                    } else if (message.reply_to_message && message.reply_to_message.forward_from) {
+                        return botApi.mongo.User.findOne({user_id: message.reply_to_message.forward_from.id}).then(function (feedbackUser) {
                             if (feedbackUser.feedback_mode) {
-                                return performCommand(['/feedback', message.reply_message.forward_from.id, message.text], message, user);
+                                return performCommand(['/feedback', message.reply_to_message.forward_from.id, message.text], message, user);
                             }
 
                             throw new Error('Unknown reply action');
