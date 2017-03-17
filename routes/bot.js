@@ -228,6 +228,9 @@ module.exports = function (express, botApi, configs) {
             },
             '/suggest': performSuggest,
             '/comment': performSuggest,
+            '/comment_list': function (command, message, user) {
+                return performSuggest(['/command', 'list'], message, user);
+            },
             '/feedback': function (command, message, user) {
                 if (command[1] && user.admin) {
                     command.splice(0, 1);
