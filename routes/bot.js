@@ -20,7 +20,7 @@ module.exports = function (express, botApi, configs) {
             } else if (user.suggest_mode) {
                 return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
             } else {
-                return botApi.mongo.Suggest.find({user: user.id}).count().then(function (suggestsLength) {
+                return botApi.mongo.Suggest.find({user: user.id, approved: false}).count().then(function (suggestsLength) {
                     if (suggestsLength > 5) {
                         throw new Error('Слишком много предложений в ожидании.');
                     }
