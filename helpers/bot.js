@@ -271,11 +271,11 @@ module.exports = function (configs) {
             sendMessageToChannel: function (message) {
                 return this.sendMessage(configs.bot.baneksChannel, message);
             },
-            forwardMessageToChannel: function (message) {
+            forwardMessageToChannel: function (message, params) {
                 if (!configs.bot.baneksChannel) {
                     return;
                 }
-                return this.forwardMessage(configs.bot.baneksChannel, message);
+                return this.forwardMessage(configs.bot.baneksChannel, message, params);
             },
             forwardMessage: function (userId, message, params) {
                 var buttons = this.prepareButtons(message, params),
@@ -305,10 +305,16 @@ module.exports = function (configs) {
                     commandType = 'sendPhoto';
                     sendMessage.photo = message.photo[message.photo.length - 1].file_id;
                 } else if (params.native) {
+                    var chatId = userId;
+
+                    if (message && message.chat && message.chat.id) {
+                        chatId = message.chat.id;
+                    }
+
                     commandType = 'forwardMessage';
                     sendMessage = {
                         chat_id: userId,
-                        from_chat_id: userId,
+                        from_chat_id: chatId,
                         message_id: message.message_id
                     }
                 } else {

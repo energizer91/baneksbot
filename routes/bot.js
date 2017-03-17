@@ -573,14 +573,13 @@ module.exports = function (express, botApi, configs) {
                     return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true}).then(function (suggest) {
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
-                            .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest))
+                            .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest, {native: true}))
                             .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
                     });
                 case 's_d':
                     return botApi.mongo.Suggest.findOneAndRemove({_id: botApi.mongo.Suggest.convertId(queryData[1])})
                         .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))
-                        .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
-                        .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение удалено.'));
+                        .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []));
             }
 
             throw new Error('Unknown callback query ' + queryData);
