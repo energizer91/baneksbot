@@ -57,13 +57,7 @@ module.exports = function (configs) {
             user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
             message_id: Number,
             chat: {
-                id: Number,
-                type: String,
-                title: String,
-                username: String,
-                first_name: String,
-                last_name: String,
-                all_members_are_administrators: Boolean
+                id: Number
             },
             text: String,
             audio: {
