@@ -481,6 +481,14 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendInline(query.id, results, query.offset + aneks_count);
             });
         },
+        acceptSuggest = function (queryData, data, params, anonymous) {
+            return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true}).then(function (suggest) {
+                return botApi.bot.answerCallbackQuery(data.callback_query.id)
+                    .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
+                    .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest, {native: anonymous}))
+                    .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
+            });
+        },
         performCallbackQuery = function (queryData, data, params) {
             if (!params) {
                 params = {};
@@ -570,12 +578,9 @@ module.exports = function (express, botApi, configs) {
                         });
                     });
                 case 's_a':
-                    return botApi.mongo.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true}).then(function (suggest) {
-                        return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
-                            .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest, {native: true}))
-                            .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
-                    });
+                    return acceptSuggest(queryData, data, params, true);
+                case 's_aa':
+                    return acceptSuggest(queryData, data, params, false);
                 case 's_d':
                     return botApi.mongo.Suggest.findOneAndRemove({_id: botApi.mongo.Suggest.convertId(queryData[1])})
                         .then(botApi.bot.answerCallbackQuery.bind(botApi.bot, data.callback_query.id))

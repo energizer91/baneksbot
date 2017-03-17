@@ -292,19 +292,7 @@ module.exports = function (configs) {
                     sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
                 }
 
-                if (message.audio && message.audio.file_id) {
-                    commandType = 'sendAudio';
-                    sendMessage.audio = message.audio.file_id;
-                } else if (message.voice && message.voice.file_id) {
-                    commandType = 'sendVoice';
-                    sendMessage.voice = message.voice.file_id;
-                } else if (message.document && message.document.file_id) {
-                    commandType = 'sendDocument';
-                    sendMessage.document = message.document.file_id;
-                } else if (message.photo && message.photo.length > 0) {
-                    commandType = 'sendPhoto';
-                    sendMessage.photo = message.photo[message.photo.length - 1].file_id;
-                } else if (params.native) {
+                if (params.native) {
                     var chatId = userId;
 
                     if (message && message.chat && message.chat.id) {
@@ -317,6 +305,18 @@ module.exports = function (configs) {
                         from_chat_id: chatId,
                         message_id: message.message_id
                     }
+                } else if (message.audio && message.audio.file_id) {
+                    commandType = 'sendAudio';
+                    sendMessage.audio = message.audio.file_id;
+                } else if (message.voice && message.voice.file_id) {
+                    commandType = 'sendVoice';
+                    sendMessage.voice = message.voice.file_id;
+                } else if (message.document && message.document.file_id) {
+                    commandType = 'sendDocument';
+                    sendMessage.document = message.document.file_id;
+                } else if (message.photo && message.photo.length > 0) {
+                    commandType = 'sendPhoto';
+                    sendMessage.photo = message.photo[message.photo.length - 1].file_id;
                 } else {
                     commandType = 'sendMessage';
                     sendMessage.text = sendMessage.text || 'Пустое сообщение';
