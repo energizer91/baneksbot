@@ -41,6 +41,10 @@ var cp = require('child_process'),
     dbUpdater,
     childQueue = new Queue(1, Infinity),
     startDaemon = function () {
+        var debug = typeof v8debug === 'object';
+        if (debug) {
+            process.execArgv.push('--debug=' + (40894));
+        }
         dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
 
         dbUpdater.on('close', function (code, signal) {
@@ -50,10 +54,17 @@ var cp = require('child_process'),
 
         dbUpdater.on('message', function (m) {
             if (m.type == 'message' && m.message) {
-                childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
-            } else {
-                console.log('PARENT got message:', m);
+                var messagePromise = botApi.bot.sendMessage(m.userId, m.message, m.params).catch(function (error) {
+                    if (!error.ok && ( error.error_code == 400 ||error.error_code == 403)) {
+                        return botApi.mongo.User.findOneAndUpdate({user_id: m.userId}, {subscribed: false}).then(function () {
+                            throw error;
+                        });
+                    }
+                });
+                return childQueue.add(messagePromise);
             }
+
+            console.log('PARENT got message:', m);
         });
     },
     sendUpdaterMessage = function (res, message, responseText) {
