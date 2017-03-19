@@ -497,7 +497,15 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.answerCallbackQuery(data.callback_query.id)
                     .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
                     .then(botApi.bot.forwardMessageToChannel.bind(botApi.bot, suggest, {native: anonymous}))
-                    .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение одобрено.'));
+                    .then(function (sendMessage) {
+                        return botApi.bot.sendMessage(data.callback_query.message.chat.id, 'Предложение одобрено.').then(function () {
+                            return botApi.mongo.User.findOne({_id: suggest.user}).then(function (foundUser) {
+                                if (sendMessage.ok && sendMessage.result) {
+                                    return botApi.bot.forwardMessage(foundUser.user_id, sendMessage.result, {native: true});
+                                }
+                            });
+                        });
+                    });
             });
         },
         performCallbackQuery = function (queryData, data, params) {
@@ -650,8 +658,12 @@ module.exports = function (express, botApi, configs) {
                                     buttons: [
                                         [
                                             {
-                                                text: 'Сделать неанонимным',
+                                                text: 'Подписаться',
                                                 callback_data: 's_da ' + newSuggest._id
+                                            },
+                                            {
+                                                text: 'Удалить',
+                                                callback_data: 's_d ' + newSuggest._id
                                             }
                                         ]
                                     ]

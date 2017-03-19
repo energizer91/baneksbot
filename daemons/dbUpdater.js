@@ -178,6 +178,11 @@ process.on('message', function(m) {
                     process.send({type: 'message', userId: user.user_id, message: 'Проверка', params: {language: user.language}});
                 });
                 break;
+            case 'anek':
+                return mongo.Anek.random().then(function (anek) {
+                    process.send({type: 'message', userId: user.user_id, message: anek.text, params: {language: user.language}});
+                });
+                break;
             default:
                 console.log('Unknown service command');
                 break;
