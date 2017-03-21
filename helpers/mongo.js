@@ -51,7 +51,8 @@ module.exports = function (configs) {
             keyboard: {type: Boolean, default: false},
             banned: {type: Boolean, default: false},
             language: {type: String, default: 'russian'},
-            client: {type: String, default: 'web'}
+            client: {type: String, default: 'web'},
+            pin: {type: String, select: false}
         }),
         suggestSchema = mongoose.Schema({
             user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
