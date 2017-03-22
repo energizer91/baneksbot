@@ -3,7 +3,7 @@ import {Table as MaterialTable, TableBody, TableHeader, TableHeaderColumn, Table
 
 const Table = (props) => (
     <div>
-        <MaterialTable>
+        <MaterialTable {...props}>
             <TableHeader>
                 <TableRow>
                     {Object.keys(props.fields).map((field, i) => (

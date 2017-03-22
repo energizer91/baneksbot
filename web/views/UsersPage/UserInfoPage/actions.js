@@ -1,30 +1,28 @@
 import Request from '../../../common/request';
 import {REQUEST_USER, RECEIVE_USER} from './constants';
 
-function requestUser (range) {
+function requestUser (id) {
     return {
         type: REQUEST_USER,
-        range
+        id
     }
 }
 
-function receiveUser (range, items) {
+function receiveUser ( userInfo) {
     return {
         type: RECEIVE_USER,
-        range,
-        items,
+        userInfo,
         receivedAt: Date.now()
     }
 }
 
-export function fetchUsers (range) {
+export function fetchUser (id) {
     return function (dispatch) {
-        dispatch(requestUsers(range));
+        dispatch(requestUser(id));
 
-        return new Request('/api/users', {
+        return new Request('/api/users/' + id, {
             method: 'GET',
-            body: range,
             json: true
-        }).then(items => dispatch(receiveUsers(range, items)))
+        }).then(user => dispatch(receiveUser(user)))
     }
 }

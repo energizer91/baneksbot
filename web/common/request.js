@@ -7,7 +7,7 @@ export default class Request {
             let xhr = new XMLHttpRequest(),
                 params = '';
 
-            if (data.method && typeof data.method == 'string') {
+            if (data.method && typeof data.method === 'string') {
                 data.method = data.method.toUpperCase();
             } else {
                 data.method = 'GET';
@@ -43,9 +43,9 @@ export default class Request {
             }
 
             xhr.onreadystatechange = () => {
-                if (xhr.readyState != 4) return;
+                if (xhr.readyState !== 4) return;
 
-                if (xhr.status != 200) {
+                if (xhr.status !== 200) {
                     return reject(new Error(xhr.status + ': ' + xhr.statusText));
                 } else {
                     if (data.json) {

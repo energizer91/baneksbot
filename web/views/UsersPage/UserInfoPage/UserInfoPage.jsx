@@ -1,33 +1,30 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { fetchUsers } from './../actions';
+import { fetchUser } from './actions';
 
 class UserInfoPage extends React.Component {
     constructor(props) {
         super(props);
 
-        this.skipPage = this.skipPage.bind(this);
+        this.getUser = this.getUser.bind(this);
     }
 
-    skipPage(range) {
-        this.props.dispatch(fetchUsers(range));
+    getUser(id) {
+        this.props.dispatch(fetchUser(id));
     }
 
     componentDidMount() {
-        this.skipPage();
+        this.getUser(this.props.params.userid);
     }
 
     render() {
         return (
             <div>
                 <h1>User info</h1>
+                <p>{JSON.stringify(this.props.userInfo)}</p>
             </div>
         );
     }
 }
 
-function mapStateToProps(state ) => (state) {
-    return state;
-}
-
-export default connect(mapStateToProps)(UserInfoPage);
+export default connect(state => state)(UserInfoPage);
