@@ -1,6 +1,8 @@
 import Base from './Base/Base';
 import HomePage from './HomePage/HomePage';
-import LoginPage from './LoginPage/LoginPage';
+import NotFound from './NotFound/NotFound';
+import UsersPage from './UsersPage/UsersPage';
+import AneksPage from './AneksPage/AneksPage';
 
 const routes = {
     // base component (wrapper for the whole application).
@@ -10,10 +12,23 @@ const routes = {
             path: '/',
             component: HomePage
         },
-
         {
-            path: '/login',
-            component: LoginPage
+            path: '/users',
+            component: UsersPage
+        },
+        {
+            path: '/aneks',
+            component: AneksPage,
+            childRoutes: [
+                {
+                    path: '/:anekid',
+                    component: HomePage
+                }
+            ]
+        },
+        {
+            path: '*',
+            component: NotFound
         }
     ]
 };

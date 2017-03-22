@@ -1,9 +1,8 @@
 import React from 'react';
-import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
-import { fetchUsers } from './actions';
+import { fetchUsers } from './../actions';
 
-class UsersPage extends React.Component {
+class UserInfoPage extends React.Component {
     constructor(props) {
         super(props);
 
@@ -21,11 +20,14 @@ class UsersPage extends React.Component {
     render() {
         return (
             <div>
-                <h1>Users info</h1>
-                <UserTable entity="users" users={(this.props.users.items)}/>
+                <h1>User info</h1>
             </div>
         );
     }
 }
 
-export default connect(state => state)(UsersPage);
+function mapStateToProps(state ) => (state) {
+    return state;
+}
+
+export default connect(mapStateToProps)(UserInfoPage);

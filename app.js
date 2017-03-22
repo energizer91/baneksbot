@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'bundle')));
 var Queue = require('promise-queue');
 
 Queue.configure(require('q').Promise);
-app.use('/', routes);
+
 
 var files = fs.readdirSync(path.join(__dirname, 'routes'));
 
@@ -30,6 +30,8 @@ for (var file in files) {
         app.use('/api' + routerEndpoint.endPoint, routerEndpoint.router);
     }
 }
+
+app.use('/', routes);
 
 var cp = require('child_process'),
     dbUpdater,
