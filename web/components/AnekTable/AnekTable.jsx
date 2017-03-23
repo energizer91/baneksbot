@@ -6,25 +6,25 @@ const fields = [
         name: 'post_id',
         title: 'Post ID',
         styles: {
-            width: '90px'
+            width: '70px'
         }
     },
     {
         name: 'text',
-        title: 'text'
+        title: 'Text'
     },
     {
         name: 'likes',
         title: 'likes',
         styles: {
-            width: '90px'
+            width: '50px'
         }
     },
     {
         name: 'reposts',
         title: 'Reposts',
         styles: {
-            width: '90px'
+            width: '50px'
         }
     }
 ];
