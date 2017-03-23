@@ -9,7 +9,9 @@ const fields = {
 };
 
 const UserTable = (props) => (
-    <Table {...props} fields={fields} items={props.users}/>
+    <div>
+        <Table {...props} fields={fields}/>
+    </div>
 );
 
 export default UserTable;

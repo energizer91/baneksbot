@@ -1,9 +1,9 @@
 import {REQUEST_USER, RECEIVE_USER} from './constants';
 
-export default function users (state = {
+export default function userInfo (state = {
                                    isFetching: false,
                                    id: null,
-                                   userInfo: null
+                                   user: {}
                                }, action) {
     switch (action.type) {
         case REQUEST_USER:
@@ -14,7 +14,7 @@ export default function users (state = {
         case RECEIVE_USER:
             return Object.assign({}, state, {
                 isFetching: false,
-                userInfo: action.userInfo,
+                user: action.user,
                 receivedAt: action.receivedAt
             });
         default:

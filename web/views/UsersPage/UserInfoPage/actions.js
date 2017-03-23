@@ -8,10 +8,10 @@ function requestUser (id) {
     }
 }
 
-function receiveUser ( userInfo) {
+function receiveUser (user) {
     return {
         type: RECEIVE_USER,
-        userInfo,
+        user,
         receivedAt: Date.now()
     }
 }

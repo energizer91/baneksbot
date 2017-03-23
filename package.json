@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "build": "node ./node_modules/webpack/bin/webpack.js -d"
+    "build": "webpack.js -d"
   },
   "dependencies": {
     "babel-preset-stage-2": "^6.22.0",

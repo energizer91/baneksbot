@@ -5,7 +5,7 @@ import users from './views/UsersPage/reducers';
 import aneks from './views/AneksPage/reducers';
 
 export default combineReducers({
-    users,
+    ...users,
     aneks,
     routing: routerReducer
 });

@@ -1,30 +1,47 @@
 import Request from '../../common/request';
-import {REQUEST_USERS, RECEIVE_USERS} from './constants';
+import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER} from './constants';
 
-function requestUsers (range) {
+function requestUsers (offset, limit) {
     return {
         type: REQUEST_USERS,
-        range
+        offset,
+        limit
     }
 }
 
-function receiveUsers (range, items) {
+function receiveUsers (items) {
     return {
         type: RECEIVE_USERS,
-        range,
-        items,
+        ...items,
         receivedAt: Date.now()
     }
 }
 
-export function fetchUsers (range) {
-    return function (dispatch) {
-        dispatch(requestUsers(range));
+function changeUserFilter (filter) {
+    return {
+        type: CHANGE_FILTER,
+        filter
+    }
+}
+
+export function fetchUsers (offset, limit) {
+    return function (dispatch, getState) {
+        dispatch(requestUsers(offset, limit));
 
         return new Request('/api/users', {
             method: 'GET',
-            body: range,
+            body: {
+                offset,
+                limit,
+                filter: getState().users.filter
+            },
             json: true
-        }).then(items => dispatch(receiveUsers(range, items)))
+        }).then(items => dispatch(receiveUsers(items)))
+    }
+}
+
+export function changeFilter (filter) {
+    return function (dispatch) {
+        dispatch(changeUserFilter(filter));
     }
 }

@@ -24,7 +24,9 @@ export default class Request {
             if (data.method === 'GET' && data.body) {
                 let paramsArray = [];
                 Object.keys(data.body).forEach((key) => {
-                    paramsArray.push(key + '=' + data.body[key]);
+                    if (data.body[key]) {
+                        paramsArray.push(key + '=' + data.body[key]);
+                    }
                 });
 
                 if (paramsArray.length) {

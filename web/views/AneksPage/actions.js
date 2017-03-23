@@ -1,30 +1,32 @@
 import Request from '../../common/request';
 import {REQUEST_ANEKS, RECEIVE_ANEKS} from './constants';
 
-function requestAneks (range) {
+function requestAneks (offset, limit) {
     return {
         type: REQUEST_ANEKS,
-        range
+        offset,
+        limit
     }
 }
 
-function receiveAneks (range, items) {
+function receiveAneks (items) {
     return {
         type: RECEIVE_ANEKS,
-        range,
-        items,
+        ...items,
         receivedAt: Date.now()
     }
 }
 
-export function fetchAneks (range) {
+export function fetchAneks (offset, limit) {
     return function (dispatch) {
-        dispatch(requestAneks(range));
-
+        dispatch(requestAneks(offset, limit));
         return new Request('/api/aneks', {
             method: 'GET',
-            body: range,
+            body: {
+                offset,
+                limit
+            },
             json: true
-        }).then(items => dispatch(receiveAneks(range, items)))
+        }).then(items => dispatch(receiveAneks(items)))
     }
 }

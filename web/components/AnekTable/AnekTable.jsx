@@ -9,7 +9,7 @@ const fields = {
 };
 
 const AnekTable = (props) => (
-    <Table fields={fields} items={props.aneks}/>
+    <Table {...props} fields={fields} items={props.aneks}/>
 );
 
 export default AnekTable;

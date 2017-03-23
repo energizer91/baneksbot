@@ -5,8 +5,22 @@ module.exports = function (express, botApi) {
     var router = express.Router();
 
     router.get('/', function (req, res, next) {
-        return botApi.mongo.Anek.find({}).skip(parseInt(req.query.offset || 0)).limit(parseInt(req.query.limit || 10)).then(function (aneks) {
-            return res.json(aneks);
+        var params = {},
+            limit = parseInt(req.query.limit) || 10,
+            offset = parseInt(req.query.offset) || 0,
+            total = 0;
+
+        return botApi.mongo.Anek.count().then(function (count) {
+            total = count;
+
+            return botApi.mongo.Anek.find(params).skip(offset).limit(limit).then(function (users) {
+                return res.json({
+                    offset: offset,
+                    limit: limit,
+                    total: total,
+                    items: users
+                });
+            })
         }).catch(next);
     });
 

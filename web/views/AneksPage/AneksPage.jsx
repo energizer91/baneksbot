@@ -3,41 +3,39 @@ import AnekTable from '../../components/AnekTable/AnekTable';
 import { connect } from 'react-redux';
 import { fetchAneks } from './actions';
 
-const initialState = {
-    range: {
-        offset: 0,
-        limit: 10
-    },
-    items: []
-};
-
 class AneksPage extends React.Component {
     constructor(props) {
         super(props);
 
-        this.skipPage = this.skipPage.bind(this);
+        this.loadAneks = this.loadAneks.bind(this);
+        this.onLimitChange = this.onLimitChange.bind(this);
     }
 
-    skipPage(range) {
-        this.props.dispatch(fetchAneks(range));
+    loadAneks(offset, limit) {
+        this.props.dispatch(fetchAneks(offset, limit));
+    }
+
+    onLimitChange(event, index, limit) {
+        this.loadAneks(this.props.aneks.offset, limit);
     }
 
     componentDidMount() {
-        this.skipPage();
+        this.loadAneks();
     }
 
     render() {
         return (
             <div>
                 <h1>Aneks info</h1>
-                <AnekTable entity="users" aneks={(this.props.aneks.items)}/>
+                <AnekTable
+                    entity="aneks"
+                    onLimitChange={this.onLimitChange}
+                    onDataRequest={this.loadAneks}
+                    data={(this.props.aneks)}
+                />
             </div>
         );
     }
 }
 
-function mapStateToProps(state = initialState) {
-    return state;
-}
-
-export default connect(mapStateToProps)(AneksPage);
+export default connect(state => state)(AneksPage);
