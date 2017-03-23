@@ -4,6 +4,8 @@ import MenuItem from 'material-ui/MenuItem';
 import IconButton from 'material-ui/IconButton';
 import ChevronLeft from 'material-ui/svg-icons/navigation/chevron-left';
 import ChevronRight from 'material-ui/svg-icons/navigation/chevron-right';
+import LastPage from 'material-ui/svg-icons/navigation/last-page';
+import FirstPage from 'material-ui/svg-icons/navigation/first-page';
 import {Table as MaterialTable, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn, TableFooter} from 'material-ui/Table';
 
 const styles = {
@@ -37,19 +39,25 @@ class Table extends React.Component {
 
         return (
             <div>
-                <MaterialTable selectable={false} multiSelectable={false} onCellClick={this.props.onCellClick}>
+                <MaterialTable
+                    selectable={false}
+                    multiSelectable={false}
+                    onCellClick={this.props.onCellClick}
+                    fixedHeader={true}
+                    fixedFooter={true}
+                >
                     <TableHeader displaySelectAll={false} adjustForCheckbox={false}>
                         <TableRow>
-                            {Object.keys(this.props.fields).map((field, i) => (
-                                <TableHeaderColumn key={i}>{this.props.fields[field]}</TableHeaderColumn>
+                            {this.props.fields.map((field, i) => (
+                                <TableHeaderColumn style={field.styles} key={i}>{field.title}</TableHeaderColumn>
                             ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody displayRowCheckbox={false}>
                         {(items || []).map((item, i) => (
                             <TableRow key={i}>
-                                {Object.keys(this.props.fields).map((field, i) => (
-                                    <TableRowColumn key={i}>{item[field]}</TableRowColumn>
+                                {this.props.fields.map((field, i) => (
+                                    <TableRowColumn style={field.styles} key={i}>{item[field.name]}</TableRowColumn>
                                 ))}
                             </TableRow>
                         ))}
@@ -57,11 +65,15 @@ class Table extends React.Component {
                     <TableFooter adjustForCheckbox={false}>
                         <TableRow>
                             <TableRowColumn style={styles.footerContent}>
-                                <IconButton disabled={offset === 0} onClick={this.props.onDataRequest.bind(null, offset - limit, limit)}>
+                                <IconButton disabled={offset === 0} onClick={this.props.onDataRequest.bind(null, 0, limit)}>
+                                    <FirstPage />
+                                </IconButton><IconButton disabled={offset === 0} onClick={this.props.onDataRequest.bind(null, offset - limit, limit)}>
                                     <ChevronLeft />
                                 </IconButton>
                                 <IconButton disabled={offset + limit >= total} onClick={this.props.onDataRequest.bind(null, offset + limit, limit)}>
                                     <ChevronRight />
+                                </IconButton><IconButton disabled={offset + limit >= total} onClick={this.props.onDataRequest.bind(null, total - limit, limit)}>
+                                    <LastPage />
                                 </IconButton>
                             </TableRowColumn>
                             <TableRowColumn style={styles.footerText}>
@@ -70,7 +82,7 @@ class Table extends React.Component {
                             <TableRowColumn style={styles.footerContent}>
                                 <SelectField
                                     style={{
-                                        width: '50px',
+                                        width: '80px',
                                         fontSize: '13px'
                                     }}
                                     underlineStyle={{
@@ -100,7 +112,9 @@ React.propTypes = {
     onFilterChange: React.PropTypes.func,
     onLimitChange: React.PropTypes.func,
     onCellClick: React.PropTypes.func,
-    items: React.PropTypes.object.isRequired
+    name: React.PropTypes.string.isRequired,
+    items: React.PropTypes.object.isRequired,
+    fields: React.PropTypes.array.isRequired
 };
 
 

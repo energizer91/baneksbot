@@ -1,17 +1,30 @@
 import React from 'react';
 import Table from '../Table/Table';
 
-const fields = {
-    user_id: 'ID',
-    username: 'Username',
-    first_name: 'First name',
-    last_name: 'Last name'
-};
+const fields = [
+    {
+        name: 'user_id',
+        title: 'ID',
+        styles: {
+            width: '90px'
+        }
+    },
+    {
+        name: 'username',
+        title: 'Username'
+    },
+    {
+        name: 'first_name',
+        title: 'First name'
+    },
+    {
+        name: 'last_name',
+        title: 'Last name'
+    }
+];
 
 const UserTable = (props) => (
-    <div>
-        <Table {...props} fields={fields}/>
-    </div>
+    <Table {...props} fields={fields}/>
 );
 
 export default UserTable;

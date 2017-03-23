@@ -44,7 +44,6 @@ class UsersPage extends React.Component {
                     data={this.props.users}
                     onLimitChange={this.onLimitChange}
                     onCellClick={this.openUser}
-                    entity="users"
                     onDataRequest={this.loadUsers}
                 />
             </div>

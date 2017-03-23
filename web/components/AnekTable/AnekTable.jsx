@@ -1,15 +1,36 @@
 import React from 'react';
 import Table from '../Table/Table';
 
-const fields = {
-    post_id: 'Post ID',
-    text: 'Text',
-    likes: 'Likes',
-    reposts: 'Reposts'
-};
+const fields = [
+    {
+        name: 'post_id',
+        title: 'Post ID',
+        styles: {
+            width: '90px'
+        }
+    },
+    {
+        name: 'text',
+        title: 'text'
+    },
+    {
+        name: 'likes',
+        title: 'likes',
+        styles: {
+            width: '90px'
+        }
+    },
+    {
+        name: 'reposts',
+        title: 'Reposts',
+        styles: {
+            width: '90px'
+        }
+    }
+];
 
 const AnekTable = (props) => (
-    <Table {...props} fields={fields} items={props.aneks}/>
+    <Table {...props} fields={fields}/>
 );
 
 export default AnekTable;
