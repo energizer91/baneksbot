@@ -22,7 +22,7 @@ class UsersPage extends React.Component {
         browserHistory.push('/users/' + this.props.users.items[rowNumber]._id);
     }
 
-    onFilterChange(event, index, filter) {
+    onFilterChange(event, filter) {
         this.props.dispatch(changeFilter(filter));
         this.loadUsers();
     }
@@ -38,10 +38,10 @@ class UsersPage extends React.Component {
     render() {
         return (
             <div>
-                <h1>Users info</h1>
                 <UserTable
                     onFilterChange={this.onFilterChange}
                     data={this.props.users}
+                    name="Users table"
                     onLimitChange={this.onLimitChange}
                     onCellClick={this.openUser}
                     onDataRequest={this.loadUsers}

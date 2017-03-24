@@ -1,0 +1,18 @@
+.header {
+    padding-left: 24px;
+    padding-right: 14px;
+    height: 64px;
+}
+
+.header .title {
+    display: inline-block;
+    line-height: 64px;
+    height: 64px;
+    font-size: 24px;
+    font-weight: 400;
+}
+
+.pull-right {
+    float: right;
+    margin: 8px 0;
+}
