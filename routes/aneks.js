@@ -10,7 +10,7 @@ module.exports = function (express, botApi) {
             offset = parseInt(req.query.offset) || 0,
             total = 0;
 
-        return botApi.mongo.Anek.count().then(function (count) {
+        return botApi.mongo.Anek.count(params).then(function (count) {
             total = count;
 
             return botApi.mongo.Anek.find(params).skip(offset).limit(limit).then(function (users) {

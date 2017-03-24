@@ -24,7 +24,7 @@ module.exports = function (express, botApi) {
             }
         }
 
-        return botApi.mongo.User.count().then(function (count) {
+        return botApi.mongo.User.count(params).then(function (count) {
             total = count;
 
             return botApi.mongo.User.find(params).skip(offset).limit(limit).then(function (users) {
