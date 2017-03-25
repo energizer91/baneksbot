@@ -3,6 +3,7 @@ import Table from '../Table/Table';
 import MenuItem from 'material-ui/MenuItem';
 import IconMenu from 'material-ui/IconMenu';
 import IconButton from 'material-ui/IconButton';
+import Card from 'material-ui/Card';
 import FilterList from 'material-ui/svg-icons/content/filter-list';
 
 import './UserTable.css';
@@ -45,7 +46,7 @@ const filters = [
 ];
 
 const UserTable = (props) => (
-    <div>
+    <Card>
         <div className="header">
             <span className="title">{props.name}</span>
             <div className="pull-right">
@@ -61,7 +62,7 @@ const UserTable = (props) => (
             </div>
         </div>
         <Table {...props} fields={fields}/>
-    </div>
+    </Card>
 );
 
 export default UserTable;
