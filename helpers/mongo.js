@@ -44,6 +44,7 @@ module.exports = function (configs) {
             last_name: String,
             user_id: Number,
             subscribed: {type: Boolean, default: false},
+            deleted_subscribe: {type: Boolean, default: false},
             feedback_mode: {type: Boolean, default: false},
             suggest_mode: {type: Boolean, default: false},
             admin: {type: Boolean, default: false},
