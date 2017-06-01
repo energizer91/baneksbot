@@ -89,6 +89,12 @@ module.exports = function (configs) {
                 mime_type: String,
                 file_size: Number
             },
+            video_note: {
+                file_id: String,
+                length: Number,
+                duration: Number,
+                file_size: Number
+            },
             caption: String,
             approved: {type: Boolean, default: false},
             public: {type: Boolean, default: false}
