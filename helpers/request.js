@@ -13,7 +13,7 @@ module.exports = function () {
             rate: 10,
             interval: 1,
             backoffCode: 429,
-            backOffTime: 10,
+            backOffTime: 60,
             maxWaitingTime: 600
         }),
         https = require('https');
