@@ -274,6 +274,14 @@ module.exports = function (configs) {
 
                 return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
             },
+            sendMessageWithDelay: function (userId, message, params, interval) {
+                return new q.Promise((function (resolve) {
+                    var promise = this.sendMessage(userId, message, params);
+                    setTimeout(function () {
+                        return resolve(promise);
+                    }, interval || 0)
+                }).bind(this));
+            },
             sendMessages: function (userId, messages, params) {
                 var messageQueue = new Queue(1, Infinity);
                 return (messages || []).reduce(function (p, message) {
@@ -326,6 +334,9 @@ module.exports = function (configs) {
                 } else if (message.voice && message.voice.file_id) {
                     commandType = 'sendVoice';
                     sendMessage.voice = message.voice.file_id;
+                } else if (message.video_note && message.video_note.file_id) {
+                    commandType = 'sendVideoNote';
+                    sendMessage.video_note = message.video_note.file_id;
                 } else if (message.document && message.document.file_id) {
                     commandType = 'sendDocument';
                     sendMessage.document = message.document.file_id;

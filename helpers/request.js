@@ -10,11 +10,11 @@ module.exports = function () {
         formData = require('form-data'),
         RateLimiter = require('request-rate-limiter'),
         limiter = new RateLimiter({
-            rate: 30,
+            rate: 10,
             interval: 1,
             backoffCode: 429,
             backOffTime: 10,
-            maxWaitingTime: 300
+            maxWaitingTime: 600
         }),
         https = require('https');
 
@@ -24,7 +24,7 @@ module.exports = function () {
                 throw new Error('Config not specified');
             }
 
-            if ((config.method == 'GET') && params) {
+            if ((config.method === 'GET') && params) {
                 config.path += '?' + queryString.stringify(params);
             }
 
@@ -44,7 +44,7 @@ module.exports = function () {
                     }
 
                     var result = '',
-                        req = (config.protocol == 'https:' ? https : http).request(config);
+                        req = (config.protocol === 'https:' ? https : http).request(config);
 
                     req.on('response', function (res) {
                         var code = res.statusCode;
@@ -63,7 +63,7 @@ module.exports = function () {
                                 returnResult = result;
                             }
                             //console.log('No more data in response.');
-                            if (code == 429) {
+                            if (code === 429) {
                                 console.log('backin\' off request in', returnResult.parameters.retry_after);
                                 return backoff();
                             }
