@@ -11,7 +11,7 @@ module.exports = function () {
         RateLimiter = require('request-rate-limiter'),
         limiter = new RateLimiter({
             rate: 10,
-            interval: 1,
+            interval: 0.3,
             backoffCode: 429,
             backOffTime: 60,
             maxWaitingTime: 600

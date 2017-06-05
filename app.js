@@ -31,8 +31,6 @@ for (var file in files) {
     }
 }
 
-app.use('/', routes);
-
 var cp = require('child_process'),
     dbUpdater,
     childQueue = new Queue(1, Infinity),
@@ -50,13 +48,15 @@ var cp = require('child_process'),
 
         dbUpdater.on('message', function (m) {
             if (m.type === 'message' && m.message) {
-                return childQueue.add(botApi.bot.sendMessage(m.userId, m.message, m.params).catch(function (error) {
+                var messagePromise = botApi.bot.sendMessage(m.userId, m.message, m.params).catch(function (error) {
                     if (!error.ok && (error.error_code === 403)) {
                         return botApi.mongo.User.findOneAndUpdate({user_id: m.userId}, {subscribed: false, deleted_subscribe: true}).then(function () {
                             throw error;
                         });
                     }
-                }));
+                });
+
+                return childQueue.add(messagePromise);
             }
 
             console.log('PARENT got message:', m);
@@ -74,6 +74,8 @@ var cp = require('child_process'),
     };
 
 startDaemon();
+
+app.use('/', routes);
 
 app.get('/startDaemon', function (req, res) {
     if (dbUpdater && dbUpdater.connected) {
