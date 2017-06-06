@@ -49,7 +49,10 @@ var cp = require('child_process'),
         dbUpdater.on('message', function (m) {
             if (m.type === 'message' && m.message) {
                 var messagePromise = botApi.bot.sendMessage(m.userId, m.message, m.params).catch(function (error) {
-                    if (!error.ok && (error.error_code === 403 || error.error_code === 400)) {
+                    if (!error.ok && (error.error_code === 403) && !(
+                        error.description === 'Bad Request: chat not found' ||
+                        error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
+                        error.description === 'Bad Request: chat_id is empty')) {
                         return botApi.mongo.User.findOneAndUpdate({user_id: m.userId}, {subscribed: false, deleted_subscribe: true}).then(function () {
                             throw error;
                         });
