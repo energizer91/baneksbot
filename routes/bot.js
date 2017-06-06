@@ -631,6 +631,10 @@ module.exports = function (express, botApi, configs) {
                     return reject(new Error('No webhook data specified'));
                 }
 
+                if (data.hasOwnProperty('pre_checkout_query')) {
+                    return {};
+                }
+
                 var userObject = data.message || data.inline_query || data.callback_query;
 
                 updateUser((userObject || {}).from, function (err, user) {
