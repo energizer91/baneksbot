@@ -226,7 +226,7 @@ module.exports = function (configs) {
                     attachments = [],
                     buttons = [];
 
-                if (typeof message == 'string') {
+                if (typeof message === 'string') {
                     sendMessage = {
                         chat_id: userId,
                         text: message
@@ -364,6 +364,30 @@ module.exports = function (configs) {
                 return (attachments || []).reduce(function (p, attachment) {
                     return p.then(attachmentQueue.add.bind(attachmentQueue, this.sendAttachment.bind(this, userId, attachment)));
                 }.bind(this), q.when());
+            },
+            sendInvoice: function (userId, payment) {
+                //var newButtons = this.prepareButtons(payment);
+
+                return this.sendRequest('sendInvoice', {
+                    chat_id: userId,
+                    title: payment.title,
+                    description: payment.description,
+                    provider_token: botConfig.paymentToken,
+                    currency: 'RUB',
+                    start_parameter: 'donate',
+                    payload: payment.payload,
+                    prices: JSON.stringify([
+                        {label: 'Основной взнос', amount: 6000}
+                    ])
+                    //reply_markup: JSON.stringify({inline_keyboard: newButtons})
+                });
+            },
+            answerPreCheckoutQuery: function (queryId, status, error) {
+                return this.sendRequest('answerPreCheckoutQuery', {
+                    pre_checkout_query_id: queryId,
+                    ok: status,
+                    error_message: error
+                })
             },
             performAttachment: function (attachment) {
                 if (!attachment) {

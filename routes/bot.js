@@ -390,6 +390,13 @@ module.exports = function (express, botApi, configs) {
                     .then(function (aneks) {
                         return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_ever', {count: count})].concat(aneks), {language: user.language});
                     });
+            },
+            '/donate': function (command, message) {
+                return botApi.bot.sendInvoice(message.from.id, {
+                    title: 'Донат на развитие бота',
+                    description: 'А то совсем нечего кушать',
+                    payload: 'lololo'
+                })
             }
         },
         performCommand = function (command, data, user) {
@@ -634,7 +641,9 @@ module.exports = function (express, botApi, configs) {
                     return resolve(user);
                 });
             }).then(function (user) {
-                if (data.hasOwnProperty('callback_query')) {
+                if (data.hasOwnProperty('pre_checkout_query')) {
+                    return botApi.bot.answerPreCheckoutQuery(data.pre_checkout_query.id, true);
+                } else if (data.hasOwnProperty('callback_query')) {
                     var queryData = data.callback_query.data.split(' ');
                     return performCallbackQuery(queryData, data, {language: user.language});
                 } else if (data.hasOwnProperty('inline_query')) {
@@ -642,7 +651,11 @@ module.exports = function (express, botApi, configs) {
                 } else if (data.message) {
                     var message = data.message;
 
-                    if (message.new_chat_member) {
+                    if (message.successful_payment) {
+                        return botApi.bot.sendMessageToAdmin('Вам задонатили ' + message.successful_payment.total_amount + message.successful_payment.currency).then(function () {
+                            return botApi.bot.sendMessage(message.from.id, 'Большое спасибо за донат!');
+                        });
+                    } else if (message.new_chat_member) {
                         return botApi.bot.sendMessage(message.chat.id, 'Эгегей, ёбанный в рот!');
                     } else if (message.new_chat_member) {
                         return botApi.bot.sendMessage(message.chat.id, 'Мы не будем сильно скучать.');
