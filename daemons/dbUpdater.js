@@ -90,7 +90,7 @@ var getAllAneks = function (start) {
             return resolve(undefined);
         })
     },
-    updateAneksTimer =function () {
+    updateAneksTimer = function () {
         return checkUpdateProgress('Initializing aneks update').then(function () {
             return mongo.Anek.count();
         }).then(function (count) {

@@ -10,7 +10,7 @@ module.exports = function () {
         formData = require('form-data'),
         RateLimiter = require('request-rate-limiter'),
         limiter = new RateLimiter({
-            rate: 10,
+            rate: 7,
             interval: 0.3,
             backoffCode: 429,
             backOffTime: 60,
