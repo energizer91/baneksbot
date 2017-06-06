@@ -632,7 +632,7 @@ module.exports = function (express, botApi, configs) {
                 }
 
                 if (data.hasOwnProperty('pre_checkout_query')) {
-                    return {};
+                    return resolve({});
                 }
 
                 var userObject = data.message || data.inline_query || data.callback_query;
