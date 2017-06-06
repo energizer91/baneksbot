@@ -656,7 +656,7 @@ module.exports = function (express, botApi, configs) {
                     var message = data.message;
 
                     if (message.successful_payment) {
-                        return botApi.bot.sendMessageToAdmin('Вам задонатили ' + message.successful_payment.total_amount + message.successful_payment.currency).then(function () {
+                        return botApi.bot.sendMessageToAdmin('Вам задонатили ' + (message.successful_payment.total_amount / 100) + message.successful_payment.currency).then(function () {
                             return botApi.bot.sendMessage(message.from.id, 'Большое спасибо за донат!');
                         });
                     } else if (message.new_chat_member) {
