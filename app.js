@@ -66,9 +66,11 @@ var cp = require('child_process'),
                     });
                 })).finally(function () {
                     if (errorMessages.length) {
-                        console.log(errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them.');
+                        var text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them.';
+                        console.log(text);
                         var bulk = botApi.mongo.User.collection.initializeOrderedBulkOp();
                         bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
+                        botApi.bot.sendMessageToAdmin(text);
                         return bulk.execute();
                     }
                 })
