@@ -97,11 +97,9 @@ var getAllAneks = function (start) {
             return redefineDatabase(count).then(zipAneks);
         }).then(function (aneks){
             console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
-            return mongo.User.find({subscribed: true/*user_id: {$in: [85231140, 5630968, 226612010]}*/}).then(function (users) {
+            return mongo.User.find({subscribed: true/*user_id: {$in: [5630968]}*/}).then(function (users) {
                 aneks.forEach(function (anek) {
-                    users.forEach(function (user) {
-                        process.send({type: 'message', userId: user.user_id, message: anek, params: {language: user.language}});
-                    })
+                    process.send({type: 'broadcast', users: users.map(function (user) {return user.user_id}), message: anek});
                 });
             });
         }).finally(function () {
