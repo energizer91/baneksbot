@@ -68,7 +68,7 @@ var cp = require('child_process'),
                     if (errorMessages.length) {
                         console.log(errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them.');
                         var bulk = botApi.mongo.User.collection.initializeOrderedBulkOp();
-                        bulk.find({post_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
+                        bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
                         return bulk.execute();
                     }
                 })
