@@ -82,11 +82,11 @@ module.exports = function (configs) {
                 }
 
                 if (user.first_name && user.last_name) {
-                    return user.first_name + user.last_name + '(' + user.user_id + ')';
+                    return user.first_name + ' ' + user.last_name + ' (' + user.user_id + ')';
                 } else if (user.first_name) {
-                    return user.first_name  + '(' + user.user_id + ')';
+                    return user.first_name  + ' (' + user.user_id + ')';
                 } else if (user.last_name) {
-                    return user.last_name  + '(' + user.user_id + ')';
+                    return user.last_name  + ' (' + user.user_id + ')';
                 }
 
                 return user.user_id;
