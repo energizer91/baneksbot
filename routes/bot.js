@@ -645,6 +645,8 @@ module.exports = function (express, botApi, configs) {
                     return resolve(user);
                 });
             }).then(function (user) {
+                console.log('Performing message from ' + user ? user.user_id : 'undefined user');
+
                 if (data.hasOwnProperty('pre_checkout_query')) {
                     return botApi.bot.answerPreCheckoutQuery(data.pre_checkout_query.id, true);
                 } else if (data.hasOwnProperty('callback_query')) {
@@ -705,10 +707,6 @@ module.exports = function (express, botApi, configs) {
                             return performCommand(command, message, user);
                         } else {
                             if (user.feedback_mode && !user.banned) {
-                                /*message.text = 'Сообщение от пользователя ' + message.chat.id +
-                                    ' (' + (message.chat.first_name || '') + ' ' +
-                                    (message.chat.last_name || '') + '): ' + message.text;
-                                return botApi.bot.sendMessageToAdmin(message);*/
                                 return botApi.bot.forwardMessage(configs.bot.adminChat, message, {native: true});
                             }
                             console.error('Unknown command', data);
