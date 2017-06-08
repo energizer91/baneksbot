@@ -321,7 +321,7 @@ module.exports = function (express, botApi, configs) {
                         if (!user.subscribed) {
                             return botApi.mongo.User.update({_id: user.id}, {subscribed: true})
                                 .then(botApi.bot.sendMessage.bind(botApi.bot, user.user_id, botApi.dict.translate(user.language, 'subscribe_success', {first_name: user.first_name})))
-                                .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Новый подписчик: ' + (user.username ? user.username : user.first_name + ' ' + user.last_name)));
+                                .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Новый подписчик: ' + (user.username ? '@' + user.username : user.first_name + ' ' + user.last_name)));
                         } else {
                             return botApi.bot.sendMessage(user.user_id, botApi.dict.translate(user.language, 'subscribe_fail'));
                         }
@@ -334,9 +334,9 @@ module.exports = function (express, botApi, configs) {
             '/unsubscribe': function (command, message) {
                 return botApi.mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user && user.subscribed) {
-                        return botApi.mongo.User.update({_id: user.id}, {subscribed: false}).then(function () {
-                            return botApi.bot.sendMessage(message.from.id, botApi.dict.translate(user.language, 'unsubscribe_success'));
-                        });
+                        return botApi.mongo.User.update({_id: user.id}, {subscribed: false})
+                            .then(botApi.bot.sendMessage.bind(botApi.bot, message.from.id, botApi.dict.translate(user.language, 'unsubscribe_success')))
+                            .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Человек отписался: ' + (user.username ? '@' + user.username : user.first_name + ' ' + user.last_name)));
                     }
                     return botApi.bot.sendMessage(message.from.id, botApi.dict.translate(user.language, 'unsubscribe_fail'));
                 }).catch(function (error) {
