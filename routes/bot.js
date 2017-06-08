@@ -321,7 +321,7 @@ module.exports = function (express, botApi, configs) {
                         if (!user.subscribed) {
                             return botApi.mongo.User.update({_id: user.id}, {subscribed: true})
                                 .then(botApi.bot.sendMessage.bind(botApi.bot, user.user_id, botApi.dict.translate(user.language, 'subscribe_success', {first_name: user.first_name})))
-                                .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Новый подписчик: ' + (user.username ? '@' + user.username : user.first_name + ' ' + user.last_name)));
+                                .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Новый подписчик: ' + botApi.bot.getUserInfo(user)));
                         } else {
                             return botApi.bot.sendMessage(user.user_id, botApi.dict.translate(user.language, 'subscribe_fail'));
                         }
@@ -336,7 +336,7 @@ module.exports = function (express, botApi, configs) {
                     if (user && user.subscribed) {
                         return botApi.mongo.User.update({_id: user.id}, {subscribed: false})
                             .then(botApi.bot.sendMessage.bind(botApi.bot, message.from.id, botApi.dict.translate(user.language, 'unsubscribe_success')))
-                            .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Человек отписался: ' + (user.username ? '@' + user.username : user.first_name + ' ' + user.last_name)));
+                            .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Человек отписался: ' + botApi.bot.getUserInfo(user)));
                     }
                     return botApi.bot.sendMessage(message.from.id, botApi.dict.translate(user.language, 'unsubscribe_fail'));
                 }).catch(function (error) {
@@ -645,7 +645,7 @@ module.exports = function (express, botApi, configs) {
                     return resolve(user);
                 });
             }).then(function (user) {
-                console.log('Performing message from ' + (user ? user.user_id : 'undefined user'));
+                console.log('Performing message from ' + botApi.bot.getUserInfo(user));
 
                 if (data.hasOwnProperty('pre_checkout_query')) {
                     return botApi.bot.answerPreCheckoutQuery(data.pre_checkout_query.id, true);

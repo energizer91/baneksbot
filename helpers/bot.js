@@ -72,6 +72,25 @@ module.exports = function (configs) {
                         return this.sendRequest(sendCommand, attachment);
                     }.bind(this));
             },
+            getUserInfo: function (user) {
+                if (!user.user_id) {
+                    return 'Invalid user';
+                }
+
+                if (user.username) {
+                    return '@' + user.username;
+                }
+
+                if (user.first_name && user.last_name) {
+                    return user.first_name + user.last_name + '(' + user.user_id + ')';
+                } else if (user.first_name) {
+                    return user.first_name  + '(' + user.user_id + ')';
+                } else if (user.last_name) {
+                    return user.last_name  + '(' + user.user_id + ')';
+                }
+
+                return user.user_id;
+            },
             prepareKeyboard: function () {
                 return {
                     keyboard: [
