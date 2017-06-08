@@ -645,7 +645,7 @@ module.exports = function (express, botApi, configs) {
                     return resolve(user);
                 });
             }).then(function (user) {
-                console.log('Performing message from ' + user ? user.user_id : 'undefined user');
+                console.log('Performing message from ' + (user ? user.user_id : 'undefined user'));
 
                 if (data.hasOwnProperty('pre_checkout_query')) {
                     return botApi.bot.answerPreCheckoutQuery(data.pre_checkout_query.id, true);
