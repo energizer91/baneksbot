@@ -19,7 +19,7 @@ module.exports = function () {
         https = require('https');
 
     return {
-        makeRequest: function (config, params, returnStream) {
+        performRequest: function (config, params, returnStream) {
             if (!config) {
                 throw new Error('Config not specified');
             }
@@ -29,75 +29,92 @@ module.exports = function () {
             }
 
             return q.Promise(function (resolve, reject) {
-
-                limiter.request().then(function (backoff) {
-                    if ((config.method && config.method.toLowerCase() === 'post') && params) {
-                        //req.write(queryString.stringify(params));
-                        var form = new formData();
-                        for (var field in params) {
-                            if (params.hasOwnProperty(field) && params[field]) {
-                                form.append(field, params[field]);
-                            }
+                if ((config.method && config.method.toLowerCase() === 'post') && params) {
+                    //req.write(queryString.stringify(params));
+                    var form = new formData();
+                    for (var field in params) {
+                        if (params.hasOwnProperty(field) && params[field]) {
+                            form.append(field, params[field]);
                         }
-
-                        config.headers = form.getHeaders();
                     }
 
-                    var result = '',
-                        req = (config.protocol === 'https:' ? https : http).request(config);
+                    config.headers = form.getHeaders();
+                }
 
-                    req.on('response', function (res) {
-                        var code = res.statusCode;
+                var result = '',
+                    req = (config.protocol === 'https:' ? https : http).request(config);
 
-                        //console.log('STATUS: ' + res.statusCode);
-                        //console.log('HEADERS: ' + JSON.stringify(res.headers));
-                        if (returnStream) {
-                            return resolve(res);
-                        }
-                        res.setEncoding('utf8');
-                        res.on('end', function() {
-                            var returnResult;
-                            try {
-                                returnResult = JSON.parse(result);
-                            } catch(e) {
-                                returnResult = result;
-                            }
-                            //console.log('No more data in response.');
-                            if (code === 429) {
-                                console.log('backin\' off request in', returnResult.parameters.retry_after);
-                                return backoff();
-                            }
-                            if (code >= 400 && code <= 600) {
-                                console.error('An error occured with code ' + code);
-                                console.error(returnResult);
-                                return reject(returnResult);
-                            }
-                            //console.log(result);
-                            return resolve(returnResult);
-                        });
-                        res.on('data', function (chunk) {
-                            //console.log('BODY: ' + chunk);
-                            result += chunk;
-                        });
-                    });
+                req.on('response', function (res) {
+                    var code = res.statusCode;
 
-                    req.on('error', function(e) {
-                        return reject(e);
-                    });
-
-                    if ((config.method && config.method.toLowerCase() === 'post') && params) {
-                        form.pipe(req);
-
-                        form.on('end', function () {
-                            req.end();
-                        })
-                    } else {
-                        req.end();
+                    //console.log('STATUS: ' + res.statusCode);
+                    //console.log('HEADERS: ' + JSON.stringify(res.headers));
+                    if (returnStream) {
+                        return resolve(res);
                     }
-                }).catch(function (err) {
-                    return reject(err);
+                    res.setEncoding('utf8');
+                    res.on('end', function() {
+                        var returnResult;
+                        try {
+                            returnResult = JSON.parse(result);
+                        } catch(e) {
+                            returnResult = result;
+                        }
+
+                        if (code >= 400 && code <= 600) {
+                            returnResult.code = code;
+                            return reject(returnResult);
+                        }
+                        //console.log('No more data in response.');
+                        return resolve(returnResult);
+                    });
+                    res.on('data', function (chunk) {
+                        //console.log('BODY: ' + chunk);
+                        result += chunk;
+                    });
                 });
+
+                req.on('error', function(e) {
+                    return reject(e);
+                });
+
+                if ((config.method && config.method.toLowerCase() === 'post') && params) {
+                    form.pipe(req);
+
+                    form.on('end', function () {
+                        req.end();
+                    })
+                } else {
+                    req.end();
+                }
             });
+        },
+        makeRequest: function (config, params, returnStream) {
+            if (!config) {
+                throw new Error('Config not specified');
+            }
+
+            if ((config.method === 'GET') && params) {
+                config.path += '?' + queryString.stringify(params);
+            }
+
+            var promise = params._skipQueue ? q.when() : limiter.request();
+
+            delete params._skipQueue;
+
+            return promise.then((function (backoff) {
+                return this.performRequest(config, params, returnStream).catch(function (error) {
+                    if ((typeof backoff === 'function') && error.code === 429) {
+                        console.log('backin\' off request in', error.parameters.retry_after);
+                        return backoff();
+                    }
+                    if (error.code >= 400 && error.code <= 600) {
+                        console.error('An error occured with code ' + error.code);
+                        console.error(error);
+                        throw error;
+                    }
+                })
+            }).bind(this));
         },
         prepareConfig: function (targetUrl, method) {
             var parsedUrl = url.parse(targetUrl);
@@ -105,7 +122,7 @@ module.exports = function () {
                 parsedUrl.protocol = 'http:';
             }
 
-            parsedUrl.method = method && typeof method == 'string' ? method.toUpperCase() : 'GET';
+            parsedUrl.method = method && typeof method === 'string' ? method.toUpperCase() : 'POST';
             parsedUrl.headers = {};
 
             return parsedUrl;
@@ -128,7 +145,7 @@ module.exports = function () {
                 return results;
             });
         },
-        fulfillAllSequentally: function (method, requests) {
+        fulfillAllSequentally: function (requests) {
             var results = [];
             if (!requests.length) {
                 return [];
@@ -139,7 +156,7 @@ module.exports = function () {
                         results.push(result);
                     }
 
-                    return method(request);
+                    return request;
                 }).catch(function (error) {
                     console.error('Sequental fullfilment error');
                     console.error(error);

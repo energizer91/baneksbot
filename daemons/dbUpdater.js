@@ -27,7 +27,7 @@ var getAllAneks = function (start) {
                 requests.push(vkApi.getPosts({offset: current, count: step}));
             }
 
-            return requestApi.fulfillAll(requests);
+            return requestApi.fulfillAllSequentally(requests);
         })
     },
     zipAneks = function (responses) {
@@ -41,7 +41,7 @@ var getAllAneks = function (start) {
     },
     redefineDatabase = function (count) {
         return getAllAneks(count).then(function (responses) {
-            return requestApi.fulfillAll(responses.map(function (response) {
+            return requestApi.fulfillAllSequentally(responses.map(function (response) {
                 return mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
                     anek.post_id = anek.id;
                     anek.likes = anek.likes.count;
@@ -97,9 +97,9 @@ var getAllAneks = function (start) {
             return redefineDatabase(count).then(zipAneks);
         }).then(function (aneks){
             console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
-            return mongo.User.find({subscribed: true/*user_id: {$in: [5630968]}*/}).then(function (users) {
+            return mongo.User.find({user_id: {$in: [5630968]}}).then(function (users) {
                 aneks.forEach(function (anek) {
-                    process.send({type: 'broadcast', users: users.map(function (user) {return user.user_id}), message: anek});
+                    process.send({type: 'broadcast', users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}), message: anek});
                 });
             });
         }).finally(function () {
@@ -161,7 +161,7 @@ setTimeout(synchronizeDatabase, 60 * 60 * 1000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
-    if (m.type == 'service') {
+    if (m.type === 'service') {
         switch (m.action) {
             case 'update':
                 console.log('Switch automatic updates to', m.value);

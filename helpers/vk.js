@@ -15,6 +15,8 @@ module.exports = function (configs) {
                 params.v = config.api_version;
             }
 
+            params._skipQueue = true;
+
             return requestHelper.makeRequest(parameters, params);
         },
         getPostById: function (postId, params) {

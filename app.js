@@ -52,27 +52,31 @@ var cp = require('child_process'),
                 return childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
             } else if (m.type === 'broadcast' && m.users) {
                 var errorMessages = [];
-                return botApi.request.fulfillAll(m.users.map(function (user) {
-                    return botApi.bot.sendMessage(user, m.message, m.params).catch(function (error) {
-                        if (!error.ok && (error.error_code === 403) || (
-                            error.description === 'Bad Request: chat not found' ||
-                            error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
-                            error.description === 'Bad Request: chat_id is empty')) {
-                            errorMessages.push(user);
-                            return {};
-                        } else {
-                            return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(m));
-                        }
-                    });
-                })).finally(function () {
-                    if (errorMessages.length) {
-                        var text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
-                        console.log(text);
-                        var bulk = botApi.mongo.User.collection.initializeOrderedBulkOp();
-                        bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
-                        botApi.bot.sendMessageToAdmin(text);
-                        return bulk.execute();
-                    }
+                return botApi.bot.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(m.message)).then(function () {
+                    return botApi.request.fulfillAll(m.users.map(function (user) {
+                        return botApi.bot.sendMessage(user, m.message, m.params).catch(function (error) {
+                            if (!error.ok && (error.error_code === 403) || (
+                                error.description === 'Bad Request: chat not found' ||
+                                error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
+                                error.description === 'Bad Request: chat_id is empty')) {
+                                errorMessages.push(user);
+                                return {};
+                            } else {
+                                return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(m));
+                            }
+                        });
+                    })).then(function () {
+                        return botApi.bot.sendMessageToAdmin('Broadcast finished').then(function () {
+                            if (errorMessages.length) {
+                                var text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
+                                console.log(text);
+                                var bulk = botApi.mongo.User.collection.initializeOrderedBulkOp();
+                                bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
+                                botApi.bot.sendMessageToAdmin(text);
+                                return bulk.execute();
+                            }
+                        })
+                    })
                 })
             }
 

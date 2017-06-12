@@ -220,7 +220,14 @@ module.exports = function (express, botApi, configs) {
             '/start': function (command, message, user) {
                 if (command[1] && botApi.dict.languageExists(command[1])) {
                     user.language = command[1];
+                } else if (command[1] && command[1] === 'donate') {
+                    return botApi.bot.sendInvoice(message.from.id, {
+                        title: 'Донат на развитие бота',
+                        description: 'А то совсем нечего кушать',
+                        payload: command[1]
+                    })
                 }
+                
                 return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'start'));
                 });
