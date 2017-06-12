@@ -97,7 +97,7 @@ var getAllAneks = function (start) {
             return redefineDatabase(count).then(zipAneks);
         }).then(function (aneks){
             console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
-            return mongo.User.find({user_id: {$in: [5630968]}}).then(function (users) {
+            return mongo.User.find({subscribed: true}).then(function (users) {
                 aneks.forEach(function (anek) {
                     process.send({type: 'broadcast', users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}), message: anek});
                 });
