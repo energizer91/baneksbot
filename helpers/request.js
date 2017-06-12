@@ -20,14 +20,6 @@ module.exports = function () {
 
     return {
         performRequest: function (config, params, returnStream) {
-            if (!config) {
-                throw new Error('Config not specified');
-            }
-
-            if ((config.method === 'GET') && params) {
-                config.path += '?' + queryString.stringify(params);
-            }
-
             return q.Promise(function (resolve, reject) {
                 if ((config.method && config.method.toLowerCase() === 'post') && params) {
                     //req.write(queryString.stringify(params));
@@ -122,7 +114,7 @@ module.exports = function () {
                 parsedUrl.protocol = 'http:';
             }
 
-            parsedUrl.method = method && typeof method === 'string' ? method.toUpperCase() : 'POST';
+            parsedUrl.method = method && typeof method === 'string' ? method.toUpperCase() : 'GET';
             parsedUrl.headers = {};
 
             return parsedUrl;
