@@ -82,7 +82,7 @@ SmartQueue.prototype.remove = function (key) {
 };
 
 SmartQueue.prototype.delay = function (time) {
-    return new Q.Promise(function (resolve) {
+    return new Promise(function (resolve) {
         setTimeout(function () {
             return resolve();
         }, time || 0);
@@ -105,13 +105,15 @@ SmartQueue.prototype.heat = function () {
 SmartQueue.prototype.execute = function () {
     this.pending = true;
 
-    return this.shift().then((function (nextItem) {
-        this.heat();
+    var self = this;
 
-        return nextItem.call(this).then((function () {
-            return this.execute();
-        }).bind(this));
-    }).bind(this));
+    return this.shift().then(function (nextItem) {
+        self.heat();
+
+        return nextItem.call(self).then(function () {
+            return self.execute();
+        });
+    });
 };
 
 SmartQueue.prototype.setCooldown = function (queue) {
@@ -140,18 +142,20 @@ SmartQueue.prototype.findMostImportant = function () {
     var maximumPriority = Infinity,
         selectedQueue = '';
     Object.keys(this.queue).forEach(function (queue) {
-        if (this.queue[queue].rule.priority <= maximumPriority && this.isCool(queue) ) {
+        if (this.queue[queue].rule.priority < maximumPriority && this.isCool(queue) ) {
             maximumPriority = this.queue[queue].rule.priority;
             selectedQueue = queue;
         }
     }, this);
 
-    if (!this.queue[selectedQueue] && this.getTotalLength() > 0 && !this.isOverheated()) {
+    if (!this.queue[selectedQueue] && this.getTotalLength() > 0 || this.isOverheated()) {
         //console.log('everything is overheated');
         return this.delay(this.heatPart * 1000).then(this.findMostImportant.bind(this));
     }
 
-    return new Q.Promise.resolve(this.queue[selectedQueue]);
+    return new Promise((function (resolve) {
+        return resolve(this.queue[selectedQueue]);
+    }).bind(this));
 
 };
 
@@ -169,11 +173,11 @@ module.exports = function () {
 
 var queue = new SmartQueue(),
     request = function (data) {
-        return Q.Promise(function (resolve) {
+        return new Promise(function (resolve) {
             console.log('request    ', data);
             setTimeout(function () {
                 return resolve({ok: true});
-            }, 130);
+            }, 10);
         });
     };
 
@@ -192,3 +196,9 @@ for (var i = 0; i < 100; i++) {
 for (var i = 0; i < 100; i++) {
     queue.add(request.bind(this, {chat_id: 1, message: 'common ' + i}), 3, 'common');
 }
+
+setTimeout(function () {
+    for (var i = 0; i < 100; i++) {
+        queue.add(request.bind(this, {chat_id: 1, message: 'broadcast2 ' + i}), i, 'common');
+    }
+}, 5000);
