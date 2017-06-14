@@ -13,6 +13,16 @@ module.exports = function (configs) {
                 var botUrl = botConfig.url + botConfig.token + '/' + request,
                     parameters = requestHelper.prepareConfig(botUrl, method);
 
+                params._key = params._key || params.chat_id;
+
+                if (!params._rule) {
+                    if (params._key > 0) {
+                        params._rule = 'individual';
+                    } else {
+                        params._rule = 'group';
+                    }
+                }
+
                 return requestHelper.makeRequest(parameters, params);
             },
             sendInline: function (inlineId, results, next_offset) {
@@ -20,7 +30,9 @@ module.exports = function (configs) {
                     inline_query_id: inlineId,
                     results: JSON.stringify(results),
                     next_offset: next_offset || 0,
-                    cache_time: 0
+                    cache_time: 0,
+                    _key: inlineId,
+                    _rule: 'common'
                 })
             },
             answerCallbackQuery: function (queryId, load) {
@@ -31,7 +43,9 @@ module.exports = function (configs) {
                     callback_query_id: queryId,
                     text: load.text,
                     show_alert: load.show_alert,
-                    url: load.url
+                    url: load.url,
+                    _key: queryId,
+                    _rule: 'common'
                 }).catch(function (error) {
                     console.error(error);
                     return {};

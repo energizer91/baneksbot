@@ -139,7 +139,7 @@ module.exports = function (express, botApi, configs) {
                     return botApi.request.fulfillAll(users.map(function (user) {
                         return this.sendMessage(user.user_id, command.join(' '));
                     }, botApi.bot));
-                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Рассылка окончена.'));
+                }).then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Рассылка окончена.'));
 
             },
             '/grant': function (command, message, user) {
@@ -166,7 +166,7 @@ module.exports = function (express, botApi, configs) {
 
                 return botApi.mongo.User.findOneAndUpdate({user_id: parseInt(command[1])}, privileges).then(function () {
                     return botApi.bot.sendMessage(parseInt(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
-                }).finally(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Привилегии присвоены.'));
+                }).then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Привилегии присвоены.'));
             },
             '/user': function (command, message, user) {
                 if (command[1] == 'count') {
@@ -547,7 +547,7 @@ module.exports = function (express, botApi, configs) {
                         params.forceAttachments = true;
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .finally(function () {
+                            .then(function () {
                                 return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, params);
                                 // .finally(function () {
                                 //     var editedMessage = {
@@ -579,7 +579,7 @@ module.exports = function (express, botApi, configs) {
                         }
 
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
-                            .finally(function () {
+                            .then(function () {
                                 return botApi.bot.sendAttachments(data.callback_query.message.chat.id, post.attachments.map(function (attachment) {
                                     if (data && data.callback_query && data.callback_query.message && data.callback_query.message.message_id) {
                                         attachment.reply_to_message_id = data.callback_query.message.message_id;

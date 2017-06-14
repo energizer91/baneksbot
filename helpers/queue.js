@@ -22,7 +22,7 @@ function SmartQueue (params) {
                     priority: 3
                 },
                 vk: {
-                    rate: 100,
+                    rate: 1000,
                     limit: 1,
                     priority: 4
                 }
@@ -132,14 +132,16 @@ SmartQueue.prototype.execute = function () {
             if (backoffState) {
                 console.log('backing off request in', backoffTimer);
                 this.addBackoff(nextItem, backoffTimer);
+            } else {
+                if (data) {
+                    nextItem.item.callback.call(nextItem.item.callback, null, data);
+                }
             }
-            if (data) {
-                nextItem.item.callback.call(nextItem.item.callback, null, data);
-            }
+
             return this.execute();
-        }).catch(function (error) {
-            console.error('error', error);
+        }).catch((error) => {
             nextItem.item.callback.call(nextItem.item.callback, error);
+            return this.execute();
         });
     });
 };
@@ -207,7 +209,7 @@ SmartQueue.prototype.findMostImportant = function (bestQueue) {
 };
 
 SmartQueue.prototype.shift = function () {
-    return this.findMostImportant().then((function (currentQueue) {
+    return this.findMostImportant().then((currentQueue) => {
         if (!currentQueue || !currentQueue.data.length) {
             return false;
         }
@@ -218,7 +220,7 @@ SmartQueue.prototype.shift = function () {
             queue: currentQueue,
             item: currentQueue.data.shift()
         };
-    }).bind(this));
+    });
 };
 
 SmartQueue.prototype.request = function (fn, key, rule) {

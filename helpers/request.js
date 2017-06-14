@@ -16,6 +16,8 @@ module.exports = function () {
             backOffTime: 60,
             maxWaitingTime: 600
         }),
+        QueueApi = require('./queue')(),
+        queue = new QueueApi(),
         https = require('https');
 
     return {
@@ -24,16 +26,21 @@ module.exports = function () {
                 throw new Error('Config not specified');
             }
 
+            //var promise = params._skipQueue ? q.when() : limiter.request();
+
+            var key = params._key,
+                rule = params._rule;
+
+            delete params._skipQueue;
+            delete params._key;
+            delete params._rule;
+
             if ((config.method === 'GET') && params) {
                 config.path += '?' + queryString.stringify(params);
             }
 
-            var promise = params._skipQueue ? q.when() : limiter.request();
-
-            delete params._skipQueue;
-
-            return q.Promise(function (resolve, reject) {
-                return promise.then(function (backoff) {
+            return queue.request(function (backoff) {
+                return q.Promise(function (resolve, reject) {
                     if ((config.method && config.method.toLowerCase() === 'post') && params) {
                         //req.write(queryString.stringify(params));
                         var form = new formData();
@@ -67,8 +74,7 @@ module.exports = function () {
                             }
 
                             if ((typeof backoff === 'function') && code === 429) {
-                                console.log('backin\' off request in', returnResult.parameters.retry_after);
-                                return backoff();
+                                return resolve(backoff(returnResult.parameters.retry_after));
                             }
                             if (code >= 400 && code <= 600) {
                                 console.error('An error occured with code ' + code);
@@ -99,7 +105,7 @@ module.exports = function () {
                         req.end();
                     }
                 });
-            });
+            }, key, rule);
         },
         prepareConfig: function (targetUrl, method) {
             var parsedUrl = url.parse(targetUrl);

@@ -14,10 +14,20 @@ module.exports = function (configs) {
             if (config.api_version) {
                 params.v = config.api_version;
             }
+            if (config.access_token) {
+                params.access_token = config.access_token;
+            }
 
             params._skipQueue = true;
+            params._rule = 'vk';
 
-            return requestHelper.makeRequest(parameters, params);
+            return requestHelper.makeRequest(parameters, params).then(function (data) {
+                if (data.error) {
+                    throw new Error(data.error.error_msg);
+                }
+
+                return data;
+            });
         },
         getPostById: function (postId, params) {
             if (!params) {
@@ -25,6 +35,7 @@ module.exports = function (configs) {
             }
 
             params.posts = config.group_id + '_' + postId;
+            params._key = config.group_id;
             console.log('Making VK request wall.getById', params);
             return this.executeCommand('wall.getById', params, 'GET');
         },
@@ -34,7 +45,11 @@ module.exports = function (configs) {
             }
 
             params.owner_id = config.group_id;
+
             console.log('Making VK request wall.get', params);
+
+            params._key = config.group_id;
+
             return this.executeCommand('wall.get', params, 'GET');
         },
         getCommentsCount: function (postId) {
@@ -61,10 +76,14 @@ module.exports = function (configs) {
 
             params.owner_id = config.group_id;
             params.need_likes = 1;
+
+            console.log('Making VK request wall.getComments', params);
+
+            params._key = config.group_id;
+
             if (!(params.hasOwnProperty('post_id') && params.post_id)) {
                 throw new Error('Post ID is not defined');
             }
-            console.log('Making VK request wall.getComments', params);
             return this.executeCommand('wall.getComments', params, 'GET');
         }
     };
