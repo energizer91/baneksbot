@@ -32,7 +32,7 @@ module.exports = function (configs) {
                     next_offset: next_offset || 0,
                     cache_time: 0,
                     _key: inlineId,
-                    _rule: 'common'
+                    _rule: 'individual'
                 })
             },
             answerCallbackQuery: function (queryId, load) {
@@ -45,7 +45,7 @@ module.exports = function (configs) {
                     show_alert: load.show_alert,
                     url: load.url,
                     _key: queryId,
-                    _rule: 'common'
+                    _rule: 'individual'
                 }).catch(function (error) {
                     console.error(error);
                     return {};
