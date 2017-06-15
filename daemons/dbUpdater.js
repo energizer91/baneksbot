@@ -99,7 +99,14 @@ var getAllAneks = function (start) {
             console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
             return mongo.User.find({subscribed: true}).then(function (users) {
                 aneks.forEach(function (anek) {
-                    process.send({type: 'broadcast', users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}), message: anek});
+                    process.send({
+                        type: 'broadcast',
+                        users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}),
+                        message: anek,
+                        params: {
+                            _rule: 'common'
+                        }
+                    });
                 });
             });
         }).finally(function () {

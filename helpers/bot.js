@@ -281,6 +281,9 @@ module.exports = function (configs) {
                     }
                 }
 
+                sendMessage._key = params._key;
+                sendMessage._rule = params._rule;
+
                 if (params.keyboard || params.remove_keyboard || buttons.length) {
                     sendMessage.reply_markup = {};
                 }
