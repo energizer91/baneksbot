@@ -17,9 +17,9 @@ module.exports = function (configs) {
 
                 if (!params._rule) {
                     if (params._key > 0) {
-                        params._rule = 'individual';
+                        params._rule = botConfig.rules.individualMessage;
                     } else {
-                        params._rule = 'group';
+                        params._rule = botConfig.rules.groupMessage;
                     }
                 }
 
