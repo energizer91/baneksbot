@@ -200,7 +200,7 @@ SmartQueue.prototype.findMostImportant = function (bestQueue) {
     }
 
     if (!selectedQueue && this.getTotalLength() === 0) {
-        console.log('queue is empty');
+        //console.log('queue is empty');
         this.pending = false;
     }
 
@@ -215,7 +215,6 @@ SmartQueue.prototype.shift = function () {
         }
 
         this.setCooldown(currentQueue);
-        //console.log('shift      ', currentQueue);
         return {
             queue: currentQueue,
             item: currentQueue.data.shift()
@@ -235,9 +234,7 @@ SmartQueue.prototype.request = function (fn, key, rule) {
     });
 };
 
-module.exports = function () {
-    return SmartQueue;
-};
+module.exports = SmartQueue;
 
 /*let counter = 0;
 

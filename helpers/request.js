@@ -2,7 +2,7 @@
  * Created by xgmv84 on 11/26/2016.
  */
 
-module.exports = function () {
+module.exports = function (configs) {
     var q = require('q'),
         http = require('http'),
         queryString = require('querystring'),
@@ -16,8 +16,8 @@ module.exports = function () {
             backOffTime: 60,
             maxWaitingTime: 600
         }),
-        QueueApi = require('./queue')(),
-        queue = new QueueApi(),
+        QueueApi = require('./queue'),
+        queue = new QueueApi(configs.queue),
         https = require('https');
 
     return {
@@ -25,8 +25,6 @@ module.exports = function () {
             if (!config) {
                 throw new Error('Config not specified');
             }
-
-            //var promise = params._skipQueue ? q.when() : limiter.request();
 
             var key = params._key,
                 rule = params._rule;

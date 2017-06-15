@@ -6,5 +6,6 @@ module.exports = {
     mongo: require('./config/mongodb'),
     mysql: require('./config/mysql'),
     bot: require('./config/telegram'),
-    vk: require('./config/vk')
+    vk: require('./config/vk'),
+    queue: require('./config/queue')
 };
