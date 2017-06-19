@@ -4,7 +4,6 @@
 
 module.exports = function (configs) {
     var mysql = require('mysql'),
-        q = require('q'),
         mysqlConfig = configs.mysql,
         mysqlConnection = mysql.createConnection({
             host     : mysqlConfig.server,
@@ -16,7 +15,7 @@ module.exports = function (configs) {
 
     return {
         makeRequest: function (query) {
-            return q.Promise(function (resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 mysqlConnection.connect(function(err) {
                     if (err) {
                         return reject(err);

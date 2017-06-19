@@ -3,8 +3,7 @@
  */
 
 module.exports = function (configs) {
-    var q = require('q'),
-        http = require('http'),
+    var http = require('http'),
         queryString = require('querystring'),
         url = require('url'),
         formData = require('form-data'),
@@ -38,7 +37,7 @@ module.exports = function (configs) {
             }
 
             return queue.request(function (backoff) {
-                return q.Promise(function (resolve, reject) {
+                return new Promise(function (resolve, reject) {
                     if ((config.method && config.method.toLowerCase() === 'post') && params) {
                         //req.write(queryString.stringify(params));
                         var form = new formData();

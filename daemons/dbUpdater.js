@@ -1,8 +1,7 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
-var q = require('q'),
-    updateInProcess = false,
+var updateInProcess = false,
     forceDenyUpdate = false,
     configs = require('../configs'),
     mongo = require('../helpers/mongo')(configs),
@@ -78,7 +77,7 @@ var getAllAneks = function (start) {
         })
     },
     checkUpdateProgress = function (operation) {
-        return q.Promise(function (resolve, reject) {
+        return new Promise(function (resolve, reject) {
             console.log(new Date(), operation);
             if (updateInProcess) {
                 return reject(new Error('Update is in progress'));
@@ -96,7 +95,11 @@ var getAllAneks = function (start) {
         }).then(function (count) {
             return redefineDatabase(count).then(zipAneks);
         }).then(function (aneks){
-            console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
+            if (aneks.length) {
+                console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
+            } else {
+                console.log(new Date(), aneks.length + ' aneks found.');
+            }
             return mongo.User.find({subscribed: true}).then(function (users) {
                 aneks.forEach(function (anek) {
                     process.send({
@@ -109,26 +112,26 @@ var getAllAneks = function (start) {
                     });
                 });
             });
-        }).finally(function () {
+        }).catch(function (error) {
+            console.error(new Date(), 'An error occured: ' + error.message);
+        }).then(function () {
             console.log(new Date(), 'Updating aneks finished');
             updateInProcess = false;
             setTimeout(updateAneksTimer, 30000);
-        }).catch(function (error) {
-            console.error(new Date(), 'An error occured: ' + error.message);
-        }).done();
+        });
     },
     refreshAneksTimer = function () {
-        return checkUpdateProgress('Initializing aneks refresh').then(updateAneks).finally(function () {
+        return checkUpdateProgress('Initializing aneks refresh').then(updateAneks).catch(function (error) {
+            console.error(new Date(), 'An error occured: ' + error.message);
+        }).then(function () {
             console.log(new Date(), 'Refreshing aneks finished');
             updateInProcess = false;
             setTimeout(refreshAneksTimer, 130000);
-        }).catch(function (error) {
-            console.error(new Date(), 'An error occured: ' + error.message);
-        }).done();
+        });
     },
     synchronizeDatabase = function () {
         return checkUpdateProgress('Initializing aneks refresh').then(function () {
-            return q.Promise(function (resolve, reject, progress) {
+            return new Promise(function (resolve, reject, progress) {
                 if (configs.mongo.searchEngine !== 'elastic') {
                     console.log('Database synchronizing is only available on elasticsearch engine');
                     return;
@@ -152,12 +155,12 @@ var getAllAneks = function (start) {
             });
         }).then(function (count) {
             console.log(new Date(), 'Successfully indexed', count, 'records');
-        }).finally(function () {
-            updateInProcess = false;
-            setTimeout(synchronizeDatabase, 60 * 60 * 1000);
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
-        }).done();
+        }).then(function () {
+            updateInProcess = false;
+            setTimeout(synchronizeDatabase, 60 * 60 * 1000);
+        });
     };
 
 setTimeout(updateAneksTimer, 30 * 1000);

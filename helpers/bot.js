@@ -7,7 +7,6 @@ module.exports = function (configs) {
         requestHelper = require('./request')(configs),
         dict = require('./dictionary'),
         Queue = require('promise-queue'),
-        q = require('q'),
         botMethods = {
             sendRequest: function (request, params, method) {
                 var botUrl = botConfig.url + botConfig.token + '/' + request,
@@ -311,18 +310,18 @@ module.exports = function (configs) {
                 return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
             },
             sendMessageWithDelay: function (userId, message, params, interval) {
-                return new q.Promise((function (resolve) {
+                return new Promise((function (resolve) {
                     var promise = this.sendMessage(userId, message, params);
                     setTimeout(function () {
                         return resolve(promise);
                     }, interval || 0)
                 }).bind(this));
             },
-            sendMessages: function (userId, messages, params) {
+            sendMessages: function (userId, messages, params, previous) {
                 var messageQueue = new Queue(1, Infinity);
                 return (messages || []).reduce(function (p, message) {
                     return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, params)));
-                }.bind(this), q.when());
+                }.bind(this), Promise.resolve(previous));
             },
             sendMessageToAdmin: function (text) {
                 return this.sendMessage(botConfig.adminChat, text);
@@ -390,16 +389,19 @@ module.exports = function (configs) {
                 var messageQueue = new Queue(1, Infinity);
                 return (messages || []).reduce(function (p, message) {
                     return p.then(messageQueue.add.bind(messageQueue, this.forwardMessage.bind(this, userId, message, params)));
-                }.bind(this), q.when());
+                }.bind(this), Promise.resolve());
             },
             getMe: function () {
                 return this.sendRequest('getMe');
             },
-            sendAttachments: function (userId, attachments) {
+            getWebhookInfo: function () {
+                return this.sendRequest('getWeebhookInfo');
+            },
+            sendAttachments: function (userId, attachments, previousRequest) {
                 var attachmentQueue = new Queue(1, Infinity);
                 return (attachments || []).reduce(function (p, attachment) {
                     return p.then(attachmentQueue.add.bind(attachmentQueue, this.sendAttachment.bind(this, userId, attachment)));
-                }.bind(this), q.when());
+                }.bind(this), Promise.resolve(previousRequest));
             },
             sendInvoice: function (userId, payment) {
                 //var newButtons = this.prepareButtons(payment);
@@ -444,13 +446,6 @@ module.exports = function (configs) {
                             caption: attachment.text
                         };
                         break;
-                    /*case 'video':
-                     return {
-                     command: 'sendVideo',
-                     video: 'https://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id,
-                     caption: attachment.video.title
-                     };
-                     break;*/
                     case 'video':
                         return {
                             command: 'sendMessage',
@@ -504,8 +499,6 @@ module.exports = function (configs) {
                 }
             }
         };
-
-    Queue.configure(require('q').Promise);
 
     return botMethods;
 

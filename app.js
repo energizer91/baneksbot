@@ -19,8 +19,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'bundle')));
 var Queue = require('promise-queue');
 
-Queue.configure(require('q').Promise);
-
 
 var files = fs.readdirSync(path.join(__dirname, 'routes'));
 

@@ -2,8 +2,7 @@
  * Created by Александр on 13.12.2015.
  */
 module.exports = function (express, botApi, configs) {
-    var router = express.Router(),
-        q = require('q');
+    var router = express.Router();
 
     var performSuggest = function (command, message, user) {
             if (message && message.chat && message.from && (message.chat.id != message.from.id)) {
@@ -46,11 +45,11 @@ module.exports = function (express, botApi, configs) {
         },
         commands = {
             '/anek': function (command, message, user) {
-                if (command[1] == 'count') {
+                if (command[1] === 'count') {
                     return botApi.mongo.Anek.count().then(function (count) {
                         return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
                     })
-                } else if (command[1] == 'id') {
+                } else if (command[1] === 'id') {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate({language: user.language}, 'current_chat_id', {chat_id: message.chat.id}), {language: user.language});
                 } else if (command[1] && (!isNaN(parseInt(command[1])))) {
                     return botApi.mongo.Anek.findOne().skip(parseInt(command[1]) - 1).exec().then(function (anek) {
@@ -58,7 +57,7 @@ module.exports = function (express, botApi, configs) {
                     }).catch(console.error);
                 }
                 return botApi.mongo.Anek.random().then(function (anek) {
-                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language, admin: user.admin && (message.chat.id === message.from.id)});
+                    return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language, admin: user.admin && (message.chat.id === message.from.id)})
                 })
             },
             '/spam': function (command, message, user) {
@@ -154,9 +153,9 @@ module.exports = function (express, botApi, configs) {
                 var privileges = {};
 
                 if (command[2]) {
-                    if (command[2] == 'admin') {
+                    if (command[2] === 'admin') {
                         privileges.admin = true;
-                    } else if (command[2] == 'editor') {
+                    } else if (command[2] === 'editor') {
                         privileges.editor = true;
                     }
                 } else {
@@ -169,15 +168,15 @@ module.exports = function (express, botApi, configs) {
                 }).then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, 'Привилегии присвоены.'));
             },
             '/user': function (command, message, user) {
-                if (command[1] == 'count') {
+                if (command[1] === 'count') {
                     return botApi.mongo.User.count().then(function (count) {
                         return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_count', {count: count}));
                     })
-                } else if (command[1] == 'subscribed') {
+                } else if (command[1] === 'subscribed') {
                     return botApi.mongo.User.find({subscribed: true}).count().then(function (count) {
                         return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_subscribed_user_count', {count: count}));
                     })
-                } else if (command[1] == 'id') {
+                } else if (command[1] === 'id') {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
                 }
                 return botApi.bot.sendMessage(message.chat.id, {
@@ -435,7 +434,7 @@ module.exports = function (express, botApi, configs) {
             });
         },
         searchAneksElastic = function (searchPhrase, limit, skip) {
-            return q.Promise(function (resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 return botApi.mongo.Anek.esSearch({
                     from: skip,
                     size: limit,
@@ -549,16 +548,6 @@ module.exports = function (express, botApi, configs) {
                         return botApi.bot.answerCallbackQuery(data.callback_query.id)
                             .then(function () {
                                 return botApi.bot.sendMessages(data.callback_query.message.chat.id, aneks, params);
-                                // .finally(function () {
-                                //     var editedMessage = {
-                                //         chat_id: data.callback_query.message.chat.id,
-                                //         message_id: data.callback_query.message.message_id,
-                                //         disableComments: true
-                                //     };
-                                //
-                                //     return botApi.bot.editMessageButtons(editedMessage);
-                                // })
-                                // message editing is temporary disabled
                             });
                     });
                     break;
@@ -586,16 +575,6 @@ module.exports = function (express, botApi, configs) {
                                     }
                                     return attachment;
                                 }));
-                                // .finally(function () {
-                                //     var editedMessage = {
-                                //             chat_id: data.callback_query.message.chat.id,
-                                //             message_id: data.callback_query.message.message_id,
-                                //             forceAttachments: false
-                                //         };
-                                //
-                                //         return botApi.bot.editMessageButtons(editedMessage);
-                                //     })
-                                // message editing is temporary disabled
                             });
                     });
                 case 'spam':
@@ -629,7 +608,7 @@ module.exports = function (express, botApi, configs) {
             throw new Error('Unknown callback query ' + queryData);
         },
         performWebHook = function (data, response) {
-            return q.Promise(function (resolve, reject) {
+            return new Promise(function (resolve, reject) {
 
                 response.status(200);
                 response.json({status: 'OK'});
@@ -735,7 +714,7 @@ module.exports = function (express, botApi, configs) {
             });
         },
         clearDatabases = function () {
-            return q.all([
+            return botApi.request.fulfillAll([
                 botApi.mongo.Anek.remove({})
             ]);
         },
@@ -809,7 +788,7 @@ module.exports = function (express, botApi, configs) {
     });
 
     router.get('/grant', function (req, res) {
-        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+        if (!req.query.secret || (req.query.secret !== configs.bot.secret)) {
             return res.send('Unauthorized')
         }
 
@@ -824,7 +803,7 @@ module.exports = function (express, botApi, configs) {
         });
 
     router.get('/redefine', function (req, res, next) {
-        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+        if (!req.query.secret || (req.query.secret !== configs.bot.secret)) {
             return res.send('Unauthorized')
         }
 
@@ -836,8 +815,8 @@ module.exports = function (express, botApi, configs) {
         });
     });
 
-    router.get('/users', function (req, res, next) {
-        if (!req.query.secret || (req.query.secret != configs.bot.secret)) {
+    /*router.get('/users', function (req, res, next) {
+        if (!req.query.secret || (req.query.secret !== configs.bot.secret)) {
             return res.send('Unauthorized')
         }
 
@@ -845,7 +824,7 @@ module.exports = function (express, botApi, configs) {
         return botApi.mongo.User.insertMany(users).then(function (data) {
             return res.json(data);
         }).catch(next);
-    });
+    });*/
 
     return {
         endPoint: '/bot',
