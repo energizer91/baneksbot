@@ -131,7 +131,7 @@ var getAllAneks = function (start) {
     },
     synchronizeDatabase = function () {
         return checkUpdateProgress('Initializing aneks refresh').then(function () {
-            return new Promise(function (resolve, reject, progress) {
+            return new Promise(function (resolve, reject) {
                 if (configs.mongo.searchEngine !== 'elastic') {
                     console.log('Database synchronizing is only available on elasticsearch engine');
                     return;
@@ -144,7 +144,6 @@ var getAllAneks = function (start) {
 
                 stream.on('data', function () {
                     count++;
-                    progress(count);
                 });
                 stream.on('close', function () {
                     return resolve(count);
