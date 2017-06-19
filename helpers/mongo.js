@@ -100,7 +100,11 @@ module.exports = function (configs) {
             public: {type: Boolean, default: false}
         }),
         logSchema = mongoose.Schema({
-            date: Date,
+            date: {
+                type: Date,
+                expires: 60 * 60 * 24 * 7,
+                default: Date.now
+            },
             request: Object,
             response: Object,
             error: Object
@@ -139,8 +143,6 @@ module.exports = function (configs) {
     } else if (config.searchEngine === 'native') {
         anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});
     }
-
-    logSchema.index({date: 1}, {expireAfterSeconds: 60 * 60 * 24 * 7});
 
 
     return {
