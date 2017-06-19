@@ -9,7 +9,7 @@ module.exports = function (express, botApi) {
         return botApi.statistics.calculateStatistics(botApi.mongo, req.query.from ? new Date(req.query.from) : new Date().setHours(0, 0, 0, 0)).then(function (result) {
             console.log(result);
 
-            res.json(result);
+            return res.json(result);
         })
     });
 

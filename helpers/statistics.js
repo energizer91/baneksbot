@@ -16,17 +16,25 @@ module.exports = function (configs) {
             return db.User.count({}).then(count => {
                 result.count = count;
 
+                console.log('users count', count);
+
                 return db.Log.find({'request.message.text': '/subscribe', date: {$gte: new Date(date)}}).count();
             }).then(count => {
                 result.subscribed = count;
+
+                console.log('subscribed count', count);
 
                 return db.Log.find({'request.message.text': '/unsubscribe', date: {$gte: new Date(date)}}).count();
             }).then(count => {
                 result.unsubscribed = count;
 
+                console.log('unsubscribed count', count);
+
                 return db.User.find({date: {$gte: new Date(date)}}).count();
             }).then(count => {
                 result.new = count;
+
+                console.log('new count', count);
 
                 return result;
             });
