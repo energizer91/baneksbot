@@ -3,11 +3,11 @@
  */
 
 module.exports = function (configs) {
-    const requestHelper = require('./request')(configs);
+    var requestHelper = require('./request')(configs);
 
     return {
         calculateStatistics: function (db, date) {
-            let result = {
+            var result = {
                 count: 0,
                 new: 0,
                 subscribed: 0,
