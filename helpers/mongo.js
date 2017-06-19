@@ -20,6 +20,7 @@ module.exports = function (configs) {
             attachments: Array,
             copy_history: Array,
             date: Number,
+            create_date: {type: Date, default: new Date()},
             from_id: Number,
             post_id: Number,
             owner_id: Number,
@@ -53,10 +54,12 @@ module.exports = function (configs) {
             banned: {type: Boolean, default: false},
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'},
-            pin: {type: String, select: false}
+            pin: {type: String, select: false},
+            date: {type: Date, default: Date.now()}
         }),
         suggestSchema = mongoose.Schema({
             user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
+            date: {type: Date, default: new Date()},
             message_id: Number,
             chat: {
                 id: Number
@@ -103,11 +106,28 @@ module.exports = function (configs) {
             date: {
                 type: Date,
                 expires: 60 * 60 * 24 * 7,
-                default: Date.now
+                default: new Date()
             },
             request: Object,
             response: Object,
             error: Object
+        }),
+        statisticsSchema = mongoose.Schema({
+            users: {
+                count: Number,
+                new: Number,
+                subscribed: Number,
+                unsubscribed: Number
+            },
+            aneks: {
+                count: Number,
+                popular: {type: mongoose.Schema.Types.ObjectId, ref: anekSchema}
+            },
+            messages: {
+                count: Number,
+                popularCommand: String
+            },
+            date: Date
         });
 
     anekSchema.statics.random = function() {
@@ -150,6 +170,7 @@ module.exports = function (configs) {
         Comment: mongoose.model('Comment', commentSchema),
         User: mongoose.model('User', userSchema),
         Suggest: mongoose.model('Suggest', suggestSchema),
-        Log: mongoose.model('Log', logSchema)
+        Log: mongoose.model('Log', logSchema),
+        Statistic: mongoose.model('Statistic', statisticsSchema)
     };
 };

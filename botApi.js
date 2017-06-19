@@ -9,6 +9,7 @@ module.exports = function (configs) {
         mysql: require('./helpers/mysql')(configs),
         request: require('./helpers/request')(configs),
         vk: require('./helpers/vk')(configs),
-        dict: require('./helpers/dictionary')
+        dict: require('./helpers/dictionary'),
+        statistics: require('./helpers/statistics')(configs)
     }
 };

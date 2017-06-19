@@ -422,6 +422,9 @@ module.exports = function (express, botApi, configs) {
             if (!user) {
                 return {};
             }
+
+            user.$setOnInsert = {date: new Date()};
+
             return botApi.mongo.User.findOneAndUpdate({user_id: user.id}, user, {new: true, upsert: true}, callback);
         },
         searchAneks = function (searchPhrase, limit, skip) {
