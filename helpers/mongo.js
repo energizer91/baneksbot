@@ -55,7 +55,7 @@ module.exports = function (configs) {
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'},
             pin: {type: String, select: false},
-            date: {type: Date, default: Date.now()}
+            date: {type: Date, default: new Date()}
         }),
         suggestSchema = mongoose.Schema({
             user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
