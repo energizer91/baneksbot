@@ -1,4 +1,4 @@
-import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER} from './constants';
+import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER, REQUEST_USERS_STATISTICS, RECEIVE_USERS_STATISTICS} from './constants';
 import userInfo from './UserInfoPage/reducers';
 
 
@@ -8,7 +8,12 @@ function users (state = {
     limit: 10,
     filter: 'all',
     total: 0,
-    items: []
+    items: [],
+    statistics: {
+        from: 0,
+        to: Date.now(),
+        items: []
+    }
 }, action) {
     switch (action.type) {
         case REQUEST_USERS:
@@ -25,6 +30,19 @@ function users (state = {
                 offset: action.offset,
                 limit: action.limit,
                 receivedAt: action.receivedAt
+            });
+        case REQUEST_USERS_STATISTICS:
+            return Object.assign({}, state, {
+                statistics: {
+                    from: action.from,
+                    to: action.to
+                }
+            });
+        case RECEIVE_USERS_STATISTICS:
+            return Object.assign({}, state, {
+                statistics: {
+                    items: action.items
+                }
             });
         case CHANGE_FILTER:
             return Object.assign({}, state, {

@@ -117,14 +117,15 @@ module.exports = function (configs) {
                 count: Number,
                 new: Number,
                 subscribed: Number,
+                newly_subscribed: Number,
                 unsubscribed: Number
             },
             aneks: {
                 count: Number,
-                popular: {type: mongoose.Schema.Types.ObjectId, ref: anekSchema}
+                new: Number
             },
             messages: {
-                count: Number,
+                received: Number,
                 popularCommand: String
             },
             date: Date

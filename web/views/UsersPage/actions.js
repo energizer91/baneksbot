@@ -1,5 +1,5 @@
 import Request from '../../common/request';
-import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER} from './constants';
+import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER, REQUEST_USERS_STATISTICS, RECEIVE_USERS_STATISTICS} from './constants';
 
 function requestUsers (offset, limit) {
     return {
@@ -37,6 +37,37 @@ export function fetchUsers (offset, limit) {
             },
             json: true
         }).then(items => dispatch(receiveUsers(items)))
+    }
+}
+
+function requestUsersStatistics (from, to) {
+    return {
+        type: REQUEST_USERS_STATISTICS,
+        from,
+        to
+    }
+}
+
+function receiveUsersStatistics (items) {
+    return {
+        type: RECEIVE_USERS_STATISTICS,
+        items,
+        receivedAt: Date.now()
+    }
+}
+
+export function fetchUsersStatistics (from, to) {
+    return function (dispatch) {
+        dispatch(requestUsersStatistics(from, to));
+
+        return new Request('/api/statistics/users', {
+            method: 'GET',
+            body: {
+                from,
+                to
+            },
+            json: true
+        }).then(items => dispatch(receiveUsersStatistics(items)))
     }
 }
 

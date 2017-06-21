@@ -1,14 +1,37 @@
 import React from 'react';
 import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
-import { fetchUsers, changeFilter } from './actions';
+import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
+import { LineChart } from 'react-d3-basic';
 import { browserHistory } from 'react-router';
+
+const countChartSeries = [
+    {
+        field: 'count',
+        name: 'Users count',
+        color: 'red'
+    }
+];
+const subscribedChartSeries = [
+    {
+        field: 'subscribed',
+        name: 'Subscribed users',
+        color: 'red'
+    }
+];
+const x = function (d) {
+    return new Date(d.date).getDate();
+};
+const width = 700;
+const height = 300;
+const margins = {left: 100, right: 100, top: 50, bottom: 50};
 
 class UsersPage extends React.Component {
     constructor(props) {
         super(props);
 
         this.loadUsers = this.loadUsers.bind(this);
+        this.loadStatistics = this.loadStatistics.bind(this);
         this.openUser = this.openUser.bind(this);
         this.onFilterChange = this.onFilterChange.bind(this);
         this.onLimitChange = this.onLimitChange.bind(this);
@@ -16,6 +39,10 @@ class UsersPage extends React.Component {
 
     loadUsers(offset, limit) {
         this.props.dispatch(fetchUsers(offset, limit));
+    }
+
+    loadStatistics(from, to) {
+        return this.props.dispatch(fetchUsersStatistics(from, to));
     }
 
     openUser(rowNumber) {
@@ -33,11 +60,28 @@ class UsersPage extends React.Component {
 
     componentDidMount() {
         this.loadUsers();
+        this.loadStatistics();
     }
 
     render() {
         return (
             <div>
+                <LineChart
+                    margins= {margins}
+                    data={this.props.users.statistics.items || []}
+                    width={width}
+                    height={height}
+                    chartSeries={countChartSeries}
+                    x={x}
+                />
+                <LineChart
+                    margins= {margins}
+                    data={this.props.users.statistics.items || []}
+                    width={width}
+                    height={height}
+                    chartSeries={subscribedChartSeries}
+                    x={x}
+                />
                 <UserTable
                     onFilterChange={this.onFilterChange}
                     data={this.props.users}

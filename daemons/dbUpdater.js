@@ -6,6 +6,7 @@ var updateInProcess = false,
     configs = require('../configs'),
     mongo = require('../helpers/mongo')(configs),
     requestApi = require('../helpers/request')(configs),
+    statisticsApi = require('../helpers/statistics')(configs),
     vkApi = require('../helpers/vk')(configs);
 
 var getAllAneks = function (start) {
@@ -76,16 +77,19 @@ var getAllAneks = function (start) {
             });
         })
     },
-    checkUpdateProgress = function (operation) {
+    checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         return new Promise(function (resolve, reject) {
             console.log(new Date(), operation);
-            if (updateInProcess) {
+            if (updateInProcess && !ignoreUpdateProcess) {
                 return reject(new Error('Update is in progress'));
             }
             if (forceDenyUpdate) {
                 return reject(new Error('Update is disabled'));
             }
-            updateInProcess = true;
+            if (!ignoreUpdateProcess) {
+                updateInProcess = true;
+            }
+
             return resolve(undefined);
         })
     },
@@ -130,7 +134,7 @@ var getAllAneks = function (start) {
         });
     },
     synchronizeDatabase = function () {
-        return checkUpdateProgress('Initializing aneks refresh').then(function () {
+        return checkUpdateProgress('Initializing aneks refresh', true).then(function () {
             return new Promise(function (resolve, reject) {
                 if (configs.mongo.searchEngine !== 'elastic') {
                     console.log('Database synchronizing is only available on elasticsearch engine');
@@ -157,8 +161,17 @@ var getAllAneks = function (start) {
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
-            updateInProcess = false;
             setTimeout(synchronizeDatabase, 60 * 60 * 1000);
+        });
+    },
+    calculateStatisticsTimer = function () {
+        return checkUpdateProgress('Initializing statistics calculate', true).then(function () {
+            return statisticsApi.calculateStatistics(mongo);
+        }).catch(function (error) {
+            console.error(new Date(), 'An error occured: ' + error.message);
+        }).then(function () {
+            console.log(new Date(), 'Statistics calculate finished');
+            setTimeout(calculateStatisticsTimer, 5 * 60 * 1000);
         });
     };
 
@@ -167,6 +180,8 @@ setTimeout(updateAneksTimer, 30 * 1000);
 setTimeout(refreshAneksTimer, 130 * 1000);
 
 setTimeout(synchronizeDatabase, 60 * 60 * 1000);
+
+setTimeout(calculateStatisticsTimer, 5 * 60 * 1000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
