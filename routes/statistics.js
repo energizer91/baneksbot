@@ -8,8 +8,8 @@ module.exports = function (express, botApi) {
     router.get('/calculate', (req, res) => {
         return botApi.statistics.calculateStatistics(
             botApi.mongo,
-            req.query.from ? new Date(parseInt(req.query.from)) : new Date().setHours(0, 0, 0, 0),
-            req.query.to ? new Date(parseInt(req.query.to)) : new Date().getTime()
+            req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
+            req.query.to ? new Date(parseInt(req.query.to)) : new Date()
         ).then(function (result) {
             return res.json(result);
         })

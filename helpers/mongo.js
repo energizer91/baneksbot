@@ -20,7 +20,7 @@ module.exports = function (configs) {
             attachments: Array,
             copy_history: Array,
             date: Number,
-            create_date: {type: Date, default: new Date()},
+            create_date: {type: Date, default: Date.now},
             from_id: Number,
             post_id: Number,
             owner_id: Number,
@@ -55,11 +55,11 @@ module.exports = function (configs) {
             language: {type: String, default: 'russian'},
             client: {type: String, default: 'web'},
             pin: {type: String, select: false},
-            date: {type: Date, default: new Date()}
+            date: {type: Date, default: Date.now}
         }),
         suggestSchema = mongoose.Schema({
             user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
-            date: {type: Date, default: new Date()},
+            date: {type: Date, default: Date.now},
             message_id: Number,
             chat: {
                 id: Number
@@ -106,7 +106,7 @@ module.exports = function (configs) {
             date: {
                 type: Date,
                 expires: 60 * 60 * 24 * 7,
-                default: new Date()
+                default: Date.now
             },
             request: Object,
             response: Object,
