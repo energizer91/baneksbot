@@ -49,7 +49,36 @@ module.exports = function (express, botApi) {
     router.get('/', (req, res) => {
         var from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
             to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
-        return botApi.mongo.Statistic.find({date: {$gte: from, $lte: to}}).then(result => res.json(result));
+        return botApi.mongo.Statistic.find({date: {$gte: from, $lte: to}}).then(result => {
+            return res.json(result.reduce((p, c) => {
+            p.users.count += c.users.count;
+            p.users.new += c.users.new;
+            p.users.subscribed += c.users.subscribed;
+            p.users.newly_subscribed += c.users.newly_subscribed;
+            p.users.unsubscribed += c.users.unsubscribed;
+
+            p.aneks.count = c.aneks.count;
+            p.aneks.new = c.aneks.new;
+
+            p.messages.received = c.messages.received;
+
+            return p;
+        }, {
+                users: {
+                    count: 0,
+                    new: 0,
+                    subscribed: 0,
+                    newly_subscribed: 0,
+                    unsubscribed: 0
+                },
+                aneks: {
+                    count: 0,
+                    new: 0
+                },
+                messages: {
+                    received: 0
+                }
+            }))});
     });
 
     return {
