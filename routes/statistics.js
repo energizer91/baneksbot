@@ -51,10 +51,13 @@ module.exports = function (express, botApi) {
             to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
         return botApi.mongo.Statistic.find({date: {$gte: from, $lte: to}}).then(result => {
             return res.json(result.reduce((p, c) => {
+            p.users.count = c.users.count;
             p.users.new += c.users.new;
+            p.users.subscribed = c.users.subscribed;
             p.users.newly_subscribed += c.users.newly_subscribed;
             p.users.unsubscribed += c.users.unsubscribed;
 
+            p.aneks.count = c.aneks.count;
             p.aneks.new += c.aneks.new;
 
             p.messages.received += c.messages.received;
