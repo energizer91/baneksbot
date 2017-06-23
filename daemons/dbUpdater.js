@@ -104,18 +104,18 @@ var getAllAneks = function (start) {
             } else {
                 console.log(new Date(), aneks.length + ' aneks found.');
             }
-            // return mongo.User.find({subscribed: true}).then(function (users) {
-            //     aneks.forEach(function (anek) {
-            //         process.send({
-            //             type: 'broadcast',
-            //             users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}),
-            //             message: anek,
-            //             params: {
-            //                 _rule: 'common'
-            //             }
-            //         });
-            //     });
-            // });
+            return mongo.User.find({subscribed: true}).then(function (users) {
+                aneks.forEach(function (anek) {
+                    process.send({
+                        type: 'broadcast',
+                        users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}),
+                        message: anek,
+                        params: {
+                            _rule: 'common'
+                        }
+                    });
+                });
+            });
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {

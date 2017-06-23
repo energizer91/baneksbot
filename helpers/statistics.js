@@ -112,6 +112,39 @@ module.exports = function (configs) {
                     return result;
                 })
             });
+        },
+        getOverallStatistics: function (db, from, to) {
+            return db.Statistic.find({date: {$gte: from, $lte: to}})
+                .then(result => result.reduce((p, c) => {
+                    p.users.count = c.users.count;
+                    p.users.new += c.users.new;
+                    p.users.subscribed = c.users.subscribed;
+                    p.users.newly_subscribed += c.users.newly_subscribed;
+                    p.users.unsubscribed += c.users.unsubscribed;
+
+                    p.aneks.count = c.aneks.count;
+                    p.aneks.new += c.aneks.new;
+
+                    p.messages.received += c.messages.received;
+
+                    return p;
+                }, {
+                    users: {
+                        count: 0,
+                        new: 0,
+                        subscribed: 0,
+                        newly_subscribed: 0,
+                        unsubscribed: 0
+                    },
+                    aneks: {
+                        count: 0,
+                        new: 0
+                    },
+                    messages: {
+                        received: 0
+                    }
+                }
+            ));
         }
     };
 };

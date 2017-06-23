@@ -4,12 +4,47 @@
 module.exports = function (express, botApi, configs) {
     var router = express.Router();
 
+    var generateUserInfo = function (user) {
+        return {
+            text: '```\n' +
+            'User ' + user.user_id + ':\n' +
+            'Имя:        ' + (user.first_name    || 'Не указано') + '\n' +
+            'Фамилия:    ' + (user.last_name     || 'Не указано') + '\n' +
+            'Ник:        ' + (user.username      || 'Не указано') + '\n' +
+            'Подписка:   ' + (user.subscribed     ? 'Подписан' : 'Не подписан') + '\n' +
+            'Фидбэк:     ' + (user.feedback_mode  ? 'Включен'  : 'Выключен') + '\n' +
+            'Админ:      ' + (user.admin          ? 'Присвоен' : 'Не присвоен') + '\n' +
+            'Бан:        ' + (user.banned         ? 'Забанен'  : 'Не забанен') + '\n' +
+            'Язык:       ' + (user.language      || 'Не выбран') + '\n' +
+            'Клавиатура: ' + (user.keyboard       ? 'Включена' : 'Выключена') + '\n' +
+            'Платформа:  ' + (user.client        || 'Не выбрана') + '```'
+        };
+    };
+
+    var generateStatistics = function (interval, stats) {
+        return {
+            text: '```\n' +
+            'Статистика за ' + interval + ':\n' +
+            'Пользователи:\n' +
+            'Всего:                  ' + stats.users.count + '\n' +
+            'Новых:                  ' + stats.users.new + '\n' +
+            'Подписанных:            ' + stats.users.subscribed + '\n' +
+            'Новых подп.:            ' + stats.users.newly_subscribed + '\n' +
+            'Отписанных:             ' + stats.users.unsubscribed + '\n' +
+            'Анеки:\n' +
+            'Всего:                  ' + stats.aneks.count + '\n' +
+            'Новых:                  ' + stats.aneks.new + '\n' +
+            'Сообщения:\n' +
+            'Всего:                  ' + stats.messages.received + '```'
+        };
+    };
+
     var performSuggest = function (command, message, user) {
-            if (message && message.chat && message.from && (message.chat.id != message.from.id)) {
+            if (message && message.chat && message.from && (message.chat.id !== message.from.id)) {
                 return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
             }
             if (command[1]) {
-                if (command[1] == 'list') {
+                if (command[1] === 'list') {
                     var query = {
                         approved: false
                     };
@@ -179,20 +214,7 @@ module.exports = function (express, botApi, configs) {
                 } else if (command[1] === 'id') {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
                 }
-                return botApi.bot.sendMessage(message.chat.id, {
-                    text: '```\n' +
-                          'User ' + user.user_id + ':\n' +
-                          'Имя:        ' + (user.first_name    || 'Не указано') + '\n' +
-                          'Фамилия:    ' + (user.last_name     || 'Не указано') + '\n' +
-                          'Ник:        ' + (user.username      || 'Не указано') + '\n' +
-                          'Подписка:   ' + (user.subscribed     ? 'Подписан' : 'Не подписан') + '\n' +
-                          'Фидбэк:     ' + (user.feedback_mode  ? 'Включен'  : 'Выключен') + '\n' +
-                          'Админ:      ' + (user.admin          ? 'Присвоен' : 'Не присвоен') + '\n' +
-                          'Бан:        ' + (user.banned         ? 'Забанен'  : 'Не забанен') + '\n' +
-                          'Язык:       ' + (user.language      || 'Не выбран') + '\n' +
-                          'Клавиатура: ' + (user.keyboard       ? 'Включена' : 'Выключена') + '\n' +
-                          'Платформа:  ' + (user.client        || 'Не выбрана') + '```'
-                }, {disableButtons: true, parse_mode: 'Markdown'});
+                return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {disableButtons: true, parse_mode: 'Markdown'});
             },
             '/anek_by_id': function (command, message, user) {
                 return botApi.mongo.Anek.findOne({post_id: command[1]}).then(function (anek) {
@@ -201,7 +223,7 @@ module.exports = function (express, botApi, configs) {
             },
             '/find_user': function (command, message) {
                 return botApi.mongo.User.findOne({username: command[1]}).then(function (user) {
-                    return botApi.bot.sendMessage(message.chat.id, 'Информация о пользователе ' + user.first_name + ' ' + user.last_name + ': ' + JSON.stringify(user));
+                    return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {disableButtons: true, parse_mode: 'Markdown'});
                 })
             },
             '/filin': function (command, message, user) {
@@ -239,6 +261,31 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, 'денис дурак');
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
+            },
+            '/stat': function (command, message) {
+                var startDate,
+                    startTitle = 'всё время';
+                if (command[1]) {
+                    if (command[1] === 'day') {
+                        startDate = new Date(new Date().setHours(0, 0, 0, 0));
+                        startTitle = 'день';
+                    } else if (command[1] === 'month') {
+                        startDate = new Date(new Date(new Date().setHours(0, 0, 0, 0)).setDate(1))
+                        startTitle = 'месяц';
+                    } else {
+                        startDate = new Date(new Date(1));
+                    }
+                } else {
+                    startDate = new Date(new Date(1));
+                }
+
+                return botApi.statistics.getOverallStatistics(
+                    botApi.mongo,
+                    startDate,
+                    new Date()
+                ).then(function (results) {
+                    return botApi.bot.sendMessage(message.chat.id, generateStatistics(startTitle, results), {disableButtons: true, parse_mode: 'Markdown'});
+                })
             },
             '/suggest': performSuggest,
             '/comment': performSuggest,
