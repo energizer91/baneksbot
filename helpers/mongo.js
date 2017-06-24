@@ -8,7 +8,7 @@ module.exports = function (configs) {
         config = configs.mongo,
         db = mongoose.connection;
 
-    mongoose.Promise = require('q').Promise;
+    mongoose.Promise = Promise;
 
     db.on('error', console.error);
 

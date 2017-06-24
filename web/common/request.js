@@ -2,7 +2,7 @@
  * Created by Александр on 28.08.2016.
  */
 export default class Request {
-    constructor (url, data) {
+    constructor (url, data, extra) {
         return new Promise((resolve, reject) => {
             let xhr = new XMLHttpRequest(),
                 params = '';
@@ -36,6 +36,10 @@ export default class Request {
 
             xhr.open(data.method, url, data.async);
 
+            if (extra.responseType) {
+                xhr.responseType = extra.responseType;
+            }
+
             if (data.headers) {
                 for (let header in data.headers) {
                     if (data.headers.hasOwnProperty(header)) {
@@ -66,4 +70,8 @@ export default class Request {
             }
         })
     }
+}
+
+export function loadImage(url) {
+    return new Request(url, {}, {responseType: 'blob'});
 }
