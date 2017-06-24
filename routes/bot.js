@@ -274,7 +274,7 @@ module.exports = function (express, botApi, configs) {
                         startDate = new Date(now.getFullYear(), now.getMonth());
                         startTitle = 'месяц';
                     } else if (command[1] === 'week') {
-                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1);
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() || 7) + 1);
                         startTitle = 'неделю';
                     } else {
                         startDate = new Date(now.getFullYear());
@@ -448,6 +448,7 @@ module.exports = function (express, botApi, configs) {
                         return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_ever', {count: count})].concat(aneks), {language: user.language});
                     });
             },
+            
             '/donate': function (command, message) {
                 return botApi.bot.sendInvoice(message.from.id, {
                     title: 'Донат на развитие бота',
