@@ -25,16 +25,16 @@ module.exports = function (express, botApi, configs) {
         return {
             text: '```\n' +
             'Статистика за ' + interval + ':\n' +
-            'Пользователи:\n' +
+            'Пользователи\n' +
             'Всего:                  ' + stats.users.count + '\n' +
             'Новых:                  ' + stats.users.new + '\n' +
             'Подписанных:            ' + stats.users.subscribed + '\n' +
             'Новых подп.:            ' + stats.users.newly_subscribed + '\n' +
             'Отписанных:             ' + stats.users.unsubscribed + '\n' +
-            'Анеки:\n' +
+            'Анеки\n' +
             'Всего:                  ' + stats.aneks.count + '\n' +
             'Новых:                  ' + stats.aneks.new + '\n' +
-            'Сообщения:\n' +
+            'Сообщения\n' +
             'Всего:                  ' + stats.messages.received + '```'
         };
     };
@@ -264,19 +264,23 @@ module.exports = function (express, botApi, configs) {
             },
             '/stat': function (command, message) {
                 var startDate,
-                    startTitle = 'всё время';
+                    startTitle = 'всё время',
+                    now = new Date();
                 if (command[1]) {
                     if (command[1] === 'day') {
-                        startDate = new Date(new Date().setHours(0, 0, 0, 0));
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                         startTitle = 'день';
                     } else if (command[1] === 'month') {
-                        startDate = new Date(new Date(new Date().setHours(0, 0, 0, 0)).setDate(1))
+                        startDate = new Date(now.getFullYear(), now.getMonth());
                         startTitle = 'месяц';
+                    } else if (command[1] === 'week') {
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1);
+                        startTitle = 'неделю';
                     } else {
-                        startDate = new Date(new Date(1));
+                        startDate = new Date(now.getFullYear());
                     }
                 } else {
-                    startDate = new Date(new Date(1));
+                    startDate = new Date(now.getFullYear());
                 }
 
                 return botApi.statistics.getOverallStatistics(
