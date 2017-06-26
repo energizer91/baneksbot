@@ -67,7 +67,7 @@ class UsersPage extends React.Component {
     componentDidMount() {
         const now = new Date();
         this.loadUsers();
-        this.loadStatistics(now.setHours(0, 0, 0, 0), now.getTime());
+        this.loadStatistics(new Date(now).setHours(0, 0, 0, 0), now.getTime());
     }
 
     render() {
