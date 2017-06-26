@@ -5,21 +5,6 @@ import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
 import { AreaChart } from 'rd3';
 import { browserHistory } from 'react-router';
 
-const countChartSeries = [
-    {
-        field: 'count',
-        name: 'Users count',
-        color: 'red'
-    }
-];
-
-const x = function (d) {
-    return new Date(d.date).getDate();
-};
-const width = 700;
-const height = 300;
-const margins = {left: 100, right: 100, top: 50, bottom: 50};
-
 class UsersPage extends React.Component {
     constructor(props) {
         super(props);
@@ -41,11 +26,11 @@ class UsersPage extends React.Component {
             return [];
         }
 
-        let subscribed = [],
+        let newly_subscribed = [],
             new_users = [];
 
         this.props.users.statistics.items.forEach((stat) => {
-            subscribed.push([stat.date, stat.subscribed]);
+            newly_subscribed.push([stat.date, stat.newly_subscribed]);
             new_users.push([stat.date, stat['new']]);
         });
 
@@ -53,7 +38,7 @@ class UsersPage extends React.Component {
         return [
             {
                 name: 'Subscribed',
-                values: subscribed
+                values: newly_subscribed
             },
             {
                 name: 'New',
