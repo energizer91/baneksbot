@@ -2,7 +2,7 @@ import React from 'react';
 import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
 import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
-import { AreaChart } from 'rd3';
+import { LineChart } from 'rd3';
 import { browserHistory } from 'react-router';
 
 class UsersPage extends React.Component {
@@ -73,7 +73,7 @@ class UsersPage extends React.Component {
     render() {
         return (
             <div>
-                <AreaChart
+                <LineChart
                     viewBoxObject={{
                         x: 0,
                         y: 0,
@@ -86,7 +86,7 @@ class UsersPage extends React.Component {
                     xAxisTickInterval={{unit: 'minute', interval: 5}}
                     xAxisLabel="Time"
                     xAccessor={(d)=> {
-                        return new Date(d[0]).getHours();
+                        return new Date(d[0]).getMinutes();
                     }}
                     yAccessor={(d)=>{
                         return d[1];
