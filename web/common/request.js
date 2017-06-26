@@ -4,8 +4,11 @@
 export default class Request {
     constructor (url, data, extra) {
         return new Promise((resolve, reject) => {
-            let xhr = new XMLHttpRequest(),
-                params = '';
+            let xhr = new XMLHttpRequest();
+
+            if (!extra) {
+                extra = {};
+            }
 
             if (data.method && typeof data.method === 'string') {
                 data.method = data.method.toUpperCase();
