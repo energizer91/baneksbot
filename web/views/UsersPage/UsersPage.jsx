@@ -15,6 +15,13 @@ class UsersPage extends React.Component {
         this.openUser = this.openUser.bind(this);
         this.onFilterChange = this.onFilterChange.bind(this);
         this.onLimitChange = this.onLimitChange.bind(this);
+
+        this.state = {
+            from: new Date().setHours(0, 0, 0, 0),
+            to: new Date().getTime(),
+            tickUnit: 'minute',
+            tickInterval: 1
+        }
     }
 
     loadUsers(offset, limit) {
@@ -65,14 +72,18 @@ class UsersPage extends React.Component {
     }
 
     componentDidMount() {
-        const now = new Date();
         this.loadUsers();
-        this.loadStatistics(new Date(now).setHours(0, 0, 0, 0), now.getTime());
+        this.loadStatistics(this.state.from, this.state.to);
     }
 
     render() {
         return (
             <div>
+                <input type="text" value={this.state.from} onChange={({target}) =>{this.setState({from: target.value})}}/>
+                <input type="text" value={this.state.to} onChange={({target}) =>{this.setState({to: target.value})}}/>
+                <input type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
+                <input type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
+                <button onClick={() => this.loadStatistics(this.state.from, this.state.to)}>Get</button>
                 <LineChart
                     viewBoxObject={{
                         x: 0,
@@ -83,7 +94,7 @@ class UsersPage extends React.Component {
                     width={'100%'}
                     height={600}
                     data={this.compileStatistics()}
-                    xAxisTickInterval={{unit: 'minute', interval: 5}}
+                    xAxisTickInterval={{unit: this.state.tickUnit, interval: this.state.tickInterval}}
                     xAxisLabel="Time"
                     xAccessor={(d)=> {
                         return new Date(d[0]).getMinutes();
