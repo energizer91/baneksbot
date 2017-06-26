@@ -83,8 +83,8 @@ class UsersPage extends React.Component {
                     width={'100%'}
                     height={600}
                     data={this.compileStatistics()}
-                    xAxisTickInterval={{unit: 'hour', interval: 1}}
-                    xAxisLabel="Day"
+                    xAxisTickInterval={{unit: 'minute', interval: 5}}
+                    xAxisLabel="Time"
                     xAccessor={(d)=> {
                         return new Date(d[0]).getHours();
                     }}
