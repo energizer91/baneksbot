@@ -42,11 +42,11 @@ class UsersPage extends React.Component {
         }
 
         let subscribed = [],
-            count = [];
+            new_users = [];
 
         this.props.users.statistics.items.forEach((stat) => {
             subscribed.push([stat.date, stat.subscribed]);
-            count.push([stat.date, stat.count]);
+            new_users.push([stat.date, stat['new']]);
         });
 
 
@@ -56,8 +56,8 @@ class UsersPage extends React.Component {
                 values: subscribed
             },
             {
-                name: 'Count',
-                values: count
+                name: 'New',
+                values: new_users
             }
         ]
     }
@@ -98,7 +98,7 @@ class UsersPage extends React.Component {
                     width={'100%'}
                     height={600}
                     data={this.compileStatistics()}
-                    xAxisTickInterval={{unit: 'day', interval: 1}}
+                    xAxisTickInterval={{unit: 'date', interval: 1}}
                     xAxisLabel="Day"
                     xAccessor={(d)=> {
                         return new Date(d[0]).getDate();
