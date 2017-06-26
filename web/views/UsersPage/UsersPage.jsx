@@ -67,7 +67,7 @@ class UsersPage extends React.Component {
     componentDidMount() {
         const now = new Date();
         this.loadUsers();
-        this.loadStatistics(new Date(now.getFullYear(), now.getMonth(), 1).getTime(), now.getTime());
+        this.loadStatistics(now.setHours(0, 0, 0, 0), now.getTime());
     }
 
     render() {
@@ -83,10 +83,10 @@ class UsersPage extends React.Component {
                     width={'100%'}
                     height={600}
                     data={this.compileStatistics()}
-                    xAxisTickInterval={{unit: 'date', interval: 1}}
+                    xAxisTickInterval={{unit: 'hour', interval: 1}}
                     xAxisLabel="Day"
                     xAccessor={(d)=> {
-                        return new Date(d[0]).getDate();
+                        return new Date(d[0]).getHours();
                     }}
                     yAccessor={(d)=>{
                         return d[1];
