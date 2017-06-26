@@ -262,6 +262,13 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
+            '/shlyapa': function (command, message) {
+                if (Math.random() > 0.5) {
+                    return botApi.bot.sendMessage(message.chat.id, 'как раз');
+                }
+
+                return botApi.bot.sendMessage(message.chat.id, 'тут не гадюшник, вешать негде');
+            },
             '/stat': function (command, message) {
                 var startDate,
                     startTitle = 'всё время',
