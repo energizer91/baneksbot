@@ -2,7 +2,7 @@ import React from 'react';
 import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
 import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
-import { LineChart } from 'react-d3-basic';
+import { AreaChart } from 'rd3';
 import { browserHistory } from 'react-router';
 
 const countChartSeries = [
@@ -12,13 +12,7 @@ const countChartSeries = [
         color: 'red'
     }
 ];
-const subscribedChartSeries = [
-    {
-        field: 'subscribed',
-        name: 'Subscribed users',
-        color: 'red'
-    }
-];
+
 const x = function (d) {
     return new Date(d.date).getDate();
 };
@@ -31,6 +25,7 @@ class UsersPage extends React.Component {
         super(props);
 
         this.loadUsers = this.loadUsers.bind(this);
+        this.compileStatistics = this.compileStatistics.bind(this);
         this.loadStatistics = this.loadStatistics.bind(this);
         this.openUser = this.openUser.bind(this);
         this.onFilterChange = this.onFilterChange.bind(this);
@@ -39,6 +34,32 @@ class UsersPage extends React.Component {
 
     loadUsers(offset, limit) {
         this.props.dispatch(fetchUsers(offset, limit));
+    }
+
+    compileStatistics() {
+        if (!(this.props.users.statistics && this.props.users.statistics.items && this.props.users.statistics.items.length)) {
+            return [];
+        }
+
+        let subscribed = [],
+            count = [];
+
+        this.props.users.statistics.items.forEach((stat) => {
+            subscribed.push([stat.date, stat.subscribed]);
+            count.push([stat.date, stat.count]);
+        });
+
+
+        return [
+            {
+                name: 'Subscribed',
+                values: subscribed
+            },
+            {
+                name: 'Count',
+                values: count
+            }
+        ]
     }
 
     loadStatistics(from, to) {
@@ -66,21 +87,22 @@ class UsersPage extends React.Component {
     render() {
         return (
             <div>
-                <LineChart
-                    margins= {margins}
-                    data={this.props.users.statistics.items || []}
-                    width={width}
-                    height={height}
-                    chartSeries={countChartSeries}
-                    x={x}
-                />
-                <LineChart
-                    margins= {margins}
-                    data={this.props.users.statistics.items || []}
-                    width={width}
-                    height={height}
-                    chartSeries={subscribedChartSeries}
-                    x={x}
+                <AreaChart
+                    viewBoxObject={{
+                        x: 0,
+                        y: 0,
+                        height: 400,
+                        width: 800
+                    }}
+                    data={this.compileStatistics()}
+                    xAxisTickInterval={{unit: 'minute', interval: 5}}
+                    xAxisLabel="Time"
+                    xAccessor={(d)=> {
+                        return new Date(d[0]);
+                    }}
+                    yAccessor={(d)=>{
+                        return d[1];
+                    }}
                 />
                 <UserTable
                     onFilterChange={this.onFilterChange}
