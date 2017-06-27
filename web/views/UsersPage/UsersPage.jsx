@@ -34,11 +34,13 @@ class UsersPage extends React.Component {
         }
 
         let newly_subscribed = [],
-            new_users = [];
+            new_users = [],
+            unsubscribed = [];
 
         this.props.users.statistics.items.forEach((stat) => {
             newly_subscribed.push([stat.date, stat.newly_subscribed]);
             new_users.push([stat.date, stat['new']]);
+            unsubscribed.push([stat.date, - stat.unsubscribed]);
         });
 
 
@@ -50,6 +52,11 @@ class UsersPage extends React.Component {
             {
                 name: 'New',
                 values: new_users
+            },
+            {
+                name: 'Unsubscribed',
+                color: 'red',
+                values: unsubscribed
             }
         ]
     }
