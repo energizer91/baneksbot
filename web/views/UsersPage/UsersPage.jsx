@@ -19,7 +19,7 @@ class UsersPage extends React.Component {
         this.state = {
             from: new Date().setHours(0, 0, 0, 0),
             to: new Date().getTime(),
-            tickUnit: 'minute',
+            tickUnit: 'hour',
             tickInterval: 1
         }
     }
@@ -92,12 +92,13 @@ class UsersPage extends React.Component {
                         width: 800
                     }}
                     width={'100%'}
+                    legend={true}
                     height={600}
                     data={this.compileStatistics()}
                     xAxisTickInterval={{unit: this.state.tickUnit, interval: this.state.tickInterval}}
                     xAxisLabel="Time"
                     xAccessor={(d)=> {
-                        return new Date(d[0]).getMinutes();
+                        return new Date(d[0]);
                     }}
                     yAccessor={(d)=>{
                         return d[1];
