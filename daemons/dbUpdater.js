@@ -181,7 +181,7 @@ setTimeout(refreshAneksTimer, 130 * 1000);
 
 setTimeout(synchronizeDatabase, 60 * 60 * 1000);
 
-setTimeout(calculateStatisticsTimer, 60 * 60 * 1000);
+setTimeout(calculateStatisticsTimer, 5 * 60 * 1000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
