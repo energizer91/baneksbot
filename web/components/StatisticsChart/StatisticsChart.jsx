@@ -4,6 +4,7 @@
 
 import React from 'react';
 import rd3 from 'rd3';
+import TextField from 'material-ui/TextField';
 
 export default class StatisticsChart extends React.Component {
     constructor(props) {
@@ -15,7 +16,7 @@ export default class StatisticsChart extends React.Component {
             tickUnit: 'hour',
             tickInterval: 1,
             selectedChart: 'AreaChart'
-        }
+        };
 
         this.changeChart = this.changeChart.bind(this);
     }
@@ -34,13 +35,13 @@ export default class StatisticsChart extends React.Component {
         const SelectedChart = rd3[this.state.selectedChart];
         return (
             <div>
-                <input type="text" value={this.state.from} onChange={({target}) =>{this.setState({from: target.value})}}/>
-                <input type="text" value={this.state.to} onChange={({target}) =>{this.setState({to: target.value})}}/>
-                <input type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
-                <input type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
-                <select value={this.state.selectedChart} onChange={this.changeChart}>
-                    <option value="LineChart">Line chart</option>
-                    <option value="AreaChart">Area chart</option>
+                <TextField name="from" type="text" value={this.state.from} onChange={({target}) =>{this.setState({from: target.value})}}/>
+                <TextField name="to" type="text" value={this.state.to} onChange={({target}) =>{this.setState({to: target.value})}}/>
+                <TextField name="tickUnit" type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
+                <TextField name="tickInterval" type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
+                <select name="chartType" value={this.state.selectedChart} onChange={this.changeChart}>
+                    <option value={'LineChart'}>Line chart</option>
+                    <option value={'AreaChart'}>Area chart</option>
                 </select>
                 <button onClick={this.props.onGetData.bind(this, this.state.from, this.state.to)}>Get</button>
                 <SelectedChart

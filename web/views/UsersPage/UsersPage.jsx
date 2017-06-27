@@ -87,7 +87,7 @@ class UsersPage extends React.Component {
                     data={[
                         {
                             name: 'Received',
-                            values: this.props.users.messages.items.map(({date, received}) => [date, received])
+                            values: (this.props.users.messages.items || []).map(({date, received}) => [date, received])
                         }
                     ]}
                     onGetData={this.loadMessagesStatistics}
