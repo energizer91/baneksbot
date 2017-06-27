@@ -1,8 +1,8 @@
 import React from 'react';
 import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
-import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
-import { AreaChart } from 'rd3';
+import { fetchUsers, changeFilter, fetchUsersStatistics, fetchMessagesStatistics } from './actions';
+import StatisticsChart from '../../components/StatisticsChart/StatisticsChart';
 import { browserHistory } from 'react-router';
 
 class UsersPage extends React.Component {
@@ -12,16 +12,10 @@ class UsersPage extends React.Component {
         this.loadUsers = this.loadUsers.bind(this);
         this.compileStatistics = this.compileStatistics.bind(this);
         this.loadStatistics = this.loadStatistics.bind(this);
+        this.loadMessagesStatistics = this.loadMessagesStatistics.bind(this);
         this.openUser = this.openUser.bind(this);
         this.onFilterChange = this.onFilterChange.bind(this);
         this.onLimitChange = this.onLimitChange.bind(this);
-
-        this.state = {
-            from: new Date().setHours(0, 0, 0, 0),
-            to: new Date().getTime(),
-            tickUnit: 'hour',
-            tickInterval: 1
-        }
     }
 
     loadUsers(offset, limit) {
@@ -40,7 +34,7 @@ class UsersPage extends React.Component {
         this.props.users.statistics.items.forEach((stat) => {
             newly_subscribed.push([stat.date, stat.newly_subscribed]);
             new_users.push([stat.date, stat['new']]);
-            unsubscribed.push([stat.date, - stat.unsubscribed]);
+            unsubscribed.push([stat.date, stat.unsubscribed]);
         });
 
 
@@ -64,6 +58,9 @@ class UsersPage extends React.Component {
     loadStatistics(from, to) {
         return this.props.dispatch(fetchUsersStatistics(from, to));
     }
+    loadMessagesStatistics(from, to) {
+        return this.props.dispatch(fetchMessagesStatistics(from, to));
+    }
 
     openUser(rowNumber) {
         browserHistory.push('/users/' + this.props.users.items[rowNumber]._id);
@@ -80,37 +77,20 @@ class UsersPage extends React.Component {
 
     componentDidMount() {
         this.loadUsers();
-        this.loadStatistics(this.state.from, this.state.to);
     }
 
     render() {
         return (
             <div>
-                <input type="text" value={this.state.from} onChange={({target}) =>{this.setState({from: target.value})}}/>
-                <input type="text" value={this.state.to} onChange={({target}) =>{this.setState({to: target.value})}}/>
-                <input type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
-                <input type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
-                <button onClick={() => this.loadStatistics(this.state.from, this.state.to)}>Get</button>
-                <AreaChart
-                    viewBoxObject={{
-                        x: 0,
-                        y: 0,
-                        height: 400,
-                        width: 800
-                    }}
-                    width={'100%'}
-                    legend={true}
-                    interpolate={true}
-                    height={600}
-                    data={this.compileStatistics()}
-                    xAxisTickInterval={{unit: this.state.tickUnit, interval: this.state.tickInterval}}
-                    xAxisLabel="Time"
-                    xAccessor={(d)=> {
-                        return new Date(d[0]);
-                    }}
-                    yAccessor={(d)=>{
-                        return d[1];
-                    }}
+                <StatisticsChart data={this.compileStatistics()} onGetData={this.loadStatistics}/>
+                <StatisticsChart
+                    data={[
+                        {
+                            name: 'Received',
+                            values: this.props.users.messages.items.map(({date, received}) => [date, received])
+                        }
+                    ]}
+                    onGetData={this.loadMessagesStatistics}
                 />
                 <UserTable
                     onFilterChange={this.onFilterChange}

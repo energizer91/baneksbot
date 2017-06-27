@@ -1,4 +1,4 @@
-import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER, REQUEST_USERS_STATISTICS, RECEIVE_USERS_STATISTICS} from './constants';
+import {REQUEST_USERS, RECEIVE_USERS, CHANGE_FILTER, REQUEST_USERS_STATISTICS, RECEIVE_USERS_STATISTICS, REQUEST_MESSAGES_STATISTICS, RECEIVE_MESSAGES_STATISTICS} from './constants';
 import userInfo from './UserInfoPage/reducers';
 
 
@@ -10,6 +10,11 @@ function users (state = {
     total: 0,
     items: [],
     statistics: {
+        from: 0,
+        to: Date.now(),
+        items: []
+    },
+    messages: {
         from: 0,
         to: Date.now(),
         items: []
@@ -41,6 +46,19 @@ function users (state = {
         case RECEIVE_USERS_STATISTICS:
             return Object.assign({}, state, {
                 statistics: {
+                    items: action.items
+                }
+            });
+        case REQUEST_MESSAGES_STATISTICS:
+            return Object.assign({}, state, {
+                messages: {
+                    from: action.from,
+                    to: action.to
+                }
+            });
+        case RECEIVE_MESSAGES_STATISTICS:
+            return Object.assign({}, state, {
+                messages: {
                     items: action.items
                 }
             });
