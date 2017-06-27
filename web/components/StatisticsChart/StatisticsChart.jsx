@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { AreaChart } from 'rd3';
+import rd3 from 'rd3';
 
 export default class StatisticsChart extends React.Component {
     constructor(props) {
@@ -13,8 +13,17 @@ export default class StatisticsChart extends React.Component {
             from: new Date().setHours(0, 0, 0, 0),
             to: new Date().getTime(),
             tickUnit: 'hour',
-            tickInterval: 1
+            tickInterval: 1,
+            selectedChart: 'AreaChart'
         }
+
+        this.changeChart = this.changeChart.bind(this);
+    }
+
+    changeChart({target}) {
+        this.setState({
+            selectedChart: target.value
+        });
     }
 
     componentDidMount() {
@@ -22,14 +31,19 @@ export default class StatisticsChart extends React.Component {
     }
 
     render() {
+        const SelectedChart = rd3[this.state.selectedChart];
         return (
             <div>
                 <input type="text" value={this.state.from} onChange={({target}) =>{this.setState({from: target.value})}}/>
                 <input type="text" value={this.state.to} onChange={({target}) =>{this.setState({to: target.value})}}/>
                 <input type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
                 <input type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
+                <select value={this.state.selectedChart} onChange={this.changeChart}>
+                    <option value="LineChart">Line chart</option>
+                    <option value="AreaChart">Area chart</option>
+                </select>
                 <button onClick={this.props.onGetData.bind(this, this.state.from, this.state.to)}>Get</button>
-                <AreaChart
+                <SelectedChart
                     viewBoxObject={{
                         x: 0,
                         y: 0,
