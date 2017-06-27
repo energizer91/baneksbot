@@ -2,7 +2,7 @@ import React from 'react';
 import UserTable from '../../components/UserTable/UserTable';
 import { connect } from 'react-redux';
 import { fetchUsers, changeFilter, fetchUsersStatistics } from './actions';
-import { LineChart } from 'rd3';
+import { AreaChart } from 'rd3';
 import { browserHistory } from 'react-router';
 
 class UsersPage extends React.Component {
@@ -84,7 +84,7 @@ class UsersPage extends React.Component {
                 <input type="text" value={this.state.tickUnit} onChange={({target}) =>{this.setState({tickUnit: target.value})}}/>
                 <input type="text" value={this.state.tickInterval} onChange={({target}) =>{this.setState({tickInterval: target.value})}}/>
                 <button onClick={() => this.loadStatistics(this.state.from, this.state.to)}>Get</button>
-                <LineChart
+                <AreaChart
                     viewBoxObject={{
                         x: 0,
                         y: 0,
@@ -93,6 +93,7 @@ class UsersPage extends React.Component {
                     }}
                     width={'100%'}
                     legend={true}
+                    interpolate={true}
                     height={600}
                     data={this.compileStatistics()}
                     xAxisTickInterval={{unit: this.state.tickUnit, interval: this.state.tickInterval}}
