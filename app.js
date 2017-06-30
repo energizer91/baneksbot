@@ -121,6 +121,10 @@ app.get('/testMessage', function (req, res) {
     return sendUpdaterMessage(res, {type: 'service', action: 'message', value: configs.bot.adminChat}, 'Message has been send');
 });
 
+app.get('/sendMessage', function (req, res) {
+    return sendUpdaterMessage(res, {type: 'service', action: 'message', value: req.query.to || configs.bot.adminChat, text: req.query.text}, 'Message has been send');
+});
+
 app.get('/synchronizeDatabase', function (req, res) {
     return sendUpdaterMessage(res, {type: 'service', action: 'synchronize'}, 'Synchronize process has been started');
 });

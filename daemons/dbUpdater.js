@@ -5,79 +5,10 @@ var updateInProcess = false,
     forceDenyUpdate = false,
     configs = require('../configs'),
     mongo = require('../helpers/mongo')(configs),
-    requestApi = require('../helpers/request')(configs),
-    statisticsApi = require('../helpers/statistics')(configs),
-    vkApi = require('../helpers/vk')(configs);
+    commonApi = require('../helpers/common')(configs),
+    statisticsApi = require('../helpers/statistics')(configs);
 
-var getAllAneks = function (start) {
-        return vkApi.getPostsCount().then(function (counter) {
-            var requests = [],
-                current = counter.count - (start || 0),
-                goal = counter.hasPinned ? 1 : 0,
-                maxStep = 100,
-                step = maxStep;
-
-            while (current > goal) {
-                if (current - step < goal) {
-                    step = current - goal;
-                }
-
-                current -= step;
-
-                requests.push(vkApi.getPosts({offset: current, count: step}));
-            }
-
-            return requestApi.fulfillAllSequentally(requests);
-        })
-    },
-    zipAneks = function (responses) {
-        var result = [];
-        for (var i = 0; i < responses.length; i++) {
-            if (responses[i] && responses[i].ops) {
-                result = result.concat(responses[i].ops);
-            }
-        }
-        return result;
-    },
-    redefineDatabase = function (count) {
-        return getAllAneks(count).then(function (responses) {
-            return requestApi.fulfillAllSequentally(responses.map(function (response) {
-                return mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
-                    anek.post_id = anek.id;
-                    anek.likes = anek.likes.count;
-                    anek.reposts = anek.reposts.count;
-                    delete anek.id;
-                    return anek;
-                })).catch(function (error) {
-                    console.log(error);
-                    return [];
-                });
-            }));
-        })
-    },
-    updateAneks = function () {
-        return getAllAneks().then(function (responses) {
-            var aneks = [];
-
-            responses.forEach(function (response) {
-                aneks = aneks.concat(response.response.items.reverse().map(function (anek) {
-                    return [{post_id: anek.post_id}, {
-                        likes: anek.likes.count,
-                        comments: anek.comments,
-                        reposts: anek.reposts.count
-                    }];
-                }))
-            });
-
-            return requestApi.fulfillAll(aneks.map(function (anek) {
-                return mongo.Anek.findOneAndUpdate(anek[0], anek[1]);
-            })).catch(function (error) {
-                console.log(error);
-                return [];
-            });
-        })
-    },
-    checkUpdateProgress = function (operation, ignoreUpdateProcess) {
+var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         return new Promise(function (resolve, reject) {
             console.log(new Date(), operation);
             if (updateInProcess && !ignoreUpdateProcess) {
@@ -97,7 +28,7 @@ var getAllAneks = function (start) {
         return checkUpdateProgress('Initializing aneks update').then(function () {
             return mongo.Anek.count();
         }).then(function (count) {
-            return redefineDatabase(count).then(zipAneks);
+            return commonApi.redefineDatabase(count, mongo).then(commonApi.zipAneks);
         }).then(function (aneks){
             if (aneks.length) {
                 console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
@@ -105,16 +36,7 @@ var getAllAneks = function (start) {
                 console.log(new Date(), aneks.length + ' aneks found.');
             }
             return mongo.User.find({subscribed: true}).then(function (users) {
-                aneks.forEach(function (anek) {
-                    process.send({
-                        type: 'broadcast',
-                        users: /*[5630968, 85231140]*/users.map(function (user) {return user.user_id}),
-                        message: anek,
-                        params: {
-                            _rule: 'common'
-                        }
-                    });
-                });
+                return commonApi.broadcastAneks(users, aneks, {_rule: 'common'}, mongo);
             });
         }).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
@@ -125,7 +47,7 @@ var getAllAneks = function (start) {
         });
     },
     refreshAneksTimer = function () {
-        return checkUpdateProgress('Initializing aneks refresh').then(updateAneks).catch(function (error) {
+        return checkUpdateProgress('Initializing aneks refresh').then(commonApi.updateAneks.bind(commonApi, mongo)).catch(function (error) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Refreshing aneks finished');
@@ -196,9 +118,7 @@ process.on('message', function(m) {
                 synchronizeDatabase();
                 break;
             case 'message':
-                mongo.User.findOne({user_id: m.value}).then(function (user) {
-                    process.send({type: 'message', userId: user.user_id, message: 'Проверка', params: {language: user.language}});
-                });
+                process.send({type: 'message', userId: m.value, message: m.text || 'Проверка'});
                 break;
             case 'anek':
                 return mongo.Anek.random().then(function (anek) {

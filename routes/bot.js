@@ -380,6 +380,28 @@ module.exports = function (express, botApi, configs) {
                 })
             },
             '/subscribe': function (command, message) {
+                if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
+                    return new Promise(function (resolve) {
+                        return updateUser(message.chat, function (err, user) {
+                            if (err) {
+                                console.error(err);
+                                return resolve({});
+                            }
+                            return resolve(user);
+                        });
+                    }).then(function (user) {
+                        if (user) {
+                            if (!user.subscribed) {
+                                return botApi.mongo.User.update({_id: user.id}, {subscribed: true})
+                                    .then(botApi.bot.sendMessage.bind(botApi.bot, user.user_id, botApi.dict.translate(user.language, 'subscribe_success', {first_name: user.first_name})))
+                                    .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Новый подписчик: ' + botApi.bot.getUserInfo(user)));
+                            } else {
+                                return botApi.bot.sendMessage(user.user_id, botApi.dict.translate(user.language, 'subscribe_fail'));
+                            }
+                        }
+                    });
+                }
+
                 return botApi.mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user) {
                         if (!user.subscribed) {
@@ -396,6 +418,25 @@ module.exports = function (express, botApi, configs) {
                 });
             },
             '/unsubscribe': function (command, message) {
+                if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
+                    return new Promise(function (resolve) {
+                        return updateUser(message.chat, function (err, user) {
+                            if (err) {
+                                console.error(err);
+                                return resolve({});
+                            }
+                            return resolve(user);
+                        });
+                    }).then(function (user) {
+                        if (user && user.subscribed) {
+                            return botApi.mongo.User.update({_id: user.id}, {subscribed: false})
+                                .then(botApi.bot.sendMessage.bind(botApi.bot, message.chat.id, botApi.dict.translate(user.language, 'unsubscribe_success')))
+                                .then(botApi.bot.sendMessageToAdmin.bind(botApi.bot, 'Человек отписался: ' + botApi.bot.getUserInfo(user)));
+                        }
+                        return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'unsubscribe_fail'));
+                    });
+                }
+
                 return botApi.mongo.User.findOne({user_id: message.from.id}).then(function (user) {
                     if (user && user.subscribed) {
                         return botApi.mongo.User.update({_id: user.id}, {subscribed: false})
@@ -663,6 +704,8 @@ module.exports = function (express, botApi, configs) {
                             .then(botApi.bot.editMessageButtons.bind(botApi.bot, data.callback_query.message, []))
                             .then(botApi.bot.sendMessage.bind(botApi.bot, data.callback_query.message.chat.id, 'Предложение будет опубликовано неанонимно.'));
                     });
+                case 'a_a':
+                    return botApi.mongo.Anek.findOneAndUpdate({_id: botApi.mongo.Anek.convertId(queryData[1])}, {})
             }
 
             throw new Error('Unknown callback query ' + queryData);

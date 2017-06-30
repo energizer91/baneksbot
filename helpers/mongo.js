@@ -128,15 +128,25 @@ module.exports = function (configs) {
                 received: Number,
                 popularCommand: String
             },
-            date: Date
+            date: {
+                type: Date,
+                expires: 60 * 60 * 24 * 365,
+                default: Date.now
+            }
         });
 
     anekSchema.statics.random = function() {
-        var self = this;
-        return self.count().then(function (count) {
-            var rand = Math.floor(Math.random() * count);
-            return self.findOne().skip(rand).exec();
+        let request = {spam: {$ne: true}, attachments: {$exists: false}};
+        return this.find(request).count().then(count => {
+            let rand = Math.floor(Math.random() * count);
+            return this.findOne(request).skip(rand).exec();
         });
+    };
+
+    anekSchema.statics.convertId = function (id) {
+        if (id) {
+            return mongoose.Types.ObjectId(id);
+        }
     };
 
     suggestSchema.statics.convertId = function (id) {
