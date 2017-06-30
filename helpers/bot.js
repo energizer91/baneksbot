@@ -323,7 +323,11 @@ module.exports = function (configs) {
                     return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, params)));
                 }.bind(this), Promise.resolve(previous));
             },
-            sendMessageToAdmin: function (text) {
+            sendMessageToAdmin: function (text, allowHide) {
+                if (allowHide) {
+                    return Promise.resolve({});
+                }
+
                 return this.sendMessage(botConfig.adminChat, text);
             },
             sendMessageToChannel: function (message) {

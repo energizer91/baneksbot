@@ -83,7 +83,7 @@ module.exports = function (configs) {
             }
 
             return aneks.map(function (anek) {
-                return botApi.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(anek)).then(function () {
+                return botApi.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(anek), true).then(function () {
                     return requestApi.fulfillAll(users.map(function (user) {
                         return botApi.sendMessage(user.user_id, anek, params).catch(function (error) {
                             if (!error.ok && (error.error_code === 403) || (
@@ -97,7 +97,7 @@ module.exports = function (configs) {
                             }
                         });
                     })).then(function () {
-                        return botApi.sendMessageToAdmin('Broadcast finished').then(function () {
+                        return botApi.sendMessageToAdmin('Broadcast finished', true).then(function () {
                             if (errorMessages.length) {
                                 let text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
                                 console.log(text);
