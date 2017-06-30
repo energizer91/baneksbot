@@ -79,7 +79,6 @@ module.exports = function (configs) {
             let errorMessages = [];
 
             if (!users.length || !aneks.length) {
-                console.log('No users or no aneks found. Stop Broadcasting.');
                 return Promise.resolve([]);
             }
 

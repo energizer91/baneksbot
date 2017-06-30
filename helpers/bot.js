@@ -274,14 +274,14 @@ module.exports = function (configs) {
                     if (params.forceAttachments) {
                         attachments = (message.attachments || []);
                     }
-
-                    if (params.parse_mode) {
-                        sendMessage.parse_mode = params.parse_mode;
-                    }
                 }
 
                 sendMessage._key = params._key;
                 sendMessage._rule = params._rule;
+
+                if (params.parse_mode) {
+                    sendMessage.parse_mode = params.parse_mode;
+                }
 
                 if (params.keyboard || params.remove_keyboard || buttons.length) {
                     sendMessage.reply_markup = {};

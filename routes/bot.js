@@ -243,6 +243,9 @@ module.exports = function (express, botApi, configs) {
             '/do_rock': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, 'денис');
             },
+            '/detcom': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {disableButtons: true, parse_mode: 'Markdown'});
+            },
             '/start': function (command, message, user) {
                 if (command[1] && botApi.dict.languageExists(command[1])) {
                     user.language = command[1];
