@@ -136,7 +136,7 @@ module.exports = function (configs) {
         });
 
     anekSchema.statics.random = function() {
-        let request = {spam: {$ne: true}, attachments: {$exists: false}};
+        let request = {$or: [{spam: {$ne: true}}, {spam: {$exists: false}}], attachments: {$exists: false}};
         return this.find(request).count().then(count => {
             let rand = Math.floor(Math.random() * count);
             return this.findOne(request).skip(rand).exec();
