@@ -212,6 +212,11 @@ module.exports = function (express, botApi, configs) {
                         return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_subscribed_user_count', {count: count}));
                     })
                 } else if (command[1] === 'id') {
+                    if (command[2]) {
+                        return botApi.mongo.User.findOne({user_id: command[2]}).then(function (user) {
+                            return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {disableButtons: true, parse_mode: 'Markdown'});
+                        })
+                    }
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
                 }
                 return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {disableButtons: true, parse_mode: 'Markdown'});
