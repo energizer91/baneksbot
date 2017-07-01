@@ -286,6 +286,9 @@ module.exports = function (express, botApi, configs) {
                 }
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
+            '/petux': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, 'ti');
+            },
             '/shlyapa': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, generateRandomAnswer([
                     'как раз',
