@@ -39,6 +39,16 @@ module.exports = function (express, botApi, configs) {
         };
     };
 
+    var generateRandomAnswer = function (answers) {
+        if (!answers || (Array.isArray(answers) && !answers.length)) {
+            return '';
+        }
+
+        var random = Math.floor(Math.random() * answers.length);
+
+        return answers[random];
+    };
+
     var performSuggest = function (command, message, user) {
             if (message && message.chat && message.from && (message.chat.id !== message.from.id)) {
                 return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
@@ -277,11 +287,24 @@ module.exports = function (express, botApi, configs) {
                 return botApi.bot.sendMessage(message.chat.id, 'Здесь весело: ' + configs.bot.baneksLink);
             },
             '/shlyapa': function (command, message) {
-                if (Math.random() > 0.5) {
-                    return botApi.bot.sendMessage(message.chat.id, 'как раз');
-                }
-
-                return botApi.bot.sendMessage(message.chat.id, 'тут не гадюшник, вешать негде');
+                return botApi.bot.sendMessage(message.chat.id, generateRandomAnswer([
+                    'как раз',
+                    'тут не гадюшник, вешать негде'
+                ]));
+            },
+            '/gumino': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, generateRandomAnswer([
+                    'Здесь гоняют бэн',
+                    'Right in da tuz!',
+                    'Я слоняю в бегемэ',
+                    'У нас пропал гусейший сэн!',
+                    'Мы не гуси, мы не куры, мы - фанаты чляйн культуры',
+                    'ЖОПА ССЫТ',
+                    'Гуня. Бэби. Бздёвый ссяк.',
+                    'Я бурёна',
+                    'И немножко гумина',
+                    'Пропал унитэйз. Обращаться к параше.'
+                ]));
             },
             '/stat': function (command, message) {
                 var startDate,
