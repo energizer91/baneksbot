@@ -237,6 +237,9 @@ module.exports = function (express, botApi, configs) {
             '/bret': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, 'Удолил');
             },
+            '/madway': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, '@Lyasya кикай');
+            },
             '/krevet': function (command, message, user) {
                 return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'krevet'));
             },

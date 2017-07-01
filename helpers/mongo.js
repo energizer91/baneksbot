@@ -102,6 +102,24 @@ module.exports = function (configs) {
             approved: {type: Boolean, default: false},
             public: {type: Boolean, default: false}
         }),
+        groupAdminSchema = mongoose.Schema({
+            group_id: Number,
+            invite_link: String,
+            all_members_are_administrators: Boolean,
+            title: String,
+            description: String,
+            votes: [{
+                type: String,
+                title: String,
+                voteTime: Number,
+                untilVote: Number,
+                voteIssuer: Number,
+                voteTarget: Number,
+                requiredVotes: Number,
+                agreeVotes: Number,
+                disagreeVotes: Number
+            }]
+        }),
         logSchema = mongoose.Schema({
             date: {
                 type: Date,
@@ -186,6 +204,7 @@ module.exports = function (configs) {
         Comment: mongoose.model('Comment', commentSchema),
         User: mongoose.model('User', userSchema),
         Suggest: mongoose.model('Suggest', suggestSchema),
+        GroupAdmin: mongoose.model('GroupAdmin', groupAdminSchema),
         Log: mongoose.model('Log', logSchema),
         Statistic: mongoose.model('Statistic', statisticsSchema)
     };
