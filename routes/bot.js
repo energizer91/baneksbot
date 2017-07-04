@@ -168,6 +168,22 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'language_change'));
                 });
             },
+            '/message': function (command, message, user) {
+                if (!user.admin) {
+                    throw new Error('Unauthorized access');
+                }
+
+                if (command.length <= 1) {
+                    return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'broadcast_text_missing'));
+                }
+
+                command.splice(0, 1);
+
+                var userId = command.splice(0, 1);
+
+                return botApi.bot.sendMessage(userId, command.join(' '));
+
+            },
             '/broadcast': function (command, message, user) {
                 if (!user.admin) {
                     throw new Error('Unauthorized access');
