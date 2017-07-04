@@ -64,8 +64,8 @@ module.exports = function (express, botApi, configs) {
                     }
 
                     return botApi.mongo.Suggest.find(query).then(function (suggests) {
-                        return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент').then(function () {
-                            return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] == 'native')});
+                        return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент: ' + suggests.length).then(function () {
+                            return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] === 'native')});
                         })
                     })
                 }
