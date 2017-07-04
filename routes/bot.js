@@ -262,6 +262,9 @@ module.exports = function (express, botApi, configs) {
             '/svetlana': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, 'цем в лобик');
             },
+            '/bareyko': function (command, message) {
+                return botApi.bot.sendSticker(message.chat.id, 'CAADAgADXAYAAq8ktwaLUk5_6-Z06gI');
+            },
             '/start': function (command, message, user) {
                 if (command[1] && botApi.dict.languageExists(command[1])) {
                     user.language = command[1];

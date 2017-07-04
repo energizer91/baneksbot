@@ -333,6 +333,20 @@ module.exports = function (configs) {
             sendMessageToChannel: function (message) {
                 return this.sendMessage(configs.bot.baneksChannel, message);
             },
+            sendSticker: function (userId, stickerId) {
+                if (!stickerId) {
+                    throw new Error('No sticker specified!');
+                }
+
+                if (!userId) {
+                    throw new Error('No user specified!');
+                }
+
+                return this.sendRequest('sendSticker', {
+                    chat_id: userId,
+                    sticker: stickerId
+                });
+            },
             forwardMessageToChannel: function (message, params) {
                 if (!configs.bot.baneksChannel) {
                     return;
