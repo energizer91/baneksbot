@@ -308,6 +308,9 @@ module.exports = function (express, botApi, configs) {
             '/petux': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, 'ti');
             },
+            '/pin': function (command, message) {
+                return botApi.bot.sendMessage(message.chat.id, 'я не ем усы');
+            },
             '/shlyapa': function (command, message) {
                 return botApi.bot.sendMessage(message.chat.id, generateRandomAnswer([
                     'как раз',
