@@ -658,8 +658,8 @@ module.exports = function (express, botApi, configs) {
                     size: limit
                 }, {
                     highlight: {
-                        pre_tags:  [ "<b>" ],
-                        post_tags: [ "</b>" ],
+                        pre_tags:  [ "*" ],
+                        post_tags: [ "*" ],
                         fields: {
                             text: {}
                         }
@@ -702,10 +702,10 @@ module.exports = function (express, botApi, configs) {
             }
             return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
-                    var anekText = anek.text;
+                    var highlightText = anek.text;
 
                     if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
-                        anekText = anek._highlight.text[0];
+                        highlightText = anek._highlight.text[0];
                     }
 
                     return {
@@ -713,11 +713,10 @@ module.exports = function (express, botApi, configs) {
                         id: anek.post_id.toString(),
                         title: botApi.dict.translate(params.language, 'anek_number', {number: anek.post_id || 0}),
                         input_message_content: {
-                            message_text: anekText,
+                            message_text: anek.text,
                             parse_mode: 'HTML'
                         },
-                        //message_text: anek.text,
-                        description: anekText.slice(0, 100)
+                        description: highlightText.slice(0, 100)
                     };
                 });
 
