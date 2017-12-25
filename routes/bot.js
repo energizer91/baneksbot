@@ -717,7 +717,7 @@ module.exports = function (express, botApi, configs) {
                             parse_mode: 'HTML'
                         },
                         //message_text: anek.text,
-                        description: anek.text.slice(0, 100)
+                        description: anekText.slice(0, 100)
                     };
                 });
 

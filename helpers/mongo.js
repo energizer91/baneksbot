@@ -195,7 +195,7 @@ module.exports = function (configs) {
             hosts: config.elasticHosts,
             hydrate: true,
             hydrateOptions: {
-                select: 'text likes'
+                select: 'text post_id likes'
             }
         });
     } else if (config.searchEngine === 'native') {
