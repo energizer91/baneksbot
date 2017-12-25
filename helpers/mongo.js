@@ -192,7 +192,11 @@ module.exports = function (configs) {
 
     if (config.searchEngine === 'elastic') {
         anekSchema.plugin(mongoosastic, {
-            hosts: config.elasticHosts
+            hosts: config.elasticHosts,
+            hydrate: true,
+            hydrateOptions: {
+                select: 'text likes'
+            }
         });
     } else if (config.searchEngine === 'native') {
         anekSchema.index({text: "text"}, {weights: {content: 10, keywords: 5}, name: "text_text", default_language: "russian"});

@@ -463,7 +463,7 @@ module.exports = function (express, botApi, configs) {
                     return botApi.bot.sendMessage(message.chat.id, botApi.dict.translate(user.language, 'search_query_empty'));
                 }
 
-                return performSearch(searchPhrase, 1).then(function (aneks) {
+                return performSearch(searchPhrase, 1, 0).then(function (aneks) {
                     return botApi.bot.sendMessage(message.chat.id, aneks[0], {language: user.language});
                 }).catch(function (error) {
                     console.error(error);
@@ -587,13 +587,34 @@ module.exports = function (express, botApi, configs) {
                         return botApi.bot.sendMessages(message.chat.id, [botApi.dict.translate(user.language, 'top_ever', {count: count})].concat(aneks), {language: user.language});
                     });
             },
-            
             '/donate': function (command, message) {
                 return botApi.bot.sendInvoice(message.from.id, {
                     title: 'Донат на развитие бота',
                     description: 'А то совсем нечего кушать',
                     payload: 'lololo'
                 })
+            },
+            '/synchronize': function (command, message, user) {
+                if (user.admin) {
+                    return new Promise(function (resolve, reject) {
+                        var stream = botApi.mongo.Anek.synchronize(),
+                            count = 0;
+
+                        stream.on('data', function () {
+                            count++;
+                        });
+                        stream.on('close', function () {
+                            return resolve(count);
+                        });
+                        stream.on('error', function (err) {
+                            return reject(err);
+                        });
+                    }).then(function (count) {
+                        return botApi.bot.sendMessage(message.chat.id, 'Successfully indexed ' + count + ' records');
+                    }).catch(function (error) {
+                        return botApi.bot.sendMessage(message.chat.id, 'An error occured: ' + error.message);
+                    });
+                }
             }
         },
         performCommand = function (command, data, user) {
@@ -628,11 +649,19 @@ module.exports = function (express, botApi, configs) {
         searchAneksElastic = function (searchPhrase, limit, skip) {
             return new Promise(function (resolve, reject) {
                 return botApi.mongo.Anek.esSearch({
-                    from: skip,
-                    size: limit,
                     query: {
-                        query_string: {
-                            query: searchPhrase
+                        match: {
+                            text: searchPhrase
+                        }
+                    },
+                    from: skip,
+                    size: limit
+                }, {
+                    highlight: {
+                        pre_tags:  [ "<b>" ],
+                        post_tags: [ "</b>" ],
+                        fields: {
+                            text: {}
                         }
                     }
                 }, function (err, results) {
@@ -641,13 +670,7 @@ module.exports = function (express, botApi, configs) {
                     }
 
                     if (results && results.hits && results.hits.hits) {
-                        return botApi.mongo.Anek.find({_id: {$in: botApi.mongo.Anek.convertIds(results.hits.hits)}}, function (err, aneks) {
-                            if (err) {
-                                return reject(err);
-                            }
-
-                            return resolve(aneks);
-                        });
+                        return resolve(results.hits.hits);
                     }
 
                     return reject(new Error('Nothing was found.'));
@@ -679,12 +702,18 @@ module.exports = function (express, botApi, configs) {
             }
             return searchAction.then(function (aneks) {
                 results = aneks.map(function (anek) {
+                    var anekText = anek.text;
+
+                    if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
+                        anekText = anek._highlight.text[0];
+                    }
+
                     return {
                         type: 'article',
                         id: anek.post_id.toString(),
                         title: botApi.dict.translate(params.language, 'anek_number', {number: anek.post_id || 0}),
                         input_message_content: {
-                            message_text: anek.text,
+                            message_text: anekText,
                             parse_mode: 'HTML'
                         },
                         //message_text: anek.text,
