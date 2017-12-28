@@ -1,6 +1,10 @@
 /**
  * Created by Александр on 13.12.2015.
  */
+
+var fs = require('fs');
+var path = require('path');
+
 module.exports = function (express, botApi, configs) {
     var router = express.Router();
 
@@ -1040,16 +1044,77 @@ module.exports = function (express, botApi, configs) {
         });
     });
 
-    /*router.get('/users', function (req, res, next) {
+    router.get('/top_year', function (req, res) {
         if (!req.query.secret || (req.query.secret !== configs.bot.secret)) {
             return res.send('Unauthorized')
         }
 
-        var users = require('../config/users.json');
-        return botApi.mongo.User.insertMany(users).then(function (data) {
-            return res.json(data);
-        }).catch(next);
-    });*/
+        var users = {},
+            usersArray = [],
+            errors = [];
+
+        res.send('year statistics calculate started');
+
+        return botApi.mongo.Anek.find({date: {$gte: req.query.from || 1483228800, $lte: req.query.to || 1514764799}}).then(function (aneks) {
+            var commentsList = aneks.map(function (anek) {
+                return getAllComments(anek.post_id).catch(error => {
+                    console.error('get comments error', error);
+                    errors.push(error);
+
+                    return [];
+                });
+            });
+
+            return botApi.request.fulfillAll(commentsList);
+        }).then(function (commentsBulk) {
+            var comments = commentsBulk.reduce(function (comment, bulk) {
+                if (Array.isArray(bulk) && bulk.length) {
+                    return comment.concat(bulk[0].response.items);
+                }
+            }, []);
+
+            comments.forEach(function (comment) {
+                if (!users[comment.from_id]) {
+                    users[comment.from_id] = {
+                        user_id: comment.from_id,
+                        entries: 0,
+                        likes: 0
+                    };
+                }
+
+                users[comment.from_id].entries += 1;
+                users[comment.from_id].likes += comment.likes.count;
+            });
+
+            Object.keys(users).forEach(function (key) {
+                usersArray.push(users[key]);
+            });
+
+            var prepareRecord = function (comment) {
+                return 'https://vk.com/wall' + configs.vk.group_id + '_' + comment.id;
+            };
+
+            var prepareUser = function (user) {
+                user.link = 'https://vk.com/id' + user.user_id;
+
+                return user;
+            };
+
+            var userLikes = usersArray.sort((a, b) => b.likes - a.likes).slice(0, req.query.limit || 10).map(prepareUser),
+                userEntries = usersArray.sort((a, b) => b.entries - a.entries).slice(0, req.query.limit || 10).map(prepareUser),
+                topComments = comments.sort((a, b) => b.likes.count - a.likes.count).slice(0, req.query.limit || 10).map(prepareRecord),
+                result = {
+                    userLikes,
+                    userEntries,
+                    topComments,
+                    errors
+                };
+
+            console.log(result);
+
+            fs.writeFile(path.join(__dirname, '..', 'stat.json'), JSON.stringify(result, null, 2));
+        })
+    });
 
     return {
         endPoint: '/bot',
