@@ -853,16 +853,19 @@ module.exports = function (express, botApi, configs) {
                     return resolve(user);
                 });
             }).then(function (user) {
-                console.log('Performing message from ' + botApi.bot.getUserInfo(user));
-
                 if (data.hasOwnProperty('pre_checkout_query')) {
+                    console.log('Performing pre checkout query from ' + botApi.bot.getUserInfo(user));
                     return botApi.bot.answerPreCheckoutQuery(data.pre_checkout_query.id, true);
                 } else if (data.hasOwnProperty('callback_query')) {
+                    console.log('Performing callback query from ' + botApi.bot.getUserInfo(user));
                     var queryData = data.callback_query.data.split(' ');
                     return performCallbackQuery(queryData, data, {language: user.language});
                 } else if (data.hasOwnProperty('inline_query')) {
+                    console.log('Performing inline query from ' + botApi.bot.getUserInfo(user));
                     return performInline(data.inline_query, {language: user.language});
                 } else if (data.message) {
+                    console.log('Performing message from ' + botApi.bot.getUserInfo(user));
+
                     var message = data.message;
 
                     if (message.successful_payment) {
