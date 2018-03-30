@@ -38,8 +38,8 @@ var cp = require('child_process'),
             process.execArgv.push('--debug=' + (40894));
         }
         dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
-        console.log('Aneks update process has been started at', new Date());
-        botApi.bot.sendMessageToAdmin('Aneks update process has been started at', new Date());
+        console.log('Aneks update process has been started at ' + new Date());
+        botApi.bot.sendMessageToAdmin('Aneks update process has been started at ' + new Date());
 
         dbUpdater.on('close', function (code, signal) {
             console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
