@@ -3,6 +3,7 @@
  */
 var updateInProcess = false,
     forceDenyUpdate = false,
+    CronJob = require('cron').CronJob,
     configs = require('../configs'),
     mongo = require('../helpers/mongo')(configs),
     commonApi = require('../helpers/common')(configs),
@@ -21,7 +22,7 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
                 updateInProcess = true;
             }
 
-            return resolve(undefined);
+            return resolve();
         })
     },
     updateAneksTimer = function () {
@@ -39,20 +40,41 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
                 return commonApi.broadcastAneks(users, aneks, {_rule: 'common'}, mongo);
             });
         }).catch(function (error) {
-            console.error(new Date(), 'An error occured: ' + error.message);
+            if (updateInProcess) {
+                console.log(new Date(), 'Update is in progress');
+            } else {
+                console.error(new Date(), 'An error occured: ' + error.message);
+            }
         }).then(function () {
             console.log(new Date(), 'Updating aneks finished');
             updateInProcess = false;
-            setTimeout(updateAneksTimer, 30000);
+        });
+    },
+    updateLastAneksTimer = function () {
+        return checkUpdateProgress('Initializing last aneks update').then(function () {
+            return commonApi.getLastAneks(100, mongo);
+        }).catch(function (error) {
+            if (updateInProcess) {
+                console.log(new Date(), 'Update is in progress');
+            } else {
+                console.error(new Date(), 'An error occured: ' + error.message);
+            }
+        }).then(function () {
+            console.log(new Date(), 'Updating last aneks finished');
+            updateInProcess = false;
         });
     },
     refreshAneksTimer = function () {
         return checkUpdateProgress('Initializing aneks refresh').then(commonApi.updateAneks.bind(commonApi, mongo)).catch(function (error) {
-            console.error(new Date(), 'An error occured: ' + error.message);
+            if (updateInProcess) {
+                console.log(new Date(), 'Update is in progress');
+                setTimeout(refreshAneksTimer, 130 * 1000);
+            } else {
+                console.error(new Date(), 'An error occured: ' + error.message);
+            }
         }).then(function () {
             console.log(new Date(), 'Refreshing aneks finished');
             updateInProcess = false;
-            setTimeout(refreshAneksTimer, 130000);
         });
     },
     synchronizeDatabase = function () {
@@ -81,9 +103,13 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         }).then(function (count) {
             console.log(new Date(), 'Successfully indexed', count, 'records');
         }).catch(function (error) {
-            console.error(new Date(), 'An error occured: ' + error.message);
+            if (updateInProcess) {
+                console.log(new Date(), 'Update is in progress');
+            } else {
+                console.error(new Date(), 'An error occured: ' + error.message);
+            }
         }).then(function () {
-            setTimeout(synchronizeDatabase, 60 * 60 * 1000);
+            console.log(new Date(), 'Synchronize database finished');
         });
     },
     calculateStatisticsTimer = function () {
@@ -93,17 +119,8 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
             console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Statistics calculate finished');
-            setTimeout(calculateStatisticsTimer, 5 * 60 * 1000);
         });
     };
-
-setTimeout(updateAneksTimer, 30 * 1000);
-
-setTimeout(refreshAneksTimer, 130 * 1000);
-
-setTimeout(synchronizeDatabase, 60 * 60 * 1000);
-
-setTimeout(calculateStatisticsTimer, 5 * 60 * 1000);
 
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
@@ -124,12 +141,17 @@ process.on('message', function(m) {
                 return mongo.Anek.random().then(function (anek) {
                     process.send({type: 'message', userId: user.user_id, message: anek.text, params: {language: user.language}});
                 });
-                break;
             default:
                 console.log('Unknown service command');
                 break;
         }
     }
 });
+
+new CronJob('*/30 * * * *', updateAneksTimer, null, true);
+new CronJob('0 */5 * * *', calculateStatisticsTimer, null, true);
+new CronJob('0 0 */1 * *', updateLastAneksTimer, null, true);
+new CronJob('0 30 */1 * *', synchronizeDatabase, null, true);
+new CronJob('0 0 0 */1 *', refreshAneksTimer, null, true);
 
 process.send({ message: 'ready' });

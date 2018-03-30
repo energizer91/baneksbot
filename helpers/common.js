@@ -7,6 +7,18 @@ module.exports = function (configs) {
         botApi = require('../helpers/bot')(configs),
         vkApi = require('../helpers/vk')(configs);
     return {
+        getLastAneks: function (count, mongo) {
+            vkApi.getPosts({offset: 0, count: count})
+                .then(function (aneks) {
+                    return requestApi.fulfillAll(aneks.map(function (anek) {
+                        return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
+                            likes: anek.likes.count,
+                            comments: anek.comments,
+                            reposts: anek.reposts.count
+                        });
+                    }));
+                });
+        },
         getAllAneks: function (start) {
             return vkApi.getPostsCount().then(function (counter) {
                 let requests = [],

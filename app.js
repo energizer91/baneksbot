@@ -38,14 +38,16 @@ var cp = require('child_process'),
             process.execArgv.push('--debug=' + (40894));
         }
         dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
+        botApi.bot.sendMessageToAdmin('Aneks update process has been started at', new Date());
 
         dbUpdater.on('close', function (code, signal) {
             console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
             botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+            startDaemon();
         });
 
         dbUpdater.on('message', function (m) {
-           
+
             if (m.type === 'message' && m.message) {
                 return childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
             } else if (m.type === 'broadcast' && m.users) {
