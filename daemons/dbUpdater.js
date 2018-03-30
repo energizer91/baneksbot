@@ -40,11 +40,7 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
                 return commonApi.broadcastAneks(users, aneks, {_rule: 'common'}, mongo);
             });
         }).catch(function (error) {
-            if (updateInProcess) {
-                console.log(new Date(), 'Update is in progress');
-            } else {
-                console.error(new Date(), 'An error occured: ' + error.message);
-            }
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Updating aneks finished');
             updateInProcess = false;
@@ -54,11 +50,7 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         return checkUpdateProgress('Initializing last aneks update').then(function () {
             return commonApi.getLastAneks(100, mongo);
         }).catch(function (error) {
-            if (updateInProcess) {
-                console.log(new Date(), 'Update is in progress');
-            } else {
-                console.error(new Date(), 'An error occured: ' + error.message);
-            }
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Updating last aneks finished');
             updateInProcess = false;
@@ -66,12 +58,7 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
     },
     refreshAneksTimer = function () {
         return checkUpdateProgress('Initializing aneks refresh').then(commonApi.updateAneks.bind(commonApi, mongo)).catch(function (error) {
-            if (updateInProcess) {
-                console.log(new Date(), 'Update is in progress');
-                setTimeout(refreshAneksTimer, 130 * 1000);
-            } else {
-                console.error(new Date(), 'An error occured: ' + error.message);
-            }
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Refreshing aneks finished');
             updateInProcess = false;
@@ -103,11 +90,7 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         }).then(function (count) {
             console.log(new Date(), 'Successfully indexed', count, 'records');
         }).catch(function (error) {
-            if (updateInProcess) {
-                console.log(new Date(), 'Update is in progress');
-            } else {
-                console.error(new Date(), 'An error occured: ' + error.message);
-            }
+            console.error(new Date(), 'An error occured: ' + error.message);
         }).then(function () {
             console.log(new Date(), 'Synchronize database finished');
         });
@@ -148,10 +131,10 @@ process.on('message', function(m) {
     }
 });
 
-new CronJob('*/30 * * * *', updateAneksTimer, null, true);
-new CronJob('0 */5 * * *', calculateStatisticsTimer, null, true);
-new CronJob('0 0 */1 * *', updateLastAneksTimer, null, true);
-new CronJob('0 30 */1 * *', synchronizeDatabase, null, true);
-new CronJob('0 0 0 */1 *', refreshAneksTimer, null, true);
+new CronJob('*/30 * * * * *', updateAneksTimer, null, true);
+new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
+new CronJob('0 0 */1 * * *', updateLastAneksTimer, null, true);
+new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
+new CronJob('0 0 0 */1 * *', refreshAneksTimer, null, true);
 
 process.send({ message: 'ready' });
