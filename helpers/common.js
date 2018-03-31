@@ -10,13 +10,13 @@ module.exports = function (configs) {
         getLastAneks: function (count, mongo) {
             vkApi.getPosts({offset: 0, count: count})
                 .then(function (aneks) {
-                    return requestApi.fulfillAll(aneks.map(function (anek) {
+                    return aneks.map(function (anek) {
                         return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
                             likes: anek.likes.count,
                             comments: anek.comments,
                             reposts: anek.reposts.count
                         });
-                    }));
+                    })
                 });
         },
         getAllAneks: function (start) {
