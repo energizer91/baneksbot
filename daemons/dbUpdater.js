@@ -105,6 +105,13 @@ var checkUpdateProgress = function (operation, ignoreUpdateProcess) {
         });
     };
 
+var updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, true),
+    updateLastAneksCron = new CronJob('0 0 */1 * * *', updateLastAneksTimer, null, true),
+    synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true),
+    refreshAneksCron = new CronJob('0 0 0 */1 * *', refreshAneksTimer, null, true);
+
+new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
+
 process.on('message', function(m) {
     console.log('CHILD got message:', m);
     if (m.type === 'service') {
@@ -112,6 +119,18 @@ process.on('message', function(m) {
             case 'update':
                 console.log('Switch automatic updates to', m.value);
                 forceDenyUpdate = !m.value;
+
+                if (forceDenyUpdate) {
+                    updateAneksCron.stop();
+                    updateLastAneksCron.stop();
+                    refreshAneksCron.stop();
+                    synchronizeDatabaseCron.stop();
+                } else {
+                    updateAneksCron.start();
+                    updateLastAneksCron.start();
+                    refreshAneksCron.start();
+                    synchronizeDatabaseCron.start();
+                }
                 break;
             case 'synchronize':
                 console.log('Start database synchronizing');
@@ -130,11 +149,5 @@ process.on('message', function(m) {
         }
     }
 });
-
-new CronJob('*/30 * * * * *', updateAneksTimer, null, true);
-new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
-new CronJob('0 0 */1 * * *', updateLastAneksTimer, null, true);
-new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
-new CronJob('0 0 0 */1 * *', refreshAneksTimer, null, true);
 
 process.send({ message: 'ready' });
