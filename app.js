@@ -32,6 +32,7 @@ for (var file in files) {
 var cp = require('child_process'),
     dbUpdater,
     childQueue = new Queue(1, Infinity),
+    forceStopDaemon = false,
     startDaemon = function () {
         var debug = typeof v8debug === 'object';
         if (debug) {
@@ -44,7 +45,9 @@ var cp = require('child_process'),
         dbUpdater.on('close', function (code, signal) {
             console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
             botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
-            startDaemon();
+            if (!forceStopDaemon) {
+                startDaemon();
+            }
         });
 
         dbUpdater.on('message', function (m) {
@@ -100,11 +103,13 @@ app.get('/startDaemon', function (req, res) {
     if (dbUpdater && dbUpdater.connected) {
         dbUpdater.kill();
     }
+    forceStopDaemon = false;
     startDaemon();
     return res.send('Updater has been started');
 });
 
 app.get('/stopDaemon', function (req, res) {
+    forceStopDaemon = true;
     if (dbUpdater && dbUpdater.connected) {
         dbUpdater.kill();
     }
