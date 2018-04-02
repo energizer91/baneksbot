@@ -9,8 +9,8 @@ module.exports = function (configs) {
     return {
         getLastAneks: function (count, mongo) {
             vkApi.getPosts({offset: 0, count: count})
-                .then(function (aneks) {
-                    return aneks.map(function (anek) {
+                .then(function (response) {
+                    return response.response.items.map(function (anek) {
                         return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
                             likes: anek.likes.count,
                             comments: anek.comments,
