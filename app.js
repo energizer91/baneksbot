@@ -131,6 +131,10 @@ app.get('/synchronizeDatabase', function (req, res) {
     return sendUpdaterMessage(res, {type: 'service', action: 'synchronize'}, 'Synchronize process has been started');
 });
 
+app.get('/getLastAneks', function (req, res) {
+    return sendUpdaterMessage(res, {type: 'service', action: 'last'}, 'GetLastAneks process has been started');
+});
+
 app.use('/', routes);
 
 // catch 404 and forward to error handler

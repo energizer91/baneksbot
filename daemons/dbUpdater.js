@@ -131,6 +131,10 @@ process.on('message', function(m) {
                 console.log('Start database synchronizing');
                 synchronizeDatabase();
                 break;
+            case 'last':
+                console.log('Start last aneks update');
+                updateLastAneksTimer();
+                break;
             case 'message':
                 process.send({type: 'message', userId: m.value, message: m.text || 'Проверка'});
                 break;
