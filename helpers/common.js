@@ -95,6 +95,13 @@ module.exports = function (configs) {
             }
 
             return aneks.map(function (anek) {
+                if (anek.marked_as_ads) {
+                    return botApi.sendMessageToAdmin('New anek but its an ad. Skipping broadcast')
+                        .then(function () {
+                            botApi.sendMessage(configs.bot.adminChat, anek, params);
+                        });
+                }
+
                 return botApi.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(anek), true).then(function () {
                     return requestApi.fulfillAll(users.map(function (user) {
                         return botApi.sendMessage(user.user_id, anek, params).catch(function (error) {
