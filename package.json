@@ -18,7 +18,7 @@
     "material-ui": "^0.17.1",
     "mongodb": "^2.2.11",
     "mongoosastic": "^4.3.0",
-    "mongoose": "^4.7.0",
+    "mongoose": "4.10.8",
     "morgan": "~1.6.1",
     "mysql": "^2.9.0",
     "promise-queue": "^2.2.3",

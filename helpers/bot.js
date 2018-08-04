@@ -412,6 +412,11 @@ module.exports = function (configs) {
             getMe: function () {
                 return this.sendRequest('getMe');
             },
+            setWebhook: function () {
+                return this.sendRequest('setWebhook', {
+                    url: botConfig.url
+                });
+            },
             getWebhookInfo: function () {
                 return this.sendRequest('getWeebhookInfo');
             },
@@ -491,7 +496,6 @@ module.exports = function (configs) {
                             audio: attachment.audio.url,
                             title: attachment.audio.artist + ' - ' + attachment.audio.title
                         };
-                        break;
                     case 'poll':
                         return {
                             command: 'sendMessage',
@@ -502,7 +506,6 @@ module.exports = function (configs) {
                             }).join('\n'),
                             parse_mode: 'markdown'
                         };
-                        break;
                     case 'link':
                         return {
                             command: 'sendMessage',
@@ -510,10 +513,8 @@ module.exports = function (configs) {
                             reply_to_message_id: attachment.reply_to_message_id,
                             text: attachment.link.title + '\n' + attachment.link.url
                         };
-                        break;
                     default:
                         return undefined;
-                        break;
                 }
             }
         };

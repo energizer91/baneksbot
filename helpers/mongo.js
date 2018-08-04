@@ -2,11 +2,13 @@
  * Created by xgmv84 on 11/26/2016.
  */
 
+const mongoose = require('mongoose');
+const mongoosastic = require('mongoosastic');
+
 module.exports = function (configs) {
-    var mongoose = require('mongoose'),
-        mongoosastic = require('mongoosastic'),
-        config = configs.mongo,
-        db = mongoose.connection;
+
+    const config = configs.mongo;
+    const db = mongoose.connection;
 
     mongoose.Promise = Promise;
 
@@ -188,7 +190,9 @@ module.exports = function (configs) {
         return [];
     };
 
-    mongoose.connect('mongodb://' + config.server + '/' + config.database);
+    if (db.readyState === 0) {
+        mongoose.connect('mongodb://' + config.server + '/' + config.database);
+    }
 
     if (config.searchEngine === 'elastic') {
         anekSchema.plugin(mongoosastic, {

@@ -97,7 +97,7 @@ var cp = require('child_process'),
         return res.send('Updater is destroyed');
     };
 
-startDaemon();
+// startDaemon();
 
 app.get('/startDaemon', function (req, res) {
     if (dbUpdater && dbUpdater.connected) {

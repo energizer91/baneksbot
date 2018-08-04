@@ -3,10 +3,75 @@
  */
 
 module.exports = function (configs) {
-    let requestApi = require('../helpers/request')(configs),
-        botApi = require('../helpers/bot')(configs),
-        vkApi = require('../helpers/vk')(configs);
+    const requestApi = require('../helpers/request')(configs);
+    const botApi = require('../helpers/bot')(configs);
+    const vkApi = require('../helpers/vk')(configs);
+
     return {
+        writeLog: function (data, mongo, result, error) {
+            const logRecord = new mongo.Log({
+                date: new Date(),
+                request: data,
+                response: result,
+                error: error
+            });
+
+            return logRecord.save()
+        },
+        searchAneks: function (searchPhrase, limit, skip, mongo) {
+            return mongo.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
+                if (results.length) {
+                    return results;
+                }
+
+                throw new Error('Nothing was found.');
+            });
+        },
+        searchAneksElastic: function (searchPhrase, limit, skip, mongo) {
+            return new Promise(function (resolve, reject) {
+                return mongo.Anek.esSearch({
+                    query: {
+                        match: {
+                            text: searchPhrase
+                        }
+                    },
+                    from: skip,
+                    size: limit
+                }, {
+                    highlight: {
+                        pre_tags:  [ "*" ],
+                        post_tags: [ "*" ],
+                        fields: {
+                            text: {}
+                        }
+                    }
+                }, function (err, results) {
+                    if (err) {
+                        return reject(err);
+                    }
+
+                    if (results && results.hits && results.hits.hits) {
+                        return resolve(results.hits.hits);
+                    }
+
+                    return reject(new Error('Nothing was found.'));
+                });
+            });
+        },
+        updateUser: function (user, mongo, callback) {
+            if (!user) {
+                return {};
+            }
+
+            return mongo.User.findOneAndUpdate({user_id: user.id}, user, {new: true, upsert: true, setDefaultsOnInsert: true}, callback);
+        },
+        performSearch: function (searchPhrase, limit, skip, mongo) {
+            if (configs.mongo.searchEngine === 'elastic') {
+                return this.searchAneksElastic(searchPhrase, limit, skip, mongo);
+            }
+
+            return this.searchAneks(searchPhrase, limit, skip, mongo);
+        },
         getLastAneks: function (count, mongo) {
             vkApi.getPosts({offset: 0, count: count})
                 .then(function (response) {
