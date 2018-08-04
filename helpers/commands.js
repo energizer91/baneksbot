@@ -48,7 +48,7 @@ module.exports = function (configs, botApi) {
 
     function performSuggest (command, message, user) {
         if (message && message.chat && message.from && (message.chat.id !== message.from.id)) {
-            return botApi.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
+            return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
         }
         if (command[1]) {
             if (command[1] === 'list') {
@@ -61,13 +61,13 @@ module.exports = function (configs, botApi) {
                 }
 
                 return botApi.mongo.Suggest.find(query).then(function (suggests) {
-                    return botApi.sendMessage(message.chat.id, 'Активные предложки на данный момент: ' + suggests.length).then(function () {
-                        return botApi.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] === 'native')});
+                    return botApi.bot.sendMessage(message.chat.id, 'Активные предложки на данный момент: ' + suggests.length).then(function () {
+                        return botApi.bot.forwardMessages(message.chat.id, suggests, {editor: user.editor || user.admin, suggest: true, native: (command[2] && command[2] === 'native')});
                     })
                 })
             }
         } else if (user.suggest_mode) {
-            return botApi.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
+            return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
         } else {
             return botApi.mongo.Suggest.find({user: user.id, approved: false}).count().then(function (suggestsLength) {
                 if (suggestsLength > 5) {
@@ -77,12 +77,12 @@ module.exports = function (configs, botApi) {
                 user.suggest_mode = true;
 
                 return botApi.mongo.User.findOneAndUpdate({user_id: user.user_id}, user).then(function () {
-                    return botApi.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
+                    return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
                         ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
                         'добавлен в ваш список предложки анонимно.');
                 });
             }).catch(function (error) {
-                return botApi.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
+                return botApi.bot.sendMessage(user.user_id, 'Произошла ошибка: ' + error.message);
             });
         }
     }
