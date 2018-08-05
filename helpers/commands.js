@@ -124,18 +124,18 @@ module.exports = function (botApi) {
     if (command[1] === 'count') {
       const count = await botApi.database.Anek.count();
 
-      return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
+      return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
     } else if (command[1] === 'id') {
-      return botApi.bot.sendMessage(message.chat.id, dict.translate({language: user.language}, 'current_chat_id', {chat_id: message.chat.id}), {language: user.language});
+      return botApi.telegram.sendMessage(message.chat.id, dict.translate({language: user.language}, 'current_chat_id', {chat_id: message.chat.id}), {language: user.language});
     } else if (command[1] && (!isNaN(Number(command[1])))) {
       const anek = await botApi.database.Anek.findOne().skip(parseInt(command[1]) - 1).exec();
 
-      return botApi.bot.sendMessage(message.chat.id, anek, {language: user.language});
+      return botApi.telegram.sendMessage(message.chat.id, anek, {language: user.language});
     }
 
     const anek = await botApi.database.Anek.random();
 
-    return botApi.bot.sendMessage(message.chat.id, anek, {
+    return botApi.telegram.sendMessage(message.chat.id, anek, {
       language: user.language,
       admin: user.admin && (message.chat.id === message.from.id)
     });
