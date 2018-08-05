@@ -1,0 +1,73 @@
+{
+  "telegram": {
+    "token": "",
+    "endpoint": "/api/bot/webhook",
+    "url": "https://api.telegram.org/bot",
+    "baneksConf": 0,
+    "baneksLink": "",
+    "adminChat": 0,
+    "baneksPromo": "",
+    "baneksChannel": "@baneks",
+    "botName": "baneksbot",
+    "updateMethod": "webhook",
+    "paymentToken": "",
+    "rules": {
+      "callbackQuery": "service",
+      "inlineQuery": "service",
+      "individualMessage": "individual",
+      "groupMessage": "group"
+    },
+    "secret": ""
+  },
+  "mongodb": {
+    "server": "",
+    "port": "",
+    "user": "",
+    "password": "",
+    "database": "",
+    "searchEngine": "",
+    "elasticHosts": []
+  },
+  "queue": {
+    "rules": {
+      "individual": {
+        "rate": 1,
+        "limit": 1,
+        "priority": 1
+      },
+      "service": {
+        "rate": 1000,
+        "limit": 1,
+        "priority": 1
+      },
+      "group": {
+        "rate": 40,
+        "limit": 60,
+        "priority": 2
+      },
+      "common": {
+        "rate": 30,
+        "limit": 1,
+        "priority": 3
+      },
+      "vk": {
+        "rate": 3,
+        "limit": 1,
+        "priority": 4
+      }
+    },
+    "defaultRule": "common",
+    "defaultKey": "common",
+    "overallRate": 30,
+    "backOffTime": 300,
+    "backOffTimeout": 900,
+    "overallLimit": 1,
+    "ignoreOverheat": true
+  },
+  "vk": {
+    "url": "https://api.vk.com/method/",
+    "group_id": 0,
+    "api_version": "5.60",
+    "access_token": ""
+  }
+}

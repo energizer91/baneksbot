@@ -1,237 +1,238 @@
 /**
  * Created by energizer on 13.06.17.
  */
+const config = require('config');
 
-function SmartQueue (params) {
-    this.params = params ||
-        {
-            rules: {
-                individual: {
-                    rate: 1,
-                    limit: 1,
-                    priority: 1
-                },
-                group: {
-                    rate: 20,
-                    limit: 60,
-                    priority: 2
-                },
-                common: {
-                    rate: 30,
-                    limit: 1,
-                    priority: 3
-                },
-                vk: {
-                    rate: 1000,
-                    limit: 1,
-                    priority: 4
-                }
-            },
-            defaultRule: 'common',
-            defaultKey: 'common',
-            overallRate: 30,
-            backOffTime: 300,
-            backOffTimeout: 900,
-            overallLimit: 1,
-            ignoreOverheat: true
-        };
-    this.queue = {};
-    this.overheat = 0;
-    this.pending = false;
-    this.heatPart = this.params.overallLimit * 1000 / this.params.overallRate;
+function SmartQueue() {
+  this.params = config.get('queue') ||
+    {
+      rules: {
+        individual: {
+          rate: 1,
+          limit: 1,
+          priority: 1
+        },
+        group: {
+          rate: 20,
+          limit: 60,
+          priority: 2
+        },
+        common: {
+          rate: 30,
+          limit: 1,
+          priority: 3
+        },
+        vk: {
+          rate: 1000,
+          limit: 1,
+          priority: 4
+        }
+      },
+      defaultRule: 'common',
+      defaultKey: 'common',
+      overallRate: 30,
+      backOffTime: 300,
+      backOffTimeout: 900,
+      overallLimit: 1,
+      ignoreOverheat: true
+    };
+  this.queue = {};
+  this.overheat = 0;
+  this.pending = false;
+  this.heatPart = this.params.overallLimit * 1000 / this.params.overallRate;
 }
 
 SmartQueue.prototype.createQueue = function (queueName, request, callback, rule) {
-    var key = queueName;
+  var key = queueName;
 
-    if (!this.queue[key]) {
-        this.queue[key] = {
-            cooldown: 0,
-            key: queueName,
-            data: [],
-            rule: this.params.rules[rule]
-        };
+  if (!this.queue[key]) {
+    this.queue[key] = {
+      cooldown: 0,
+      key: queueName,
+      data: [],
+      rule: this.params.rules[rule]
+    };
 
-        this.queue[key].ruleName = rule;
-    }
+    this.queue[key].ruleName = rule;
+  }
 
-    this.queue[key].data.push({
-        request,
-        callback
-    });
+  this.queue[key].data.push({
+    request,
+    callback
+  });
 
-    return this.queue[key];
+  return this.queue[key];
 };
 
 SmartQueue.prototype.addBackoff = function (item, delay) {
-    setTimeout(() => {
-        return this.add(item.item.request, item.item.callback, item.queue.key, item.queue.ruleName);
-    }, delay * 1000);
+  setTimeout(() => {
+    return this.add(item.item.request, item.item.callback, item.queue.key, item.queue.ruleName);
+  }, delay * 1000);
 };
 
 SmartQueue.prototype.add = function (request, callback, key, rule) {
-    var queue = this.createQueue(key || this.params.defaultKey, request, callback, rule || this.params.defaultRule);
+  var queue = this.createQueue(key || this.params.defaultKey, request, callback, rule || this.params.defaultRule);
 
-    if (!this.pending) {
-        this.execute();
-    }
+  if (!this.pending) {
+    this.execute();
+  }
 
-    return queue;
+  return queue;
 };
 
 SmartQueue.prototype.remove = function (key) {
-    delete this.queue[key];
+  delete this.queue[key];
 };
 
 SmartQueue.prototype.delay = function (time) {
-    return new Promise(function (resolve) {
-        setTimeout(function () {
-            return resolve();
-        }, time || 0);
-    })
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      return resolve();
+    }, time || 0);
+  });
 };
 
 SmartQueue.prototype.getTotalLength = function () {
-    var count = 0;
-    Object.keys(this.queue).forEach(function (key) {
-        count += this.queue[key].data.length;
-    }, this);
+  var count = 0;
+  Object.keys(this.queue).forEach(function (key) {
+    count += this.queue[key].data.length;
+  }, this);
 
-    return count;
+  return count;
 };
 
 SmartQueue.prototype.heat = function () {
-    if (this.params.ignoreOverheat) {
-        return false;
-    }
+  if (this.params.ignoreOverheat) {
+    return false;
+  }
 
-    this.overheat = this.heatPart;
-    setTimeout(() => {
-        this.overheat = 0;
-    }, this.heatPart);
+  this.overheat = this.heatPart;
+  setTimeout(() => {
+    this.overheat = 0;
+  }, this.heatPart);
 };
 
 SmartQueue.prototype.execute = function () {
-    this.pending = true;
+  this.pending = true;
 
-    var backoffState = false,
-        backoffTimer = 0,
-        backoffFn = function (delay) {
-            backoffState = true;
-            backoffTimer = delay || self.params.backOffTime;
-        };
+  var backoffState = false,
+    backoffTimer = 0,
+    backoffFn = function (delay) {
+      backoffState = true;
+      backoffTimer = delay || self.params.backOffTime;
+    };
 
-    return this.shift().then((nextItem) => {
-        if (!nextItem.item) {
-            return false;
+  return this.shift().then((nextItem) => {
+    if (!nextItem.item) {
+      return false;
+    }
+
+    this.heat();
+
+    return nextItem.item.request.call(nextItem.item.request, backoffFn).then((data) => {
+      if (backoffState) {
+        console.log('backing off request in', backoffTimer);
+        this.addBackoff(nextItem, backoffTimer);
+      } else {
+        if (data) {
+          nextItem.item.callback.call(nextItem.item.callback, null, data);
         }
+      }
 
-        this.heat();
-
-        return nextItem.item.request.call(nextItem.item.request, backoffFn).then((data) => {
-            if (backoffState) {
-                console.log('backing off request in', backoffTimer);
-                this.addBackoff(nextItem, backoffTimer);
-            } else {
-                if (data) {
-                    nextItem.item.callback.call(nextItem.item.callback, null, data);
-                }
-            }
-
-            return this.execute();
-        }).catch((error) => {
-            nextItem.item.callback.call(nextItem.item.callback, error);
-            return this.execute();
-        });
+      return this.execute();
+    }).catch((error) => {
+      nextItem.item.callback.call(nextItem.item.callback, error);
+      return this.execute();
     });
+  });
 };
 
 SmartQueue.prototype.setCooldown = function (queue) {
-    var ruleData = this.params.rules[queue.ruleName],
-        cooldown = ruleData.limit * 1000 / ruleData.rate;
-    queue.cooldown = cooldown;
-    setTimeout(() => {
-        queue.cooldown = 0;
+  var ruleData = this.params.rules[queue.ruleName],
+    cooldown = ruleData.limit * 1000 / ruleData.rate;
+  queue.cooldown = cooldown;
+  setTimeout(() => {
+    queue.cooldown = 0;
 
-        if (!queue.data.length) {
-            this.remove(queue.key);
-        }
-    }, cooldown);
+    if (!queue.data.length) {
+      this.remove(queue.key);
+    }
+  }, cooldown);
 };
 
 SmartQueue.prototype.isCool = function (queue) {
-    var cooldown = this.queue[queue].rule.limit * 1000 / this.queue[queue].rule.rate;
-    return this.queue[queue].cooldown < cooldown;
+  var cooldown = this.queue[queue].rule.limit * 1000 / this.queue[queue].rule.rate;
+  return this.queue[queue].cooldown < cooldown;
 };
 
 SmartQueue.prototype.isOverheated = function () {
-    return this.overheat > 0;
+  return this.overheat > 0;
 };
 
 SmartQueue.prototype.findMostImportant = function (bestQueue) {
-    if (bestQueue) {
-        return Promise.resolve(bestQueue);
+  if (bestQueue) {
+    return Promise.resolve(bestQueue);
+  }
+
+  var maximumPriority = Infinity,
+    selectedQueue = null,
+    minimalCooldown = Infinity,
+    coolestQueue = null;
+
+  Object.keys(this.queue).forEach(function (queue) {
+    if (this.queue[queue].rule.priority < maximumPriority && this.queue[queue].data.length && this.isCool(queue)) {
+      maximumPriority = this.queue[queue].rule.priority;
+      selectedQueue = this.queue[queue];
     }
-
-    var maximumPriority = Infinity,
-        selectedQueue = null,
-        minimalCooldown = Infinity,
-        coolestQueue = null;
-
-    Object.keys(this.queue).forEach(function (queue) {
-        if (this.queue[queue].rule.priority < maximumPriority && this.queue[queue].data.length && this.isCool(queue)) {
-            maximumPriority = this.queue[queue].rule.priority;
-            selectedQueue = this.queue[queue];
-        }
-        if (this.queue[queue].cooldown < minimalCooldown) {
-            minimalCooldown = this.queue[queue].cooldown;
-            coolestQueue = this.queue[queue];
-        }
-    }, this);
-
-    if (minimalCooldown > 0 && minimalCooldown !== Infinity) {
-        //console.log('everything is in cooldown');
-        return this.delay(minimalCooldown).then(this.findMostImportant.bind(this));
+    if (this.queue[queue].cooldown < minimalCooldown) {
+      minimalCooldown = this.queue[queue].cooldown;
+      coolestQueue = this.queue[queue];
     }
+  }, this);
 
-    if (this.isOverheated() && !this.params.ignoreOverheat) {
-        //console.log('queue is overheated');
-        return this.delay(this.overheat).then(this.findMostImportant.bind(this));
-    }
+  if (minimalCooldown > 0 && minimalCooldown !== Infinity) {
+    //console.log('everything is in cooldown');
+    return this.delay(minimalCooldown).then(this.findMostImportant.bind(this));
+  }
 
-    if (!selectedQueue && this.getTotalLength() === 0) {
-        //console.log('queue is empty');
-        this.pending = false;
-    }
+  if (this.isOverheated() && !this.params.ignoreOverheat) {
+    //console.log('queue is overheated');
+    return this.delay(this.overheat).then(this.findMostImportant.bind(this));
+  }
 
-    return Promise.resolve(selectedQueue);
+  if (!selectedQueue && this.getTotalLength() === 0) {
+    //console.log('queue is empty');
+    this.pending = false;
+  }
+
+  return Promise.resolve(selectedQueue);
 
 };
 
 SmartQueue.prototype.shift = function () {
-    return this.findMostImportant().then((currentQueue) => {
-        if (!currentQueue || !currentQueue.data.length) {
-            return false;
-        }
+  return this.findMostImportant().then((currentQueue) => {
+    if (!currentQueue || !currentQueue.data.length) {
+      return false;
+    }
 
-        this.setCooldown(currentQueue);
-        return {
-            queue: currentQueue,
-            item: currentQueue.data.shift()
-        };
-    });
+    this.setCooldown(currentQueue);
+    return {
+      queue: currentQueue,
+      item: currentQueue.data.shift()
+    };
+  });
 };
 
 SmartQueue.prototype.request = function (fn, key, rule) {
-    return new Promise((resolve, reject) => {
-        return this.add(fn, function (error, data) {
-            if (error) {
-                return reject(error);
-            }
+  return new Promise((resolve, reject) => {
+    return this.add(fn, function (error, data) {
+      if (error) {
+        return reject(error);
+      }
 
-            return resolve(data);
-        }, key, rule);
-    });
+      return resolve(data);
+    }, key, rule);
+  });
 };
 
 module.exports = SmartQueue;
