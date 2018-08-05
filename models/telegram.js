@@ -194,6 +194,10 @@ class Telegram extends EventEmitter {
     return this.sendMessage(config.get('telegram.adminChat'), text);
   }
 
+  getMe() {
+    return this.sendRequest('getMe');
+  }
+
   /**
    * Answers callback query
    * @param {String} queryId Callback query id

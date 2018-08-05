@@ -94,16 +94,16 @@ module.exports = function (botApi) {
 
   botApi.bot.onCommand('user', async (command, message, user) => {
     if (command[1] === 'count') {
-      const count = await botApi.mongo.User.count();
+      const count = await botApi.database.User.count();
 
       return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'current_user_count', {count}));
     } else if (command[1] === 'subscribed') {
-      const count = await botApi.mongo.User.find({subscribed: true}).count();
+      const count = await botApi.database.User.find({subscribed: true}).count();
 
       return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'current_subscribed_user_count', {count}));
     } else if (command[1] === 'id') {
       if (command[2]) {
-        const foundUser = await botApi.mongo.User.findOne({user_id: command[2]});
+        const foundUser = await botApi.database.User.findOne({user_id: command[2]});
 
         return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(foundUser), {
           disableButtons: true,
