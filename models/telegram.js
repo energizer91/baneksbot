@@ -10,7 +10,7 @@ class Telegram extends EventEmitter {
     this.webhookMiddleware = this.webhookMiddleware.bind(this);
   }
 
-  sendRequest(request, params, method = 'POST') {
+  sendRequest(request, params = {}, method = 'POST') {
     const botUrl = `${config.get('telegram.url')}${config.get('telegram.token')}/${request}`;
     const parameters = this.request.prepareConfig(botUrl, method);
 
