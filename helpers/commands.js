@@ -147,7 +147,7 @@ module.exports = function (botApi) {
     }
 
     if (command.length <= 1) {
-      const aneks = await botApi.mongo.Anek.find({spam: true});
+      const aneks = await botApi.database.Anek.find({spam: true});
 
       const spamList = aneks.map(anek => {
         return anek.post_id;
@@ -174,7 +174,7 @@ module.exports = function (botApi) {
       return botApi.telegram.sendMessage(message.chat.id, 'Укажите id анека из спам листа /spam');
     }
 
-    await botApi.mongo.Anek.findOneAndUpdate({post_id: command[1]}, {spam: false});
+    await botApi.database.Anek.findOneAndUpdate({post_id: command[1]}, {spam: false});
 
     return botApi.telegram.sendMessage(message.chat.id, 'Анек изъят из спам листа.');
   });
@@ -184,9 +184,9 @@ module.exports = function (botApi) {
       throw new Error('Unauthorized access');
     }
 
-    const me = await botApi.bot.getMe();
+    const me = await botApi.telegram.getMe();
 
-    return botApi.bot.sendMessage(message.chat.id, JSON.stringify(me));
+    return botApi.telegram.sendMessage(message.chat.id, JSON.stringify(me));
   });
 
   botApi.bot.onCommand('start', async (command, message, user) => {
