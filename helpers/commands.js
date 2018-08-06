@@ -669,7 +669,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 'comment':
       const comments = await botApi.vk.getAllComments(queryData[1]);
       const aneks = comments
-        .map(comment => comment.response.items)
+        .reduce((acc, anek) => acc.concat(anek.response.items), [])
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
         .map((comment, index) => {
@@ -729,7 +729,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 's_d':
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
 
-      return botApi.bot.editMessageButtons(callbackQuery.message, []);
+      return botApi.telegram.editMessageButtons(callbackQuery.message, []);
     case 's_da':
       await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
       await botApi.telegram.editMessageButtons(callbackQuery.message, []);
