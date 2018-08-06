@@ -296,7 +296,7 @@ class Telegram extends EventEmitter {
       chat_id: userId,
       title: invoice.title,
       description: invoice.description,
-      provider_token: config('telegram.paymentToken'),
+      provider_token: config.get('telegram.paymentToken'),
       currency: 'RUB',
       start_parameter: 'donate',
       payload: invoice.payload,

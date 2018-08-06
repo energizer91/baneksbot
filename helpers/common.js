@@ -7,8 +7,8 @@ const requestApi = require('../helpers/request');
 const botApi = require('../botApi');
 
 module.exports = {
-  writeLog: function (data, mongo, result, error) {
-    const logRecord = new mongo.Log({
+  writeLog: function (data, result, error) {
+    const logRecord = new botApi.database.Log({
       date: new Date(),
       request: data,
       response: result,
@@ -57,12 +57,12 @@ module.exports = {
       });
     });
   },
-  updateUser: function (user, mongo, callback) {
+  updateUser: function (user, callback) {
     if (!user) {
       return {};
     }
 
-    return mongo.User.findOneAndUpdate({user_id: user.id}, user, {
+    return botApi.database.User.findOneAndUpdate({user_id: user.id}, user, {
       new: true,
       upsert: true,
       setDefaultsOnInsert: true
@@ -75,11 +75,11 @@ module.exports = {
 
     return this.searchAneks(searchPhrase, limit, skip);
   },
-  getLastAneks: function (count, mongo) {
+  getLastAneks: function (count) {
     botApi.vk.getPosts({offset: 0, count: count})
       .then(function (response) {
         return response.response.items.map(function (anek) {
-          return mongo.Anek.findOneAndUpdate({post_id: anek.post_id}, {
+          return botApi.database.Anek.findOneAndUpdate({post_id: anek.post_id}, {
             likes: anek.likes.count,
             comments: anek.comments,
             reposts: anek.reposts.count
@@ -116,10 +116,10 @@ module.exports = {
     }
     return result;
   },
-  redefineDatabase: function (count, mongo) {
+  redefineDatabase: function (count) {
     return this.getAllAneks(count).then(function (responses) {
       return requestApi.fulfillAllSequentally(responses.map(function (response) {
-        return mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
+        return botApi.database.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
           anek.post_id = anek.id;
           anek.likes = anek.likes.count;
           anek.reposts = anek.reposts.count;
@@ -132,7 +132,7 @@ module.exports = {
       }));
     });
   },
-  updateAneks: function (mongo) {
+  updateAneks: function () {
     return this.getAllAneks().then(function (responses) {
       let aneks = [];
 
@@ -147,14 +147,14 @@ module.exports = {
       });
 
       return requestApi.fulfillAll(aneks.map(function (anek) {
-        return mongo.Anek.findOneAndUpdate(anek[0], anek[1]);
+        return botApi.database.Anek.findOneAndUpdate(anek[0], anek[1]);
       })).catch(function (error) {
         console.log(error);
         return [];
       });
     });
   },
-  broadcastAneks: function (users, aneks, params, mongo) {
+  broadcastAneks: function (users, aneks, params) {
     let errorMessages = [];
 
     if (!users.length || !aneks.length) {
@@ -187,7 +187,7 @@ module.exports = {
             if (errorMessages.length) {
               let text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
               console.log(text);
-              let bulk = mongo.User.collection.initializeOrderedBulkOp();
+              let bulk = botApi.database.User.collection.initializeOrderedBulkOp();
               bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
               botApi.telegram.sendMessageToAdmin(text);
               return bulk.execute();
