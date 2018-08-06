@@ -46,10 +46,25 @@ declare type InlineKeyboardButton = {
 
 declare type InlineKeyboardMarkup = InlineKeyboardButton[][];
 
+declare type SuccessfulPayment = {
+  currency: string,
+  total_amount: number,
+  invoice_payload: string,
+  order_info?: OrderInfo,
+  telegram_payment_charge_id: string,
+  provider_payment_charge_id: string
+}
+
 export type Message = {
   message_id: number,
   from?: User,
-  chat?: Chat
+  chat?: Chat,
+  forward_from?: User,
+  forward_from_char?: Chat,
+  reply_to_message?: Message,
+  successful_payment?: SuccessfulPayment,
+  new_chat_member?: User,
+  left_chat_member?: User
 }
 
 export type InlineQuery = {

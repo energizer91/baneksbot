@@ -57,6 +57,27 @@ class Bot extends EventEmitter {
     this.emit('preCheckoutQuery', preCheckoutQuery, user);
   }
 
+  performSuccessfulPayment (successfulPayment, user) {
+    console.log('Performing successful payment from ' + this.getUserInfo(user));
+    this.emit('successfulPayment', successfulPayment, user);
+  }
+
+  performNewChatMember (member, user) {
+    this.emit('newChatMember', member, user);
+  }
+
+  performLeftChatMember (member, user) {
+    this.emit('leftChatMember', member, user);
+  }
+
+  performSuggest (suggest, user) {
+    this.emit('suggest', suggest, user);
+  }
+
+  performReply (reply, message, user) {
+    this.emit('reply', reply, message, user);
+  }
+
   middleware (req, res, next) {
     const { update, user } = req;
 
@@ -65,14 +86,28 @@ class Bot extends EventEmitter {
     }
 
     if (update.message) {
-      const { text } = update.message;
+      const { message } = update;
 
-      if (text && text.startsWith('/')) {
-        const command = text.split(' ');
+      if (message.successful_payment) {
+        this.performSuccessfulPayment(message.successful_payment, user);
+      } else if (message.new_chat_member) {
+        this.performNewChatMember(message.new_chat_member, user);
+      } else if (message.left_chat_member) {
+        this.performLeftChatMember(message.left_chat_member, user);
+      } else if (user.suggest_mode && !user.banned) {
+        this.performSuggest(message, user);
+      } else if (message.reply_to_message) {
+        this.performReply(message.reply_to_message, message, user)
+      } else if (message.text) {
+        const { text } = message;
 
-        this.performCommand(command, update.message, user);
-      } else {
-        this.performMessage(update.message, user);
+        if (text && text.startsWith('/')) {
+          const command = text.split(' ');
+
+          this.performCommand(command, update.message, user);
+        } else {
+          this.performMessage(update.message, user);
+        }
       }
     }
 

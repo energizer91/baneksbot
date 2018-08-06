@@ -1,0 +1,7 @@
+// @flow
+
+declare type Comment = {}
+
+declare export default class Vk {
+  getAllComments(postId: string): Promise<Comment[]>
+}

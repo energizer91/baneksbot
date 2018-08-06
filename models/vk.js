@@ -81,6 +81,28 @@ class Vk extends EventEmitter {
     }
     return this.executeCommand('wall.getComments', params, 'GET');
   }
+
+  getAllComments (postId) {
+    return this.getCommentsCount(postId)
+      .then(counter => {
+        const requests = [];
+        let current = counter;
+        let goal = 0;
+        let step = 100;
+
+        while (current > goal) {
+          if (current - step < goal) {
+            step = current - goal;
+          }
+
+          current -= step;
+
+          requests.push(this.getComments({post_id: postId, offset: current, count: step}));
+        }
+
+        return this.request.fulfillAll(requests);
+      });
+  }
 }
 
 module.exports = Vk;

@@ -4,22 +4,25 @@ class User {
     this.middleware = this.middleware.bind(this);
   }
 
-  async update (user) {
+  update (user) {
+    return this.updateWith(user);
+  }
+
+  updateWith (user, params = {}) {
     if (!user) {
       return {};
     }
 
-    try {
-      return this.database.User.findOneAndUpdate(
-        {user_id: user.id},
-        user,
-        {new: true, upsert: true, setDefaultsOnInsert: true}
-      );
-    } catch (error) {
-      console.error(error);
+    return this.database.User.findOneAndUpdate(
+      {user_id: user.user_id || user.id},
+      params || user,
+      {new: true, upsert: true, setDefaultsOnInsert: true}
+    )
+      .catch(error => {
+        console.error(error);
 
-      return user;
-    }
+        return user;
+      })
   }
 
   middleware (req, res, next) {

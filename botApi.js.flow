@@ -2,6 +2,7 @@
 import type Bot from './models/bot';
 import type Telegram from './models/telegram';
 import type User from './models/user';
+import type Vk from './models/vk';
 import database from './helpers/mongo';
 import request from './helpers/request';
 import statistics from './helpers/statistics';
@@ -15,5 +16,6 @@ declare module.exports: {
   telegram: Telegram,
   dict: typeof dict,
   request: typeof request,
-  statistics: typeof statistics
+  statistics: typeof statistics,
+  vk: Vk
 };

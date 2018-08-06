@@ -38,6 +38,22 @@ function generateStatistics (interval, stats) {
   };
 }
 
+async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
+  const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true});
+
+  await botApi.telegram.editMessageButtons(callbackQuery.message, []);
+
+  const sendMessage = await botApi.telegram.forwardMessageToChannel(suggest, {native: anonymous});
+
+  await botApi.telegram.sendMessage(callbackQuery.message.chat.id, 'Предложение одобрено.');
+
+  const foundUser = botApi.database.User.findOne({_id: suggest.user});
+
+  if (sendMessage.ok && sendMessage.result) {
+    return botApi.telegram.forwardMessage(foundUser.user_id, sendMessage.result, {native: true});
+  }
+}
+
 const shlyapaAnswers = [
   'как раз',
   'тут не гадюшник, вешать негде'
@@ -442,15 +458,16 @@ botApi.bot.onCommand('donate', (command, message) => botApi.telegram.sendInvoice
 
 botApi.bot.onCommand('subscribe', async (command, message) => {
   let user;
+
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.update(message.chat, {});
+    user = await botApi.user.updateWith(message.chat.id, {});
   } else {
     user = await botApi.database.User.findOne({user_id: message.from.id});
   }
 
   if (user) {
     if (!user.subscribed) {
-      await botApi.user.update(user, {subscribed: true});
+      await botApi.user.updateWith(user, {subscribed: true});
       return botApi.telegram.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_success', {first_name: user.first_name}));
     } else {
       return botApi.telegram.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_fail'));
@@ -459,15 +476,16 @@ botApi.bot.onCommand('subscribe', async (command, message) => {
 });
 botApi.bot.onCommand('unsubscribe', async (command, message) => {
   let user;
+
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.update(message.chat, {});
+    user = await botApi.user.updateWith(message.chat.id, {});
   } else {
     user = await botApi.database.User.findOne({user_id: message.from.id});
   }
 
   if (user) {
-    if (!user.subscribed) {
-      await botApi.user.update(user, {subscribed: false});
+    if (user.subscribed) {
+      await botApi.user.updateWith(user, {subscribed: false});
       return botApi.telegram.sendMessage(user.user_id, dict.translate(user.language, 'unsubscribe_success', {first_name: user.first_name}));
     } else {
       return botApi.telegram.sendMessage(user.user_id, dict.translate(user.language, 'unsubscribe_fail'));
@@ -486,7 +504,7 @@ botApi.bot.onCommand('feedback', async (command, message, user) => {
     return botApi.telegram.sendMessage(message.chat.id, 'Вы и так уже в режиме обратной связи.');
   }
 
-  await botApi.user.update(user, {feedback_mode: true});
+  await botApi.user.updateWith(user, {feedback_mode: true});
 
   return botApi.telegram.sendMessage(message.chat.id, 'Режим обратной связи включен. Вы можете писать сюда' +
     ' любой текст (кроме команд) и он будет автоматически переведен в команду поддержки. Для остановки' +
@@ -505,7 +523,7 @@ botApi.bot.onCommand('unfeedback', async (command, message, user) => {
     return botApi.telegram.sendMessage(message.chat.id, 'Режим обратной связи и так отключен.');
   }
 
-  await botApi.user.update(user, {feedback_mode: false});
+  await botApi.user.updateWith(user, {feedback_mode: false});
 
   return botApi.telegram.sendMessage(message.chat.id, 'Режим обратной связи отключен.');
 });
@@ -616,4 +634,112 @@ botApi.bot.onCommand('synchronize', async (command, message, user) => {
   }).catch(function (error) {
     return botApi.telegram.sendMessage(message.chat.id, 'An error occured: ' + error.message);
   });
+});
+
+botApi.bot.on('suggest', async (suggest, user) => {
+  suggest.user = user;
+
+  const newSuggest = await botApi.database.Suggest(suggest).save();
+
+  user.suggest_mode = false;
+
+  await botApi.user.update(user);
+
+  return botApi.telegram.sendMessage(user.user_id, {text: 'Предложка успешно добавлена.'}, {
+    buttons: [
+      [
+        {
+          text: 'Подписаться',
+          callback_data: 's_da ' + newSuggest._id
+        },
+        {
+          text: 'Удалить',
+          callback_data: 's_d ' + newSuggest._id
+        }
+      ]
+    ]
+  });
+});
+
+botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
+  const {data = ''} = callbackQuery;
+  const queryData = data.split(' ');
+
+  await botApi.telegram.answerCallbackQuery(callbackQuery.id);
+
+  switch (queryData[0]) {
+    case 'comment':
+      const comments = await botApi.vk.getAllComments(queryData[1]);
+      const aneks = comments
+        .map(comment => comment.response.items)
+        .sort((a, b) => b.likes.count - a.likes.count)
+        .slice(0, 3)
+        .map((comment, index) => {
+          comment.text = botApi.dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text;
+
+          if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
+            comment.reply_to_message_id = callbackQuery.message.message_id;
+          }
+
+          return comment;
+        });
+
+      const params = {
+        language: user.language,
+        disableButtons: true,
+        forceAttachments: true
+      };
+
+      return botApi.telegram.sendMessages(callbackQuery.message.chat.id, aneks, params);
+    case 'attach':
+      const posts = await botApi.vk.getPostById(queryData[1]);
+      let post = posts.response[0];
+
+      if (!post) {
+        throw new Error('Post not found');
+      }
+
+      if (!post.attachments && !post.copy_history) {
+        throw new Error('Attachments not found');
+      }
+
+      while (!post.attachments && post.copy_history) {
+        post = post.copy_history[0];
+      }
+
+      const attachments = post.attachments.map(attachment => {
+        if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
+          attachment.reply_to_message_id = callbackQuery.message.message_id;
+        }
+
+        return attachment;
+      });
+
+      return botApi.telegram.sendAttachments(callbackQuery.message.chat.id, attachments);
+    case 'spam':
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
+
+      return botApi.telegram.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как спам.');
+    case 'unspam':
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false});
+
+      return botApi.telegram.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как нормальный.');
+    case 's_a':
+      return acceptSuggest(queryData, callbackQuery, params, true);
+    case 's_aa':
+      return acceptSuggest(queryData, callbackQuery, params, false);
+    case 's_d':
+      await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
+
+      return botApi.bot.editMessageButtons(callbackQuery.message, []);
+    case 's_da':
+      await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
+      await botApi.telegram.editMessageButtons(callbackQuery.message, []);
+
+      return botApi.telegram.sendMessage(callbackQuery.message.chat.id, 'Предложение будет опубликовано неанонимно.');
+    case 'a_a':
+      return botApi.database.Anek.findOneAndUpdate({_id: botApi.database.Anek.convertId(queryData[1])}, {});
+  }
+
+  throw new Error('Unknown callback query ' + queryData);
 });
