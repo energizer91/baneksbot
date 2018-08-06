@@ -641,9 +641,7 @@ botApi.bot.on('suggest', async (suggest, user) => {
 
   const newSuggest = await botApi.database.Suggest(suggest).save();
 
-  user.suggest_mode = false;
-
-  await botApi.user.update(user);
+  await botApi.user.updateWith(user, {suggest_mode: false});
 
   return botApi.telegram.sendMessage(user.user_id, {text: 'Предложка успешно добавлена.'}, {
     buttons: [
