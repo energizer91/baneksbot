@@ -3,7 +3,7 @@
  */
 const config = require('config');
 
-function SmartQueue() {
+function SmartQueue () {
   this.params = config.get('queue') ||
     {
       rules: {
@@ -191,22 +191,21 @@ SmartQueue.prototype.findMostImportant = function (bestQueue) {
   }, this);
 
   if (minimalCooldown > 0 && minimalCooldown !== Infinity) {
-    //console.log('everything is in cooldown');
+    // console.log('everything is in cooldown');
     return this.delay(minimalCooldown).then(this.findMostImportant.bind(this));
   }
 
   if (this.isOverheated() && !this.params.ignoreOverheat) {
-    //console.log('queue is overheated');
+    // console.log('queue is overheated');
     return this.delay(this.overheat).then(this.findMostImportant.bind(this));
   }
 
   if (!selectedQueue && this.getTotalLength() === 0) {
-    //console.log('queue is empty');
+    // console.log('queue is empty');
     this.pending = false;
   }
 
   return Promise.resolve(selectedQueue);
-
 };
 
 SmartQueue.prototype.shift = function () {
@@ -237,7 +236,7 @@ SmartQueue.prototype.request = function (fn, key, rule) {
 
 module.exports = SmartQueue;
 
-/*let counter = 0;
+/* let counter = 0;
 
 var queue = new SmartQueue(),
     request = function (data) {
@@ -303,4 +302,4 @@ setTimeout(function () {
             });
         }, i, 'common');
     }
-}, 5000);*/
+}, 5000); */

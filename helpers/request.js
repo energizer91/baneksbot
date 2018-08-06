@@ -4,7 +4,7 @@
 const http = require('http');
 const queryString = require('querystring');
 const url = require('url');
-const formData = require('form-data');
+const FormData = require('form-data');
 const QueueApi = require('./queue');
 const https = require('https');
 
@@ -31,8 +31,7 @@ module.exports = {
       return new Promise(function (resolve, reject) {
         let form;
         if ((config.method && config.method.toLowerCase() === 'post') && params) {
-          //req.write(queryString.stringify(params));
-          form = new formData();
+          form = new FormData();
 
           for (let field in params) {
             if (params.hasOwnProperty(field) && params[field]) {
@@ -49,8 +48,6 @@ module.exports = {
         req.on('response', function (res) {
           const code = res.statusCode;
 
-          //console.log('STATUS: ' + res.statusCode);
-          //console.log('HEADERS: ' + JSON.stringify(res.headers));
           if (returnStream) {
             return resolve(res);
           }
@@ -73,11 +70,9 @@ module.exports = {
               return reject(returnResult);
             }
 
-            //console.log('No more data in response.');
             return resolve(returnResult);
           });
           res.on('data', function (chunk) {
-            //console.log('BODY: ' + chunk);
             result += chunk;
           });
         });
@@ -99,7 +94,8 @@ module.exports = {
     }, key, rule);
   },
   prepareConfig: function (targetUrl, method) {
-    var parsedUrl = url.parse(targetUrl);
+    const parsedUrl = url.parse(targetUrl);
+
     if (!parsedUrl.protocol) {
       parsedUrl.protocol = 'http:';
     }
@@ -110,10 +106,12 @@ module.exports = {
     return parsedUrl;
   },
   fulfillAll: function (requests) {
-    var results = [];
+    let results = [];
+
     if (!requests.length) {
       return [];
     }
+
     return requests.reduce(function (p, request) {
       return p.then(function (result) {
         if (result) {
@@ -128,7 +126,8 @@ module.exports = {
     });
   },
   fulfillAllSequentally: function (requests) {
-    var results = [];
+    let results = [];
+
     if (!requests.length) {
       return [];
     }

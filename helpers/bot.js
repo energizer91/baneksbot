@@ -234,7 +234,7 @@ module.exports = function (configs) {
         message.reply_markup = this.prepareButtons(message);
 
         return this.sendRequest('editMessageText', message).then(function (response) {
-          //console.log(JSON.stringify(response));
+          // console.log(JSON.stringify(response));
           return response;
         });
       },
@@ -310,18 +310,18 @@ module.exports = function (configs) {
         return this.sendRequest('sendMessage', sendMessage).then(this.sendAttachments.bind(this, userId, attachments));
       },
       sendMessageWithDelay: function (userId, message, params, interval) {
-        return new Promise((function (resolve) {
+        return new Promise(function (resolve) {
           var promise = this.sendMessage(userId, message, params);
           setTimeout(function () {
             return resolve(promise);
           }, interval || 0);
-        }).bind(this));
+        }.bind(this));
       },
-      sendMessages: function (userId, messages, params, previous) {
+      sendMessages: function (userId, messages, params) {
         var messageQueue = new Queue(1, Infinity);
         return (messages || []).reduce(function (p, message) {
           return p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, params)));
-        }.bind(this), Promise.resolve(previous));
+        }.bind(this), Promise.resolve());
       },
       sendMessageToAdmin: function (text, allowHide) {
         if (allowHide) {
@@ -427,7 +427,7 @@ module.exports = function (configs) {
         }.bind(this), Promise.resolve(previousRequest));
       },
       sendInvoice: function (userId, payment) {
-        //var newButtons = this.prepareButtons(payment);
+        // var newButtons = this.prepareButtons(payment);
 
         return this.sendRequest('sendInvoice', {
           chat_id: userId,
@@ -440,7 +440,7 @@ module.exports = function (configs) {
           prices: JSON.stringify([
             {label: 'Основной взнос', amount: 6000}
           ])
-          //reply_markup: JSON.stringify({inline_keyboard: newButtons})
+          // reply_markup: JSON.stringify({inline_keyboard: newButtons})
         });
       },
       answerPreCheckoutQuery: function (queryId, status, error) {
@@ -461,11 +461,11 @@ module.exports = function (configs) {
               command: 'sendPhoto',
               sendAction: 'upload_photo',
               reply_to_message_id: attachment.reply_to_message_id,
-              photo: attachment.photo.photo_2560
-              || attachment.photo.photo_1280
-              || attachment.photo.photo_604
-              || attachment.photo.photo_130
-              || attachment.photo.photo_75,
+              photo: attachment.photo.photo_2560 ||
+              attachment.photo.photo_1280 ||
+              attachment.photo.photo_604 ||
+              attachment.photo.photo_130 ||
+              attachment.photo.photo_75,
               caption: attachment.text
             };
             break;
@@ -520,5 +520,4 @@ module.exports = function (configs) {
     };
 
   return botMethods;
-
 };

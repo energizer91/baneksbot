@@ -1,0 +1,19 @@
+// @flow
+import type Bot from './models/bot';
+import type Telegram from './models/telegram';
+import type User from './models/user';
+import database from './helpers/mongo';
+import request from './helpers/request';
+import statistics from './helpers/statistics';
+import dict from './helpers/dictionary';
+
+declare module.exports: {
+  connect: (app: {}) => void,
+  bot: Bot,
+  database: typeof database,
+  user: User,
+  telegram: Telegram,
+  dict: typeof dict,
+  request: typeof request,
+  statistics: typeof statistics
+};

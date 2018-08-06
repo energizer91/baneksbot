@@ -2,15 +2,15 @@ const EventEmitter = require('events');
 const config = require('config');
 
 class Vk extends EventEmitter {
-  constructor(request) {
+  constructor (request) {
     super();
 
     this.groupId = config.get('vk.group_id');
     this.request = request;
   }
 
-  executeCommand(command, params, method) {
-    const vkUrl = config.url + command;
+  executeCommand (command, params, method) {
+    const vkUrl = config.get('vk.url') + command;
     const parameters = this.request.prepareConfig(vkUrl, method);
 
     if (config.get('vk.api_version')) {
@@ -25,19 +25,21 @@ class Vk extends EventEmitter {
 
     return this.request.makeRequest(parameters, params).then(function (data) {
       if (data.error) {
-        throw new Error(data.error.error_msg);
+        throw new Error(data.error.error_msg || 'Unknown error');
       }
 
       return data;
     });
   }
-  getPostById(postId, params = {}) {
+
+  getPostById (postId, params = {}) {
     params.posts = this.groupId + '_' + postId;
     params._key = this.groupId;
     console.log('Making VK request wall.getById', params);
     return this.executeCommand('wall.getById', params, 'GET');
   }
-  getPosts(params = {}) {
+
+  getPosts (params = {}) {
     params.owner_id = this.groupId;
 
     console.log('Making VK request wall.get', params);
@@ -46,13 +48,15 @@ class Vk extends EventEmitter {
 
     return this.executeCommand('wall.get', params, 'GET');
   }
-  getCommentsCount(postId) {
+
+  getCommentsCount (postId) {
     return this.getComments({post_id: postId, offset: 0, count: 1})
       .then(function (count) {
         return (count.response || {}).count || 0;
       });
   }
-  getPostsCount() {
+
+  getPostsCount () {
     return this.getPosts({offset: 0, count: 1})
       .then(function (count) {
         const postCount = (count.response || {}).count || 0;
@@ -63,7 +67,8 @@ class Vk extends EventEmitter {
         };
       });
   }
-  getComments(params = {}) {
+
+  getComments (params = {}) {
     params.owner_id = this.groupId;
     params.need_likes = 1;
 

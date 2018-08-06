@@ -1,16 +1,16 @@
 const EventEmitter = require('events');
 const config = require('config');
 const dict = require('../helpers/dictionary');
+const Queue = require('promise-queue');
 
 class Telegram extends EventEmitter {
-  constructor(request) {
+  constructor (request) {
     super();
 
     this.request = request;
-    this.webhookMiddleware = this.webhookMiddleware.bind(this);
   }
 
-  sendRequest(request, params = {}, method = 'POST') {
+  sendRequest (request, params = {}, method = 'POST') {
     const botUrl = `${config.get('telegram.url')}${config.get('telegram.token')}/${request}`;
     const parameters = this.request.prepareConfig(botUrl, method);
 
@@ -27,25 +27,18 @@ class Telegram extends EventEmitter {
     return this.request.makeRequest(parameters, params);
   }
 
-  /**
-   *
-   * @param {String} inlineId inline query id
-   * @param {{}[]} results stringified array of results
-   * @param {Number} [next_offset] Next inline result offset
-   * @returns {Promise}
-   */
-  sendInline(inlineId, results, next_offset) {
+  sendInline (inlineId, results, nextOffset) {
     return this.sendRequest('answerInlineQuery', {
       inline_query_id: inlineId,
       results: JSON.stringify(results),
-      next_offset: next_offset || 0,
+      next_offset: nextOffset || 0,
       cache_time: 0,
       _key: Number(inlineId),
       _rule: config.get('telegram.rules.inlineQuery')
     });
   }
 
-  prepareButtons(message, params = {}) {
+  prepareButtons (message, params = {}) {
     let buttons = [];
 
     if (params.buttons) {
@@ -119,7 +112,7 @@ class Telegram extends EventEmitter {
     return buttons;
   }
 
-  sendMessage(userId, message, params = {}) {
+  sendMessage (userId, message, params = {}) {
     if (!message) {
       return;
     }
@@ -190,21 +183,93 @@ class Telegram extends EventEmitter {
     return this.sendRequest('sendMessage', sendMessage);
   }
 
-  sendMessageToAdmin(text) {
+  sendMessageToAdmin (text) {
     return this.sendMessage(config.get('telegram.adminChat'), text);
   }
 
-  getMe() {
+  sendMessages (userId, messages, params) {
+    const messageQueue = new Queue(1, Infinity);
+
+    return (messages || []).reduce((p, message) => p.then(messageQueue.add.bind(messageQueue, this.sendMessage.bind(this, userId, message, params))), Promise.resolve());
+  }
+
+  forwardMessage (userId, message, params) {
+    const buttons = this.prepareButtons(message, params);
+    let sendMessage = {
+      chat_id: userId,
+      text: message.text,
+      caption: message.caption
+    };
+    let commandType = '';
+
+    if (buttons.length) {
+      sendMessage.reply_markup = {};
+      sendMessage.reply_markup.inline_keyboard = buttons;
+      sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
+    }
+
+    if (params.native) {
+      let chatId = userId;
+
+      if (message && message.chat && message.chat.id) {
+        chatId = message.chat.id;
+      }
+
+      commandType = 'forwardMessage';
+      sendMessage = {
+        chat_id: userId,
+        from_chat_id: chatId,
+        message_id: message.message_id
+      };
+    } else if (message.audio && message.audio.file_id) {
+      commandType = 'sendAudio';
+      sendMessage.audio = message.audio.file_id;
+    } else if (message.voice && message.voice.file_id) {
+      commandType = 'sendVoice';
+      sendMessage.voice = message.voice.file_id;
+    } else if (message.video_note && message.video_note.file_id) {
+      commandType = 'sendVideoNote';
+      sendMessage.video_note = message.video_note.file_id;
+    } else if (message.document && message.document.file_id) {
+      commandType = 'sendDocument';
+      sendMessage.document = message.document.file_id;
+    } else if (message.photo && message.photo.length > 0) {
+      commandType = 'sendPhoto';
+      sendMessage.photo = message.photo[message.photo.length - 1].file_id;
+    } else {
+      commandType = 'sendMessage';
+      sendMessage.text = sendMessage.text || 'Пустое сообщение';
+    }
+
+    return this.sendRequest(commandType, sendMessage);
+  }
+
+  forwardMessages (userId, messages, params) {
+    const messageQueue = new Queue(1, Infinity);
+
+    return (messages || []).reduce((p, message) => p.then(messageQueue.add.bind(messageQueue, this.forwardMessage.bind(this, userId, message, params))), Promise.resolve());
+  }
+
+  sendSticker (userId, stickerId) {
+    if (!stickerId) {
+      throw new Error('No sticker specified!');
+    }
+
+    if (!userId) {
+      throw new Error('No user specified!');
+    }
+
+    return this.sendRequest('sendSticker', {
+      chat_id: userId,
+      sticker: stickerId
+    });
+  }
+
+  getMe () {
     return this.sendRequest('getMe');
   }
 
-  /**
-   * Answers callback query
-   * @param {String} queryId Callback query id
-   * @param {Telegram.AnswerCallbackQuery} payload Response payload
-   * @returns {Promise}
-   */
-  answerCallbackQuery(queryId, payload = {}) {
+  answerCallbackQuery (queryId, payload = {}) {
     return this.sendRequest('answerCallbackQuery', {
       callback_query_id: queryId,
       text: payload.text,
@@ -219,14 +284,29 @@ class Telegram extends EventEmitter {
       });
   }
 
-  sendChatAction(userId, action) {
+  sendChatAction (userId, action) {
     return this.sendRequest('sendChatAction', {
       chat_id: userId,
       action: action
     });
   }
 
-  webhookMiddleware(req, res, next) {
+  sendInvoice (userId, invoice) {
+    return this.sendRequest('sendInvoice', {
+      chat_id: userId,
+      title: invoice.title,
+      description: invoice.description,
+      provider_token: config('telegram.paymentToken'),
+      currency: 'RUB',
+      start_parameter: 'donate',
+      payload: invoice.payload,
+      prices: JSON.stringify([
+        {label: 'Основной взнос', amount: 6000}
+      ])
+    });
+  }
+
+  middleware (req, res, next) {
     const update = req.body;
 
     if (!update) {
@@ -240,116 +320,3 @@ class Telegram extends EventEmitter {
 }
 
 module.exports = Telegram;
-
-/**
- * @class Telegram
- */
-
-/**
- * Telegram Update instance
- * @typedef {Object} Telegram.Update
- * @property {Number} update_id The update‘s unique identifier
- * @property {Telegram.Message} [message] New incoming message of any kind — text, photo, sticker, etc.
- * @property {Telegram.Message} [edited_message] New version of a message that is known to the bot and was edited
- * @property {Telegram.Message} [channel_post] New incoming channel post of any kind — text, photo, sticker, etc.
- * @property {Telegram.InlineQuery} [inline_query] New incoming inline query
- * @property {Telegram.CallbackQuery} [callback_query] New incoming callback query
- * @property {Telegram.SuccessfulPayment} [successful_payment] Message is a service message about a successful payment, information about the payment.
- * @property {Telegram.PreCheckoutQuery} [pre_checkout_query] New incoming pre-checkout query. Contains full information about checkout
- */
-
-/**
- * Telegram message instance
- * @typedef {Object} Telegram.Message
- * @property {Number} message_id Unique message identifier inside this chat
- * @property {Telegram.User} [from] Sender, empty for messages sent to channels
- * @property {Number} date Date the message was sent in Unix time
- * @property {Telegram.Chat} chat Conversation the message belongs to
- * @property {Telegram.User} [forward_from] For forwarded messages, sender of the original message
- * @property {Telegram.Chat} [forward_from_chat] For messages forwarded from channels, information about the original channel
- * @property {Telegram.Message} [reply_to_message] For replies, the original message. Note that the Message object in this field will not contain further reply_to_message fields even if it itself is a reply.
- * @property {String} [text] For text messages, the actual UTF-8 text of the message, 0-4096 characters.
- * @property {Telegram.User} [new_chat_member] New member that was added to the group or supergroup and information about it
- * @property {Telegram.User} [left_chat_member] A member was removed from the group, information about them
- *
- */
-
-/**
- * Telegram inline query instance
- * @typedef {Object} Telegram.InlineQuery
- * @property {Number} id Unique identifier for this query
- * @property {Telegram.User} from Sender
- * @property {String} query Text of the query (up to 512 characters)
- * @property {String} offset Offset of the results to be returned, can be controlled by the bot
- */
-
-/**
- * Telegram callback query instance
- * @typedef {Object} Telegram.CallbackQuery
- * @property {String} id Unique identifier for this query
- * @property {Telegram.User} from Sender
- * @property {Telegram.Message} [message] Message with the callback button that originated the query. Note that message content and message date will not be available if the message is too old
- * @property {String} [inline_message_id] Identifier of the message sent via the bot in inline mode, that originated the query.
- * @property {String} [data] Data associated with the callback button. Be aware that a bad client can send arbitrary data in this field.
- */
-
-/**
- * Telegram successful payment instance
- * @typedef {Object} Telegram.SuccessfulPayment
- * @property {String} currency Three-letter ISO 4217 currency code
- * @property {Number} total_amount Total price in the smallest units of the currency (integer, not float/double). For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies).
- * @property {String} invoice_payload Bot specified invoice payload
- * @property {String} [shipping_option_id] Identifier of the shipping option chosen by the user
- * @property {Telegram.OrderInfo} [order_info] Order info provided by the user
- */
-
-/**
- * Telegram pre-checkout query
- * @typedef {Object} Telegram.PreCheckoutQuery
- * @property {String} id Unique query identifier
- * @property {Telegram.User} from User who sent the query
- * @property {String} currency Three-letter ISO 4217 currency code
- * @property {Number} total_amount Total price in the smallest units of the currency (integer, not float/double). For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in currencies.json, it shows the number of digits past the decimal point for each currency (2 for the majority of currencies).
- * @property {String} invoice_payload Bot specified invoice payload.
- * @property {String} [shipping_option_id] Identifier of the shipping option chosen by the user
- * @property {Telegram.OrderInfo} [order_info] Order info provided by the use
- */
-
-/**
- * Telegram Order Info instance
- * @typedef {Object} Telegram.OrderInfo
- * @property {String} [name] User name
- * @property {String} [phone_number] User's phone number
- * @property {String} [email] User email
- */
-
-/**
- * Telegram user instance
- * @typedef {Object} Telegram.User
- * @property {Number} id Unique identifier for this user or bot
- * @property {Boolean} is_bot True, if this user is a bot
- * @property {String} [first_name] User‘s or bot’s first name
- * @property {String} [last_name] User‘s or bot’s last name
- * @property {String} [username] User‘s or bot’s username
- * @property {String} [language_code] IETF language tag of the user's language
- */
-
-/**
- * Telegram chat instance
- * @typedef {Object} Telegram.Chat
- * @property {String} type Type of chat, can be either “private”, “group”, “supergroup” or “channel”
- * @property {String} [title] Title, for supergroups, channels and group chats
- * @property {String} [first_name] User‘s or bot’s first name
- * @property {String} [last_name] User‘s or bot’s last name
- * @property {String} [username] User‘s or bot’s username
- * @property {String} [language_code] IETF language tag of the user's language
- * @property {Boolean} [all_members_are_administrators] True if a group has ‘All Members Are Admins’ enabled.
- */
-
-/**
- * Telegram Callback query answer
- * @typedef {Object} Telegram.AnswerCallbackQuery
- * @property {String} text
- * @property {Boolean} show_alert
- * @property {String} url
- */

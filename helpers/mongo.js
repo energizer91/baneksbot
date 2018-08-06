@@ -210,7 +210,6 @@ if (config.get('mongodb.searchEngine') === 'elastic') {
   });
 }
 
-
 module.exports = {
   Anek: mongoose.model('Anek', anekSchema),
   Comment: mongoose.model('Comment', commentSchema),

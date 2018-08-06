@@ -1,18 +1,18 @@
 const EventEmitter = require('events');
 
 class Bot extends EventEmitter {
-  constructor(database) {
+  constructor (database) {
     super();
 
     this.database = database;
-    this.botMiddleware = this.botMiddleware.bind(this);
+    this.middleware = this.middleware.bind(this);
   }
 
-  onCommand(command, callback) {
+  onCommand (command, callback) {
     return this.on('command:' + command, callback);
   }
 
-  getUserInfo(user) {
+  getUserInfo (user) {
     if (!user.user_id) {
       return 'Invalid user';
     }
@@ -32,52 +32,32 @@ class Bot extends EventEmitter {
     return user.user_id;
   }
 
-  /**
-   * Performs inline query
-   * @param {Telegram.InlineQuery} inlineQuery
-   * @param {Telegram.User | Telegram.Chat} user
-   */
-  performInlineQuery(inlineQuery, user) {
+  performInlineQuery (inlineQuery, user) {
     console.log('Performing inline query from ' + this.getUserInfo(user));
     this.emit('inlineQuery', inlineQuery, user);
   }
 
-  /**
-   * Performs Callback query
-   * @param {Telegram.CallbackQuery} callbackQuery
-   * @param {Telegram.User | Telegram.Chat} user
-   */
-  performCallbackQuery(callbackQuery, user) {
+  performCallbackQuery (callbackQuery, user) {
     console.log('Performing callback query from ' + this.getUserInfo(user));
     this.emit('callbackQuery', callbackQuery, user);
   }
 
-  /**
-   * Performs message
-   * @param {Telegram.Message} message
-   * @param {Telegram.User | Telegram.Chat} user
-   */
-  performMessage(message, user) {
+  performMessage (message, user) {
     console.log('Performing message from ' + this.getUserInfo(user));
     this.emit('message', message, user);
   }
 
-  performCommand(command, message, user) {
+  performCommand (command, message, user) {
     console.log('Performing command from ' + this.getUserInfo(user));
     this.emit('command:' + command[0].slice(1), command, message, user);
   }
 
-  /**
-   * Performs pre-checkout query
-   * @param {Telegram.PreCheckoutQuery} preCheckoutQuery
-   * @param {Telegram.User | Telegram.Chat} user
-   */
-  performPreCheckoutQuery(preCheckoutQuery, user) {
+  performPreCheckoutQuery (preCheckoutQuery, user) {
     console.log('Performing pre checkout query from ' + this.getUserInfo(user));
     this.emit('preCheckoutQuery', preCheckoutQuery, user);
   }
 
-  botMiddleware(req, res, next) {
+  middleware (req, res, next) {
     const { update, user } = req;
 
     if (!update) {

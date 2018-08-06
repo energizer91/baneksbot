@@ -1,0 +1,14 @@
+// @flow
+import type {Update, User, Message, InlineQuery, CallbackQuery, PreCheckoutQuery} from './telegram';
+
+type Callback = (command: string[], message: Message, user: User) => void
+
+declare export default class Bot {
+  onCommand(command: string, callback: Callback): void;
+  performMessage(message: Message, user: User): void;
+  performInlineQuery(inlineQuery: InlineQuery, user: User): void;
+  performCallbackQuery(callbackQuery: CallbackQuery, user: User): void;
+  performPreCheckoutQuery(preCheckoutQuery: PreCheckoutQuery, user: User): void;
+  performCommand(command: string[], message: Message, user: User): void;
+  middleware(req: { update: Update }, res: {}, next: Function): void;
+}

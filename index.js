@@ -1,13 +1,13 @@
 /**
  * Created by Александр on 13.12.2015.
  */
+const path = require('path');
 module.exports = function (express) {
-    var router = express.Router(),
-        path = require('path');
+  const router = express.Router();
 
-    router.get('/*', function (req, res) {
-        res.sendFile(path.join(__dirname, 'bundle', 'index.html'));
-    });
+  router.get('/*', function (req, res) {
+    res.sendFile(path.join(__dirname, 'bundle', 'index.html'));
+  });
 
-    return router;
+  return router;
 };

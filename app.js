@@ -5,7 +5,7 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const routes = require('./index')(express);
 const config = require('config');
-const bot = require('./bot');
+const botApi = require('./botApi');
 
 const app = express();
 
@@ -15,9 +15,9 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'bundle'))); // eslint-disable-line
 
-const botApi = bot.connect(app);
+botApi.connect(app);
 
-require('./helpers/commands')(botApi);
+require('./helpers/commands');
 
 const Queue = require('promise-queue');
 
@@ -26,7 +26,7 @@ let dbUpdater;
 const childQueue = new Queue(1, Infinity);
 let forceStopDaemon = false;
 
-function startDaemon() {
+function startDaemon () {
   const debug = typeof v8debug === 'object'; // eslint-disable-line
 
   if (debug) {
@@ -47,7 +47,6 @@ function startDaemon() {
     if (!forceStopDaemon) {
       startDaemon();
     }
-
   });
 
   dbUpdater.on('message', function (m) {
@@ -58,7 +57,7 @@ function startDaemon() {
 
       return botApi.request.fulfillAll(m.users.map(function (user) {
         return botApi.telegram.sendMessage(user, m.message, m.params).catch(function (error) {
-          if (!error.ok && (error.error_code === 403) || (
+          if ((!error.ok && (error.error_code === 403)) || (
             error.description === 'Bad Request: chat not found' ||
             error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
             error.description === 'Bad Request: chat_id is empty')) {
@@ -86,7 +85,7 @@ function startDaemon() {
   });
 }
 
-function sendUpdaterMessage(res, message, responseText) {
+function sendUpdaterMessage (res, message, responseText) {
   if (dbUpdater && dbUpdater.connected) {
     if (message && message.type && message.action) {
       dbUpdater.send(message);
@@ -178,6 +177,5 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.json(err);
 });
-
 
 module.exports = app;

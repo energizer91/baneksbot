@@ -1,28 +1,28 @@
 class User {
-  constructor(database) {
+  constructor (database) {
     this.database = database;
-    this.userMiddleware = this.userMiddleware.bind(this);
+    this.middleware = this.middleware.bind(this);
   }
 
-  /**
-   * Updates user
-   * @param {Telegram.User | Telegram.Chat} [user]
-   * @returns {Promise<Telegram.User> | void}
-   */
-  update(user) {
+  async update (user) {
     if (!user) {
-      return Promise.resolve();
+      return {};
     }
 
-    return this.database.User.findOneAndUpdate({user_id: user.id}, user, {new: true, upsert: true, setDefaultsOnInsert: true})
-      .catch(error => {
-        console.error(error);
+    try {
+      return this.database.User.findOneAndUpdate(
+        {user_id: user.id},
+        user,
+        {new: true, upsert: true, setDefaultsOnInsert: true}
+      );
+    } catch (error) {
+      console.error(error);
 
-        return user;
-      });
+      return user;
+    }
   }
 
-  userMiddleware(req, res, next) {
+  middleware (req, res, next) {
     const {update} = req;
     const message = update.message || update.inline_query || update.callback_query;
     const user = message.from;

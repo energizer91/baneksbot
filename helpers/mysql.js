@@ -3,41 +3,41 @@
  */
 
 module.exports = function (configs) {
-    var mysql = require('mysql'),
-        mysqlConfig = configs.mysql,
-        mysqlConnection = mysql.createConnection({
-            host     : mysqlConfig.server,
-            port     : mysqlConfig.port,
-            user     : mysqlConfig.user,
-            password : mysqlConfig.password,
-            database : mysqlConfig.database
+  var mysql = require('mysql'),
+    mysqlConfig = configs.mysql,
+    mysqlConnection = mysql.createConnection({
+      host: mysqlConfig.server,
+      port: mysqlConfig.port,
+      user: mysqlConfig.user,
+      password: mysqlConfig.password,
+      database: mysqlConfig.database
+    });
+
+  return {
+    makeRequest: function (query) {
+      return new Promise(function (resolve, reject) {
+        mysqlConnection.connect(function (err) {
+          if (err) {
+            return reject(err);
+          }
+
+          console.log('Connected as id ' + mysqlConnection.threadId);
         });
+        mysqlConnection.query(query, function (err, rows) {
+          if (err) {
+            return reject(err);
+          }
 
-    return {
-        makeRequest: function (query) {
-            return new Promise(function (resolve, reject) {
-                mysqlConnection.connect(function(err) {
-                    if (err) {
-                        return reject(err);
-                    }
+          return resolve(rows);
+        });
+        mysqlConnection.end(function (err) {
+          if (err) {
+            return reject(err);
+          }
 
-                    console.log('Connected as id ' + mysqlConnection.threadId);
-                });
-                mysqlConnection.query(query, function (err, rows) {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    return resolve(rows);
-                });
-                mysqlConnection.end(function(err) {
-                    if (err) {
-                        return reject(err);
-                    }
-
-                    console.log('Connection ' + mysqlConnection.threadId + ' has been terminated');
-                });
-            })
-        }
-    };
+          console.log('Connection ' + mysqlConnection.threadId + ' has been terminated');
+        });
+      })
+    }
+  };
 };
