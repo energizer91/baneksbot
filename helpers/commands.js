@@ -673,7 +673,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
         .map((comment, index) => {
-          comment.text = botApi.dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text;
+          comment.text = dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text;
 
           if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
             comment.reply_to_message_id = callbackQuery.message.message_id;
