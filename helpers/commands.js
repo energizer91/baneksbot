@@ -724,7 +724,7 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
   let results = [];
   let searchAction;
 
-  if (inlineQuery.query) {
+  if (!inlineQuery.query) {
     searchAction = botApi.database.Anek.find({text: {$ne: ''}})
       .sort({date: -1})
       .skip(inlineQuery.offset || 0)
