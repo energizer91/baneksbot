@@ -343,7 +343,6 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
   }
 
   const results = await botApi.statistics.getOverallStatistics(
-    botApi.database,
     startDate,
     now
   );

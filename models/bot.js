@@ -247,7 +247,7 @@ class Bot extends EventEmitter {
           if (firstPart) {
             const botName = firstPart.split('@');
 
-            if (botName.length === 2 && botName[1] === config.get('telegram.botName')) {
+            if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
               this.performCommand([botName[0], ...command.slice(1)], update.message, user);
             }
           }
