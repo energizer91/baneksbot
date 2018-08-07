@@ -7,8 +7,8 @@
     "baneksLink": "",
     "adminChat": 0,
     "baneksPromo": "",
-    "baneksChannel": "@baneks",
-    "botName": "baneksbot",
+    "baneksChannel": "",
+    "botName": "",
     "updateMethod": "webhook",
     "paymentToken": "",
     "rules": {

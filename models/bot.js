@@ -242,11 +242,18 @@ class Bot extends EventEmitter {
 
         if (text && text.startsWith('/')) {
           const command = text.split(' ');
+          const firstPart = command[0];
 
-          this.performCommand(command, update.message, user);
-        } else {
-          this.performMessage(update.message, user);
+          if (firstPart) {
+            const botName = firstPart.split('@');
+
+            if (botName.length === 2 && botName[1] === config.get('telegram.botName')) {
+              this.performCommand([botName[0], ...command.slice(1)], update.message, user);
+            }
+          }
         }
+
+        this.performMessage(update.message, user);
       }
     } else if (update.inline_query) {
       this.performInlineQuery(update.inline_query, user);
