@@ -746,7 +746,7 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
         return {
           type: 'article',
           id: anek.post_id.toString(),
-          title: botApi.dict.translate(user.language, 'anek_number', {number: anek.post_id || 0}),
+          title: dict.translate(user.language, 'anek_number', {number: anek.post_id || 0}),
           input_message_content: {
             message_text: anek.text,
             parse_mode: 'HTML'

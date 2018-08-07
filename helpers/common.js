@@ -69,7 +69,7 @@ module.exports = {
     }, callback);
   },
   performSearch: function (searchPhrase, limit, skip) {
-    if (config.get('mongo.searchEngine') === 'elastic') {
+    if (config.get('mongodb.searchEngine') === 'elastic') {
       return this.searchAneksElastic(searchPhrase, limit, skip);
     }
 
