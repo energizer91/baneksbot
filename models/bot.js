@@ -37,7 +37,7 @@ class Bot extends EventEmitter {
 
   convertAttachment (attachment) {
     if (!attachment) {
-      return;
+      return {};
     }
 
     switch (attachment.type) {
@@ -151,7 +151,7 @@ class Bot extends EventEmitter {
   }
 
   sendComment (userId, comment, params) {
-    const attachments = this.convertAttachment(comment.attachments || []);
+    const attachments = this.convertAttachments(comment.attachments || []);
 
     return this.telegram.sendMessage(userId, comment.text, params)
       .then(() => this.telegram.sendAttachments(userId, attachments, { forceAttachments: true }));

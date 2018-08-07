@@ -114,9 +114,7 @@ class Telegram extends EventEmitter {
   // }
 
   prepareInlineKeyboard (buttons) {
-    return {
-      inline_keyboard: JSON.stringify(buttons)
-    };
+    return JSON.stringify({ inline_keyboard: buttons });
   }
 
   // sendMessage (userId, message, params = {}) {
