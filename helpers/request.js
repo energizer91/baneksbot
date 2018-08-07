@@ -12,9 +12,9 @@ module.exports = {
       throw new Error('Config not specified');
     }
 
-    const { _key: key, _rule: rule, ...httpConfig } = config;
+    const { _key: key, _rule: rule, ...httpParams } = params;
 
-    return queue.request(backoff => axios({...httpConfig, params})
+    return queue.request(backoff => axios({...config, params: httpParams})
       .then(response => response.data)
       .catch(error => {
         if (typeof backoff === 'function' && error.response.status === 429) {
@@ -37,15 +37,15 @@ module.exports = {
       return Promise.resolve([]);
     }
 
-    return requests.reduce(function (p, request) {
-      return p.then(function (result) {
+    return requests.reduce((p, request) => {
+      return p.then(result => {
         if (result) {
           results.push(result);
         }
 
         return request;
       });
-    }).then(function (lastResponse) {
+    }).then(lastResponse => {
       results.push(lastResponse);
       return results;
     });

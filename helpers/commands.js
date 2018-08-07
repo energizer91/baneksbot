@@ -404,7 +404,8 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessages(message.chat.id, [dict.translate(user.language, 'top_daily', {count: count})].concat(aneks), {language: user.language});
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_daily', {count: count}))
+    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
@@ -415,7 +416,8 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessages(message.chat.id, [dict.translate(user.language, 'top_weekly', {count: count})].concat(aneks), {language: user.language});
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_weekly', {count: count}))
+    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
@@ -426,9 +428,10 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessages(message.chat.id, [dict.translate(user.language, 'top_monthly', {count: count})].concat(aneks), {language: user.language});
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_monthly', {count: count}))
+    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
-botApi.bot.onCommand('top_month', async (command, message, user) => {
+botApi.bot.onCommand('top_ever', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
@@ -436,7 +439,8 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessages(message.chat.id, [dict.translate(user.language, 'top_ever', {count: count})].concat(aneks), {language: user.language});
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}))
+    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.telegram.sendInvoice(message.from.id, {

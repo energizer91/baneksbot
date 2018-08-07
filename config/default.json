@@ -59,10 +59,12 @@
     "defaultRule": "common",
     "defaultKey": "common",
     "overallRate": 30,
+    "overallLimit": 1,
+    "defaultRate": 30,
+    "defaultLimit": 1,
     "backOffTime": 300,
     "backOffTimeout": 900,
-    "overallLimit": 1,
-    "ignoreOverheat": true
+    "ignoreOverallOverheat": true
   },
   "vk": {
     "url": "https://api.vk.com/method/",
