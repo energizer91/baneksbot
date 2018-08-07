@@ -38,11 +38,11 @@ function startDaemon () {
   const text = 'Aneks update process has been started at ' + new Date().toISOString();
 
   console.log(text);
-  botApi.telegram.sendMessageToAdmin(text);
+  botApi.bot.sendMessageToAdmin(text);
 
   dbUpdater.on('close', function (code, signal) {
     console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
-    botApi.telegram.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+    botApi.bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
 
     if (!forceStopDaemon) {
       startDaemon();
@@ -64,18 +64,18 @@ function startDaemon () {
             errorMessages.push(user);
             return {};
           } else {
-            return botApi.telegram.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(m));
+            return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(m));
           }
         });
       })).then(function () {
         if (errorMessages.length) {
           const text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
-          const bulk = botApi.mongo.User.collection.initializeOrderedBulkOp();
+          const bulk = botApi.database.User.collection.initializeOrderedBulkOp();
 
           console.log(text);
 
           bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
-          botApi.telegram.sendMessageToAdmin(text);
+          botApi.bot.sendMessageToAdmin(text);
           return bulk.execute();
         }
       });
@@ -96,7 +96,7 @@ function sendUpdaterMessage (res, message, responseText) {
   return res.send('Updater is destroyed');
 }
 
-// startDaemon();
+startDaemon();
 
 app.get('/startDaemon', function (req, res) {
   if (dbUpdater && dbUpdater.connected) {

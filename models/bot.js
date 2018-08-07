@@ -1,5 +1,6 @@
 const EventEmitter = require('events');
 const dict = require('../helpers/dictionary');
+const config = require('config');
 
 class Bot extends EventEmitter {
   constructor (telegram, vk) {
@@ -125,6 +126,8 @@ class Bot extends EventEmitter {
         text: dict.translate(params.language, 'attachments'),
         callback_data: 'attach ' + anek.post_id
       });
+
+      anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
     }
 
     if (anek.post_id) {
@@ -155,6 +158,17 @@ class Bot extends EventEmitter {
 
     return this.telegram.sendMessage(userId, comment.text, params)
       .then(() => this.telegram.sendAttachments(userId, attachments, { forceAttachments: true }));
+  }
+
+  forwardMessageToChannel (message, params) {
+    if (!config.get('telegram.baneksChannel')) {
+      return;
+    }
+    return this.telegram.forwardMessage(config.get('telegram.baneksChannel'), message, params);
+  }
+
+  sendMessageToAdmin (text) {
+    return this.telegram.sendMessage(config.get('telegram.adminChat'), text);
   }
 
   performInlineQuery (inlineQuery, user) {

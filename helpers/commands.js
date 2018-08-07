@@ -35,7 +35,7 @@ function generateStatistics (interval, stats) {
 }
 
 async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
-  const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.mongo.Suggest.convertId(queryData[1])}, {approved: true});
+  const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {approved: true});
 
   await botApi.telegram.editMessageButtons(callbackQuery.message, []);
 
@@ -404,7 +404,7 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_daily', {count: count}))
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}))
     .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
@@ -416,7 +416,7 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_weekly', {count: count}))
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}))
     .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
@@ -428,7 +428,7 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_monthly', {count: count}))
+  return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}))
     .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_ever', async (command, message, user) => {

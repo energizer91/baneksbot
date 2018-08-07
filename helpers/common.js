@@ -163,13 +163,13 @@ module.exports = {
 
     return aneks.map(function (anek) {
       if (anek.marked_as_ads) {
-        return botApi.telegram.sendMessageToAdmin('New anek but its an ad. Skipping broadcast')
+        return botApi.bot.sendMessageToAdmin('New anek but its an ad. Skipping broadcast')
           .then(function () {
             botApi.telegram.sendMessage(config.get('telegram.adminChat'), anek, params);
           });
       }
 
-      return botApi.telegram.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(anek), true).then(function () {
+      return botApi.bot.sendMessageToAdmin('Start broadcasting message ' + JSON.stringify(anek), true).then(function () {
         return requestApi.fulfillAll(users.map(function (user) {
           return botApi.telegram.sendMessage(user.user_id, anek, params).catch(function (error) {
             if ((!error.ok && (error.error_code === 403)) || (
@@ -179,17 +179,17 @@ module.exports = {
               errorMessages.push(user.user_id);
               return {};
             } else {
-              return botApi.telegram.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
+              return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
             }
           });
         })).then(function () {
-          return botApi.telegram.sendMessageToAdmin('Broadcast finished', true).then(function () {
+          return botApi.bot.sendMessageToAdmin('Broadcast finished', true).then(function () {
             if (errorMessages.length) {
               let text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
               console.log(text);
               let bulk = botApi.database.User.collection.initializeOrderedBulkOp();
               bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
-              botApi.telegram.sendMessageToAdmin(text);
+              botApi.bot.sendMessageToAdmin(text);
               return bulk.execute();
             }
           });

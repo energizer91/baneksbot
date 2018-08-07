@@ -196,10 +196,6 @@ class Telegram extends EventEmitter {
     });
   }
 
-  sendMessageToAdmin (text) {
-    return this.sendMessage(config.get('telegram.adminChat'), text);
-  }
-
   sendMessages (userId, messages, params) {
     return this.request.fulfillAll(messages.map(message => this.sendMessage(userId, message, params)));
   }
