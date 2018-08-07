@@ -4,38 +4,34 @@ const dict = require('./dictionary');
 const botApi = require('../botApi');
 
 function generateUserInfo (user) {
-  return {
-    text: '```\n' +
-      'User ' + user.user_id + ':\n' +
-      'Имя:        ' + (user.first_name || 'Не указано') + '\n' +
-      'Фамилия:    ' + (user.last_name || 'Не указано') + '\n' +
-      'Ник:        ' + (user.username || 'Не указано') + '\n' +
-      'Подписка:   ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
-      'Фидбэк:     ' + (user.feedback_mode ? 'Включен' : 'Выключен') + '\n' +
-      'Админ:      ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
-      'Бан:        ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
-      'Язык:       ' + (user.language || 'Не выбран') + '\n' +
-      'Клавиатура: ' + (user.keyboard ? 'Включена' : 'Выключена') + '\n' +
-      'Платформа:  ' + (user.client || 'Не выбрана') + '```'
-  };
+  return '```\n' +
+    'User ' + user.user_id + ':\n' +
+    'Имя:        ' + (user.first_name || 'Не указано') + '\n' +
+    'Фамилия:    ' + (user.last_name || 'Не указано') + '\n' +
+    'Ник:        ' + (user.username || 'Не указано') + '\n' +
+    'Подписка:   ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
+    'Фидбэк:     ' + (user.feedback_mode ? 'Включен' : 'Выключен') + '\n' +
+    'Админ:      ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
+    'Бан:        ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
+    'Язык:       ' + (user.language || 'Не выбран') + '\n' +
+    'Клавиатура: ' + (user.keyboard ? 'Включена' : 'Выключена') + '\n' +
+    'Платформа:  ' + (user.client || 'Не выбрана') + '```';
 }
 
 function generateStatistics (interval, stats) {
-  return {
-    text: '```\n' +
-      'Статистика за ' + interval + ':\n' +
-      'Пользователи\n' +
-      'Всего:                  ' + stats.users.count + '\n' +
-      'Новых:                  ' + stats.users.new + '\n' +
-      'Подписанных:            ' + stats.users.subscribed + '\n' +
-      'Новых подп.:            ' + stats.users.newly_subscribed + '\n' +
-      'Отписанных:             ' + stats.users.unsubscribed + '\n' +
-      'Анеки\n' +
-      'Всего:                  ' + stats.aneks.count + '\n' +
-      'Новых:                  ' + stats.aneks.new + '\n' +
-      'Сообщения\n' +
-      'Всего:                  ' + stats.messages.received + '```'
-  };
+  return '```\n' +
+    'Статистика за ' + interval + ':\n' +
+    'Пользователи\n' +
+    'Всего:                  ' + stats.users.count + '\n' +
+    'Новых:                  ' + stats.users.new + '\n' +
+    'Подписанных:            ' + stats.users.subscribed + '\n' +
+    'Новых подп.:            ' + stats.users.newly_subscribed + '\n' +
+    'Отписанных:             ' + stats.users.unsubscribed + '\n' +
+    'Анеки\n' +
+    'Всего:                  ' + stats.aneks.count + '\n' +
+    'Новых:                  ' + stats.aneks.new + '\n' +
+    'Сообщения\n' +
+    'Всего:                  ' + stats.messages.received + '```';
 }
 
 async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
@@ -166,37 +162,31 @@ botApi.bot.onCommand('user', async (command, message, user) => {
     if (command[2]) {
       const foundUser = await botApi.database.User.findOne({user_id: command[2]});
 
-      return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(foundUser), {
-        disableButtons: true,
-        parse_mode: 'Markdown'
-      });
+      return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: 'Markdown'});
     }
 
     return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
   }
 
-  return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(user), {
-    disableButtons: true,
-    parse_mode: 'Markdown'
-  });
+  return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: 'Markdown'});
 });
 
 botApi.bot.onCommand('anek', async (command, message, user) => {
   if (command[1] === 'count') {
     const count = await botApi.database.Anek.count();
 
-    return botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
   } else if (command[1] === 'id') {
-    return botApi.telegram.sendMessage(message.chat.id, dict.translate({language: user.language}, 'current_chat_id', {chat_id: message.chat.id}), {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, dict.translate({language: user.language}, 'current_chat_id', {chat_id: message.chat.id}), {language: user.language});
   } else if (command[1] && (!isNaN(Number(command[1])))) {
     const anek = await botApi.database.Anek.findOne().skip(parseInt(command[1]) - 1).exec();
 
-    return botApi.telegram.sendMessage(message.chat.id, anek, {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language});
   }
 
   const anek = await botApi.database.Anek.random();
 
-  return botApi.telegram.sendMessage(message.chat.id, anek, {
+  return botApi.bot.sendAnek(message.chat.id, anek, {
     language: user.language,
     admin: user.admin && (message.chat.id === message.from.id)
   });
@@ -375,19 +365,18 @@ botApi.bot.onCommand('bareyko', (command, message) => botApi.telegram.sendSticke
 botApi.bot.onCommand('krevet', (command, message, user) => botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'krevet')));
 botApi.bot.onCommand('shlyapa', (command, message) => botApi.telegram.sendMessage(message.chat.id, generateRandomAnswer(shlyapaAnswers)));
 botApi.bot.onCommand('gumino', (command, message) => botApi.telegram.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
-botApi.bot.onCommand('detcom', (command, message) => botApi.telegram.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {disableButtons: true, parse_mode: 'Markdown'}));
+botApi.bot.onCommand('detcom', (command, message) => botApi.telegram.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
 
 botApi.bot.onCommand('anek_by_id', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({post_id: command[1]});
 
-  return botApi.telegram.sendMessage(message.chat.id, anek, {language: user.language});
+  return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language});
 });
 
 botApi.bot.onCommand('find_user', async (command, message) => {
   const foundUser = await botApi.database.User.findOne({username: command[1]});
 
   return botApi.telegram.sendMessage(message.chat.id, generateUserInfo(foundUser), {
-    disableButtons: true,
     parse_mode: 'Markdown'
   });
 });
@@ -453,7 +442,10 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
 botApi.bot.onCommand('donate', (command, message) => botApi.telegram.sendInvoice(message.from.id, {
   title: 'Донат на развитие бота',
   description: 'А то совсем нечего кушать',
-  payload: 'lololo'
+  payload: 'lololo',
+  prices: JSON.stringify([
+    {label: 'Основной взнос', amount: 6000}
+  ])
 }));
 
 botApi.bot.onCommand('subscribe', async (command, message) => {
@@ -603,7 +595,7 @@ botApi.bot.onCommand('find', async (command, message, user) => {
   try {
     const aneks = await common.performSearch(searchPhrase, 1, 0, botApi.database);
 
-    return botApi.telegram.sendMessage(message.chat.id, aneks[0], {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language});
   } catch (e) {
     console.error(e);
 
@@ -637,58 +629,45 @@ botApi.bot.onCommand('synchronize', async (command, message, user) => {
 });
 
 botApi.bot.on('suggest', async (suggest, user) => {
-  suggest.user = user;
-
   const newSuggest = await botApi.database.Suggest(suggest).save();
+  const buttons = [
+    [
+      {
+        text: 'Подписаться',
+        callback_data: 's_da ' + newSuggest._id
+      },
+      {
+        text: 'Удалить',
+        callback_data: 's_d ' + newSuggest._id
+      }
+    ]
+  ];
 
+  suggest.user = user;
   await botApi.user.updateWith(user, {suggest_mode: false});
 
   return botApi.telegram.sendMessage(user.user_id, {text: 'Предложка успешно добавлена.'}, {
-    buttons: [
-      [
-        {
-          text: 'Подписаться',
-          callback_data: 's_da ' + newSuggest._id
-        },
-        {
-          text: 'Удалить',
-          callback_data: 's_d ' + newSuggest._id
-        }
-      ]
-    ]
+    reply_markup: botApi.telegram.prepareInlineKeyboard(buttons)
   });
 });
 
 botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   const {data = ''} = callbackQuery;
   const queryData = data.split(' ');
+  const params = {reply_to_message_id: callbackQuery.message.message_id};
 
   await botApi.telegram.answerCallbackQuery(callbackQuery.id);
 
   switch (queryData[0]) {
     case 'comment':
       const comments = await botApi.vk.getAllComments(queryData[1]);
-      const aneks = comments
+
+      return comments
         .reduce((acc, anek) => acc.concat(anek.response.items), [])
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
-        .map((comment, index) => {
-          comment.text = dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text;
-
-          if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
-            comment.reply_to_message_id = callbackQuery.message.message_id;
-          }
-
-          return comment;
-        });
-
-      const params = {
-        language: user.language,
-        disableButtons: true,
-        forceAttachments: true
-      };
-
-      return botApi.telegram.sendMessages(callbackQuery.message.chat.id, aneks, params);
+        .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}))
+        .map(comment => botApi.bot.sendComment(callbackQuery.message.chat.id, comment, params));
     case 'attach':
       const posts = await botApi.vk.getPostById(queryData[1]);
       let post = posts.response[0];
@@ -705,15 +684,9 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         post = post.copy_history[0];
       }
 
-      const attachments = post.attachments.map(attachment => {
-        if (callbackQuery && callbackQuery.message && callbackQuery.message.message_id) {
-          attachment.reply_to_message_id = callbackQuery.message.message_id;
-        }
+      const attachments = botApi.bot.convertAttachments(post.attachments);
 
-        return attachment;
-      });
-
-      return botApi.telegram.sendAttachments(callbackQuery.message.chat.id, attachments);
+      return botApi.telegram.sendAttachments(callbackQuery.message.chat.id, attachments, params);
     case 'spam':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
 
@@ -740,4 +713,49 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   }
 
   throw new Error('Unknown callback query ' + queryData);
+});
+
+botApi.bot.on('inlineQuery', (inlineQuery, user) => {
+  const aneksCount = 5;
+  let results = [];
+  let searchAction;
+
+  if (inlineQuery.query) {
+    searchAction = botApi.database.Anek.find({text: {$ne: ''}})
+      .sort({date: -1})
+      .skip(inlineQuery.offset || 0)
+      .limit(aneksCount)
+      .exec();
+  } else {
+    searchAction = common.performSearch(inlineQuery.query, aneksCount, inlineQuery.offset || 0);
+  }
+
+  return searchAction
+    .then(aneks => {
+      results = aneks.map(anek => {
+        let highlightText = anek.text;
+
+        if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
+          highlightText = anek._highlight.text[0];
+        }
+
+        return {
+          type: 'article',
+          id: anek.post_id.toString(),
+          title: botApi.dict.translate(user.language, 'anek_number', {number: anek.post_id || 0}),
+          input_message_content: {
+            message_text: anek.text,
+            parse_mode: 'HTML'
+          },
+          description: highlightText.slice(0, 100)
+        };
+      });
+
+      return botApi.telegram.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
+    })
+    .catch(error => {
+      console.error('inline querry error', error);
+
+      return botApi.telegram.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
+    })
 });

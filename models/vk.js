@@ -9,9 +9,11 @@ class Vk extends EventEmitter {
     this.request = request;
   }
 
-  executeCommand (command, params, method) {
-    const vkUrl = config.get('vk.url') + command;
-    const parameters = this.request.prepareConfig(vkUrl, method);
+  executeCommand (command, params, method = 'GET') {
+    const axiosConfig = {
+      url: config.get('vk.url') + command,
+      method: method.toLowerCase()
+    };
 
     if (config.get('vk.api_version')) {
       params.v = config.get('vk.api_version');
@@ -23,7 +25,7 @@ class Vk extends EventEmitter {
     params._skipQueue = true;
     params._rule = 'vk';
 
-    return this.request.makeRequest(parameters, params).then(function (data) {
+    return this.request.makeRequest(axiosConfig, params).then(function (data) {
       if (data.error) {
         throw new Error(data.error.error_msg || 'Unknown error');
       }

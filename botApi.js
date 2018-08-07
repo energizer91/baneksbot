@@ -25,9 +25,9 @@ const errorMiddleware = (err, req, res, next) => { // eslint-disable-line
 };
 
 const telegram = new Telegram(request);
-const bot = new Bot(database, telegram);
-const user = new User(database);
 const vk = new Vk(request);
+const bot = new Bot(telegram, vk);
+const user = new User(database);
 
 const connect = app => {
   const middlewares = [

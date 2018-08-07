@@ -116,12 +116,28 @@ declare type MessageParams = {
   disableComments?: boolean
 }
 
+declare type Photo = {
+  type: 'photo',
+  photo: string,
+  caption: string,
+  parse_mode: 'markdown' | 'html'
+}
+
+declare type Audio = {
+  type: 'audio',
+  audio: string,
+  caption: string
+}
+
+export type Attachment = Photo | Audio
+
 declare export default class Telegram {
   prepareButtons(message: Message, params?: MessageParams): InlineKeyboardMarkup;
   sendMessage(userId: number, message: Message | string, params?: MessageParams): Promise<Message>;
   sendMessages(userId: number, message: Message[] | string[], params?: MessageParams): Promise<Message>;
   forwardMessage(userId: number, message: Message | string, params?: MessageParams): Promise<Message>;
   forwardMessages(userId: number, messages: Message[] | string[], params?: MessageParams): Promise<Message>;
+  sendAttachment(userId: number, attachment: Attachment, params?: MessageParams): Promise<Message>;
   sendSticker(userId: number, stickerId: string): Promise<Message>;
   sendInvoice(userId: number, invoice: Invoice): Promise<Message>;
   sendMessageToAdmin(text: string): Promise<Message>;
