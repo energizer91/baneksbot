@@ -93,6 +93,8 @@ class Bot extends EventEmitter {
       return;
     }
 
+    const {disableComments, language, forceAttachments, admin, ...rest} = params;
+
     const buttons = [];
 
     if (anek.copy_history && anek.copy_history.length && anek.post_id) {
@@ -108,22 +110,22 @@ class Bot extends EventEmitter {
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
       buttons[buttons.length - 1].push({
-        text: dict.translate(params.language, 'go_to_anek'),
+        text: dict.translate(language, 'go_to_anek'),
         url: 'https://vk.com/wall' + anek.from_id + '_' + anek.post_id
       });
 
-      if (!params.disableComments) {
+      if (!disableComments) {
         buttons[buttons.length - 1].push({
-          text: dict.translate(params.language, 'comments'),
+          text: dict.translate(language, 'comments'),
           callback_data: 'comment ' + anek.post_id
         });
       }
     }
 
-    if (anek.attachments && anek.attachments.length > 0 && !params.forceAttachments) {
+    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
       buttons.push([]);
       buttons[buttons.length - 1].push({
-        text: dict.translate(params.language, 'attachments'),
+        text: dict.translate(language, 'attachments'),
         callback_data: 'attach ' + anek.post_id
       });
 
@@ -131,13 +133,13 @@ class Bot extends EventEmitter {
     }
 
     if (anek.post_id) {
-      if (params.admin && anek.spam) {
+      if (admin && anek.spam) {
         buttons.push([]);
         buttons[buttons.length - 1].push({
           text: 'Ne spam',
           callback_data: 'unspam ' + anek.post_id
         });
-      } else if (params.admin && !anek.spam) {
+      } else if (admin && !anek.spam) {
         buttons.push([]);
         buttons[buttons.length - 1].push({
           text: 'Spam',
@@ -149,7 +151,8 @@ class Bot extends EventEmitter {
     const replyMarkup = this.telegram.prepareInlineKeyboard(buttons);
 
     return this.telegram.sendMessage(userId, anek.text, {
-      reply_markup: replyMarkup
+      reply_markup: replyMarkup,
+      ...rest
     })
   }
 
