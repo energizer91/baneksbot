@@ -1,4 +1,3 @@
-const Telegram = require('./models/telegram');
 const Bot = require('./models/bot');
 const User = require('./models/user');
 const Vk = require('./models/vk');
@@ -50,15 +49,13 @@ const logMiddleware = (req, res, next) => {
     .catch(next);
 };
 
-const telegram = new Telegram(request);
 const vk = new Vk(request);
-const bot = new Bot(telegram, vk);
+const bot = new Bot(request);
 const user = new User(database);
 
 const connect = app => {
   const middlewares = [
     earlyResponse,
-    telegram.middleware,
     user.middleware,
     bot.middleware,
     logMiddleware,
@@ -72,7 +69,6 @@ module.exports = {
   bot,
   connect,
   database,
-  telegram,
   request,
   user,
   statistics,

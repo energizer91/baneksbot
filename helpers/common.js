@@ -174,7 +174,7 @@ module.exports = {
       if (anek.marked_as_ads) {
         return botApi.bot.sendMessageToAdmin('New anek but its an ad. Skipping broadcast')
           .then(function () {
-            botApi.telegram.sendMessage(config.get('telegram.adminChat'), anek, params);
+            botApi.bot.sendMessage(config.get('telegram.adminChat'), anek, params);
           });
       }
 

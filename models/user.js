@@ -26,7 +26,7 @@ class User {
   }
 
   middleware (req, res, next) {
-    const {update} = req;
+    const update = req.body;
     const message = update.message || update.inline_query || update.callback_query;
     const user = message.from;
 

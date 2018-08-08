@@ -51,12 +51,12 @@ function startDaemon () {
 
   dbUpdater.on('message', function (m) {
     if (m.type === 'message' && m.message) {
-      return childQueue.add(botApi.telegram.sendMessage.bind(botApi.telegram, m.userId, m.message, m.params));
+      return childQueue.add(botApi.bot.sendMessage.bind(botApi.bot, m.userId, m.message, m.params));
     } else if (m.type === 'broadcast' && m.users) {
       const errorMessages = [];
 
       return botApi.request.fulfillAll(m.users.map(function (user) {
-        return botApi.telegram.sendMessage(user, m.message, m.params).catch(function (error) {
+        return botApi.bot.sendMessage(user, m.message, m.params).catch(function (error) {
           if ((!error.ok && (error.error_code === 403)) || (
             error.description === 'Bad Request: chat not found' ||
             error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||

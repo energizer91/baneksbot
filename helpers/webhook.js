@@ -45,7 +45,7 @@ module.exports = function (configs, botApi) {
         };
       });
 
-      return botApi.telegram.sendInline(query.id, results, query.offset + aneksCount);
+      return botApi.bot.sendInline(query.id, results, query.offset + aneksCount);
     }).catch(function () {
       return botApi.bot.sendInline(query.id, results, query.offset + aneksCount);
     });

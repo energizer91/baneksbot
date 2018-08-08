@@ -1,13 +1,10 @@
-const EventEmitter = require('./events');
 const dict = require('../helpers/dictionary');
 const config = require('config');
+const Telegram = require('./telegram');
 
-class Bot extends EventEmitter {
-  constructor (telegram, vk) {
-    super();
-
-    this.telegram = telegram;
-    this.vk = vk;
+class Bot extends Telegram {
+  constructor (request) {
+    super(request);
 
     this.middleware = this.middleware.bind(this);
   }
@@ -148,9 +145,9 @@ class Bot extends EventEmitter {
       }
     }
 
-    const replyMarkup = this.telegram.prepareInlineKeyboard(buttons);
+    const replyMarkup = this.prepareInlineKeyboard(buttons);
 
-    return this.telegram.sendMessage(userId, anek.text, {
+    return this.sendMessage(userId, anek.text, {
       reply_markup: replyMarkup,
       ...rest
     })
@@ -159,19 +156,95 @@ class Bot extends EventEmitter {
   sendComment (userId, comment, params) {
     const attachments = this.convertAttachments(comment.attachments || []);
 
-    return this.telegram.sendMessage(userId, comment.text, params)
-      .then(() => this.telegram.sendAttachments(userId, attachments, { forceAttachments: true }));
+    return this.sendMessage(userId, comment.text, params)
+      .then(() => this.sendAttachments(userId, attachments, { forceAttachments: true }));
+  }
+
+  sendSuggest (userId, suggest, params) {
+    const buttons = [];
+
+    let sendMessage = {
+      chat_id: userId,
+      text: suggest.text,
+      caption: suggest.caption
+    };
+    let commandType = '';
+
+    if (params.native) {
+      let chatId = userId;
+
+      if (suggest && suggest.chat && suggest.chat.id) {
+        chatId = suggest.chat.id;
+      }
+
+      return this.forwardMessage(userId, suggest.message_id, chatId);
+    }
+
+    if (params.suggest) {
+      buttons.push([]);
+      if (params.editor) {
+        if (suggest.public) {
+          buttons[buttons.length - 1].push({
+            text: '+',
+            callback_data: 's_a ' + suggest._id
+          });
+        }
+        buttons[buttons.length - 1].push({
+          text: 'Анон',
+          callback_data: 's_aa ' + suggest._id
+        });
+        buttons[buttons.length - 1].push({
+          text: '-',
+          callback_data: 's_d ' + suggest._id
+        });
+      } else {
+        buttons[buttons.length - 1].push({
+          text: 'Удалить',
+          callback_data: 's_d ' + suggest._id
+        });
+      }
+    }
+
+    if (buttons.length) {
+      sendMessage.reply_markup = this.prepareInlineKeyboard(buttons);
+    }
+
+    if (suggest.audio && suggest.audio.file_id) {
+      commandType = 'sendAudio';
+      sendMessage.audio = suggest.audio.file_id;
+    } else if (suggest.voice && suggest.voice.file_id) {
+      commandType = 'sendVoice';
+      sendMessage.voice = suggest.voice.file_id;
+    } else if (suggest.video_note && suggest.video_note.file_id) {
+      commandType = 'sendVideoNote';
+      sendMessage.video_note = suggest.video_note.file_id;
+    } else if (suggest.document && suggest.document.file_id) {
+      commandType = 'sendDocument';
+      sendMessage.document = suggest.document.file_id;
+    } else if (suggest.photo && suggest.photo.length > 0) {
+      commandType = 'sendPhoto';
+      sendMessage.photo = suggest.photo[suggest.photo.length - 1].file_id;
+    } else {
+      commandType = 'sendMessage';
+      sendMessage.text = sendMessage.text || 'Пустое сообщение';
+    }
+
+    return this.sendRequest(commandType, sendMessage);
+  }
+
+  sendSuggests (userId, suggests, params) {
+    return this.request.fulfillAll(suggests.map(suggest => this.sendSuggest(userId, suggest, params)));
   }
 
   forwardMessageToChannel (message, params) {
     if (!config.get('telegram.baneksChannel')) {
       return;
     }
-    return this.telegram.forwardMessage(config.get('telegram.baneksChannel'), message, params);
+    return this.forwardMessage(config.get('telegram.baneksChannel'), message, params);
   }
 
   sendMessageToAdmin (text) {
-    return this.telegram.sendMessage(config.get('telegram.adminChat'), text);
+    return this.sendMessage(config.get('telegram.adminChat'), text);
   }
 
   performInlineQuery (inlineQuery, user) {
@@ -286,7 +359,17 @@ class Bot extends EventEmitter {
   }
 
   async middleware (req, res, next) {
-    const {update, user} = req;
+    const update = req.body;
+
+    if (!update) {
+      return next(new Error('No webhook data specified'));
+    }
+
+    const { user } = req;
+
+    this.emit('update', update, user);
+
+    req.update = update;
 
     try {
       req.results = await this.performUpdate(update, user);

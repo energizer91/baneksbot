@@ -6,7 +6,6 @@ class Telegram extends EventEmitter {
     super();
 
     this.request = request;
-    this.middleware = this.middleware.bind(this);
   }
 
   sendRequest (request, params = {}, method = 'POST') {
@@ -200,55 +199,63 @@ class Telegram extends EventEmitter {
     return this.request.fulfillAll(messages.map(message => this.sendMessage(userId, message, params)));
   }
 
-  forwardMessage (userId, message, params) {
-    const buttons = this.prepareButtons(message, params);
-    let sendMessage = {
+  // forwardMessage (userId, message, params) {
+  //   const buttons = this.prepareButtons(message, params);
+  //   let sendMessage = {
+  //     chat_id: userId,
+  //     text: message.text,
+  //     caption: message.caption
+  //   };
+  //   let commandType = '';
+  //
+  //   if (buttons.length) {
+  //     sendMessage.reply_markup = {};
+  //     sendMessage.reply_markup.inline_keyboard = buttons;
+  //     sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
+  //   }
+  //
+  //   if (params.native) {
+  //     let chatId = userId;
+  //
+  //     if (message && message.chat && message.chat.id) {
+  //       chatId = message.chat.id;
+  //     }
+  //
+  //     commandType = 'forwardMessage';
+  //     sendMessage = {
+  //       chat_id: userId,
+  //       from_chat_id: chatId,
+  //       message_id: message.message_id
+  //     };
+  //   } else if (message.audio && message.audio.file_id) {
+  //     commandType = 'sendAudio';
+  //     sendMessage.audio = message.audio.file_id;
+  //   } else if (message.voice && message.voice.file_id) {
+  //     commandType = 'sendVoice';
+  //     sendMessage.voice = message.voice.file_id;
+  //   } else if (message.video_note && message.video_note.file_id) {
+  //     commandType = 'sendVideoNote';
+  //     sendMessage.video_note = message.video_note.file_id;
+  //   } else if (message.document && message.document.file_id) {
+  //     commandType = 'sendDocument';
+  //     sendMessage.document = message.document.file_id;
+  //   } else if (message.photo && message.photo.length > 0) {
+  //     commandType = 'sendPhoto';
+  //     sendMessage.photo = message.photo[message.photo.length - 1].file_id;
+  //   } else {
+  //     commandType = 'sendMessage';
+  //     sendMessage.text = sendMessage.text || 'Пустое сообщение';
+  //   }
+  //
+  //   return this.sendRequest(commandType, sendMessage);
+  // }
+
+  forwardMessage (userId, messageId, fromId) {
+    return this.sendRequest('forwardMessage', {
       chat_id: userId,
-      text: message.text,
-      caption: message.caption
-    };
-    let commandType = '';
-
-    if (buttons.length) {
-      sendMessage.reply_markup = {};
-      sendMessage.reply_markup.inline_keyboard = buttons;
-      sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
-    }
-
-    if (params.native) {
-      let chatId = userId;
-
-      if (message && message.chat && message.chat.id) {
-        chatId = message.chat.id;
-      }
-
-      commandType = 'forwardMessage';
-      sendMessage = {
-        chat_id: userId,
-        from_chat_id: chatId,
-        message_id: message.message_id
-      };
-    } else if (message.audio && message.audio.file_id) {
-      commandType = 'sendAudio';
-      sendMessage.audio = message.audio.file_id;
-    } else if (message.voice && message.voice.file_id) {
-      commandType = 'sendVoice';
-      sendMessage.voice = message.voice.file_id;
-    } else if (message.video_note && message.video_note.file_id) {
-      commandType = 'sendVideoNote';
-      sendMessage.video_note = message.video_note.file_id;
-    } else if (message.document && message.document.file_id) {
-      commandType = 'sendDocument';
-      sendMessage.document = message.document.file_id;
-    } else if (message.photo && message.photo.length > 0) {
-      commandType = 'sendPhoto';
-      sendMessage.photo = message.photo[message.photo.length - 1].file_id;
-    } else {
-      commandType = 'sendMessage';
-      sendMessage.text = sendMessage.text || 'Пустое сообщение';
-    }
-
-    return this.sendRequest(commandType, sendMessage);
+      from_chat_id: fromId,
+      message_id: messageId
+    });
   }
 
   forwardMessages (userId, messages, params) {
@@ -419,21 +426,6 @@ class Telegram extends EventEmitter {
       start_parameter: 'donate',
       ...invoice
     });
-  }
-
-  middleware (req, res, next) {
-    const update = req.body;
-
-    if (!update) {
-      return next(new Error('No webhook data specified'));
-    }
-
-    const { user } = req;
-
-    this.emit('update', update, user);
-    req.update = update;
-
-    return next();
   }
 }
 
