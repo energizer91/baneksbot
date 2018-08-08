@@ -367,7 +367,7 @@ botApi.bot.onCommand('krevet', (command, message, user) => botApi.bot.sendMessag
 botApi.bot.onCommand('shlyapa', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(shlyapaAnswers)));
 botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
 botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
-botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.id, message.from.id));
+botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.id, message.chat.id));
 
 botApi.bot.onCommand('anek_by_id', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({post_id: command[1]});
