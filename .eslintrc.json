@@ -2,12 +2,15 @@
   "env": {
     "browser": true,
     "commonjs": true,
-    "es6": true
+    "es6": true,
+    "node": true,
+    "mocha": true
   },
   "extends": ["plugin:flowtype/recommended", "standard"],
   "parser": "babel-eslint",
   "plugins": [
-    "flowtype"
+    "flowtype",
+    "mocha"
   ],
   "parserOptions": {
     "ecmaVersion": 2016
@@ -18,6 +21,9 @@
     ],
     "no-console": [
       "off"
+    ],
+    "mocha/no-exclusive-tests": [
+      "error"
     ]
   }
 }

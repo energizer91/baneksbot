@@ -1,6 +1,6 @@
 // @flow
-import type Telegram, {Update, User, Message, InlineQuery, CallbackQuery, PreCheckoutQuery, Attachment as TelegramAttachment} from './telegram';
-import type Vk, {Attachment as VkAttachment} from './vk';
+import type Telegram, {Update, User, Message, InlineQuery, CallbackQuery, PreCheckoutQuery, Attachment as TelegramAttachment} from '../telegram';
+import type Vk, {Attachment as VkAttachment} from '../vk';
 
 type Callback = (command: string[], message: Message, user: User) => void
 

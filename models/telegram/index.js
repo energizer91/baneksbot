@@ -1,4 +1,4 @@
-const EventEmitter = require('./events');
+const EventEmitter = require('../events/index');
 const config = require('config');
 
 class Telegram extends EventEmitter {
@@ -285,7 +285,7 @@ class Telegram extends EventEmitter {
   async sendVideo (userId, video, params) {
     await this.sendChatAction(userId, 'upload_video');
 
-    return this.sendRequest('sendVideo', {
+    return this.sendRequest('sendMessage', {
       chat_id: userId,
       ...video,
       ...params

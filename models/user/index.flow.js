@@ -1,5 +1,5 @@
 // @flow
-import type {Update, User as TelegramUser} from './telegram';
+import type {Update, User as TelegramUser} from '../telegram/index';
 
 declare export default class User {
   update(user: TelegramUser): Promise<TelegramUser>;

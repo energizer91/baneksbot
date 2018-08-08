@@ -1,6 +1,6 @@
-const dict = require('../helpers/dictionary');
+const dict = require('../../helpers/dictionary');
 const config = require('config');
-const Telegram = require('./telegram');
+const Telegram = require('../telegram');
 
 class Bot extends Telegram {
   constructor (request) {
@@ -14,7 +14,7 @@ class Bot extends Telegram {
   }
 
   getUserInfo (user) {
-    if (!user.user_id) {
+    if (!user || !user.user_id) {
       return 'Invalid user';
     }
 
