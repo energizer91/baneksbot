@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+const EventEmitter = require('./events');
 const config = require('config');
 
 class Telegram extends EventEmitter {
@@ -25,7 +25,7 @@ class Telegram extends EventEmitter {
       }
     }
 
-    return this.request.makeRequest(axiosConfig, params);
+    return this.request.makeRequest(axiosConfig, params).then(response => response.result);
   }
 
   sendInline (inlineId, results, nextOffset) {

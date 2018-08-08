@@ -39,7 +39,7 @@ async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
 
   await botApi.telegram.editMessageButtons(callbackQuery.message, []);
 
-  const sendMessage = await botApi.telegram.forwardMessageToChannel(suggest, {native: anonymous});
+  const sendMessage = await botApi.bot.forwardMessageToChannel(suggest, {native: anonymous});
 
   await botApi.telegram.sendMessage(callbackQuery.message.chat.id, 'Предложение одобрено.');
 
@@ -354,6 +354,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 });
 
 botApi.bot.onCommand('filin', (command, message, user) => botApi.telegram.sendMessage(message.chat.id, dict.translate(user.language, 'filin')));
+botApi.bot.onCommand('error', (command, message, user) => botApi.telegram.sendMessage(message.chat.id, null));
 botApi.bot.onCommand('bret', (command, message) => botApi.telegram.sendMessage(message.chat.id, 'Удолил'));
 botApi.bot.onCommand('madway', (command, message) => botApi.telegram.sendMessage(message.chat.id, '@Lyasya кикай'));
 botApi.bot.onCommand('do_rock', (command, message) => botApi.telegram.sendMessage(message.chat.id, 'денис'));

@@ -1,4 +1,4 @@
-const EventEmitter = require('events');
+const EventEmitter = require('./events');
 const dict = require('../helpers/dictionary');
 const config = require('config');
 
@@ -173,94 +173,120 @@ class Bot extends EventEmitter {
 
   performInlineQuery (inlineQuery, user) {
     console.log('Performing inline query from ' + this.getUserInfo(user));
-    this.emit('inlineQuery', inlineQuery, user);
+    return this.emit('inlineQuery', inlineQuery, user);
   }
 
   performCallbackQuery (callbackQuery, user) {
     console.log('Performing callback query from ' + this.getUserInfo(user));
-    this.emit('callbackQuery', callbackQuery, user);
+    return this.emit('callbackQuery', callbackQuery, user);
   }
 
   performMessage (message, user) {
     console.log('Performing message from ' + this.getUserInfo(user));
-    this.emit('message', message, user);
+    return this.emit('message', message, user);
   }
 
   performCommand (command, message, user) {
     console.log('Performing command from ' + this.getUserInfo(user));
-    this.emit('command:' + command[0].slice(1), command, message, user);
+    return this.emit('command:' + command[0].slice(1), command, message, user);
   }
 
   performPreCheckoutQuery (preCheckoutQuery, user) {
     console.log('Performing pre checkout query from ' + this.getUserInfo(user));
-    this.emit('preCheckoutQuery', preCheckoutQuery, user);
+    return this.emit('preCheckoutQuery', preCheckoutQuery, user);
   }
 
   performSuccessfulPayment (successfulPayment, user) {
     console.log('Performing successful payment from ' + this.getUserInfo(user));
-    this.emit('successfulPayment', successfulPayment, user);
+    return this.emit('successfulPayment', successfulPayment, user);
   }
 
   performNewChatMember (member, user) {
-    this.emit('newChatMember', member, user);
+    return this.emit('newChatMember', member, user);
   }
 
   performLeftChatMember (member, user) {
-    this.emit('leftChatMember', member, user);
+    return this.emit('leftChatMember', member, user);
   }
 
   performSuggest (suggest, user) {
-    this.emit('suggest', suggest, user);
+    return this.emit('suggest', suggest, user);
   }
 
   performReply (reply, message, user) {
-    this.emit('reply', reply, message, user);
+    return this.emit('reply', reply, message, user);
   }
 
-  middleware (req, res, next) {
-    const {update, user} = req;
-
+  performUpdate (update, user) {
     if (!update) {
-      return next(new Error('No webhook data specified'));
+      throw new Error('No webhook data specified');
     }
 
-    if (update.message) {
-      const { message } = update;
+    const { message } = update;
 
-      if (message.successful_payment) {
-        this.performSuccessfulPayment(message.successful_payment, user);
-      } else if (message.new_chat_member) {
-        this.performNewChatMember(message.new_chat_member, user);
-      } else if (message.left_chat_member) {
-        this.performLeftChatMember(message.left_chat_member, user);
-      } else if (user.suggest_mode && !user.banned) {
-        this.performSuggest(message, user);
-      } else if (message.reply_to_message) {
-        this.performReply(message.reply_to_message, message, user)
-      } else if (message.text) {
-        const { text } = message;
+    if (message.successful_payment) {
+      return this.performSuccessfulPayment(message.successful_payment, user);
+    }
 
-        if (text && text.startsWith('/')) {
-          const command = text.split(' ');
-          const firstPart = command[0];
+    if (message.new_chat_member) {
+      return this.performNewChatMember(message.new_chat_member, user);
+    }
 
-          if (firstPart) {
-            const botName = firstPart.split('@');
+    if (message.left_chat_member) {
+      return this.performLeftChatMember(message.left_chat_member, user);
+    }
 
-            if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
-              this.performCommand([botName[0], ...command.slice(1)], update.message, user);
-            }
+    if (user.suggest_mode && !user.banned) {
+      return this.performSuggest(message, user);
+    }
+
+    if (message.reply_to_message) {
+      return this.performReply(message.reply_to_message, message, user);
+    }
+
+    if (message.text) {
+      const { text } = message;
+
+      if (text && text.startsWith('/')) {
+        const command = text.split(' ');
+        const firstPart = command[0];
+
+        if (firstPart) {
+          const botName = firstPart.split('@');
+
+          if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
+            return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
           }
         }
-
-        this.performMessage(update.message, user);
       }
-    } else if (update.inline_query) {
-      this.performInlineQuery(update.inline_query, user);
-    } else if (update.callback_query) {
-      this.performCallbackQuery(update.callback_query, user);
-    } else if (update.pre_checkout_query) {
-      this.performPreCheckoutQuery(update.pre_checkout_query, user);
+
+      return this.performMessage(update.message, user);
+    }
+
+    if (update.inline_query) {
+      return this.performInlineQuery(update.inline_query, user);
+    }
+
+    if (update.callback_query) {
+      return this.performCallbackQuery(update.callback_query, user);
+    }
+
+    if (update.pre_checkout_query) {
+      return this.performPreCheckoutQuery(update.pre_checkout_query, user);
+    }
+
+    return Promise.resolve([]);
+  }
+
+  async middleware (req, res, next) {
+    const {update, user} = req;
+
+    try {
+      req.results = await this.performUpdate(update, user);
+
+      return next();
+    } catch (error) {
+      return next(error);
     }
   }
 }

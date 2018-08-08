@@ -8,11 +8,20 @@ const botApi = require('../botApi');
 
 module.exports = {
   writeLog: function (data, result, error) {
+    if (Array.isArray(result)) {
+      return botApi.database.Log.insertMany(result.map(log => ({
+        date: new Date(),
+        request: data,
+        response: log,
+        error
+      })))
+    }
+
     const logRecord = new botApi.database.Log({
       date: new Date(),
       request: data,
       response: result,
-      error: error
+      error
     });
 
     return logRecord.save();

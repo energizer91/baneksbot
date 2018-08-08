@@ -18,10 +18,36 @@ const earlyResponse = (req, res, next) => {
 //
 // };
 
+const writeLog = (data, result, error) => {
+  if (Array.isArray(result)) {
+    return database.Log.insertMany(result.map(log => ({
+      date: new Date(),
+      request: data,
+      response: log,
+      error
+    })))
+  }
+
+  const logRecord = new database.Log({
+    date: new Date(),
+    request: data,
+    response: result,
+    error
+  });
+
+  return logRecord.save();
+};
+
 const errorMiddleware = (err, req, res, next) => { // eslint-disable-line
   if (err) {
-    console.log(err);
+    return writeLog(req.update, req.results, err)
+      .catch(next);
   }
+};
+
+const logMiddleware = (req, res, next) => {
+  writeLog(req.update, req.results)
+    .catch(next);
 };
 
 const telegram = new Telegram(request);
@@ -35,6 +61,7 @@ const connect = app => {
     telegram.middleware,
     user.middleware,
     bot.middleware,
+    logMiddleware,
     errorMiddleware
   ];
 
