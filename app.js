@@ -96,7 +96,7 @@ function sendUpdaterMessage (res, message, responseText) {
   return res.send('Updater is destroyed');
 }
 
-// startDaemon();
+startDaemon();
 
 app.get('/startDaemon', function (req, res) {
   if (dbUpdater && dbUpdater.connected) {
