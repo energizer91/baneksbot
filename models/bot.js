@@ -224,43 +224,47 @@ class Bot extends EventEmitter {
 
     const { message } = update;
 
-    if (message.successful_payment) {
-      return this.performSuccessfulPayment(message.successful_payment, user);
-    }
-
-    if (message.new_chat_member) {
-      return this.performNewChatMember(message.new_chat_member, user);
-    }
-
-    if (message.left_chat_member) {
-      return this.performLeftChatMember(message.left_chat_member, user);
-    }
-
-    if (user.suggest_mode && !user.banned) {
-      return this.performSuggest(message, user);
-    }
-
-    if (message.reply_to_message) {
-      return this.performReply(message.reply_to_message, message, user);
-    }
-
-    if (message.text) {
-      const { text } = message;
-
-      if (text && text.startsWith('/')) {
-        const command = text.split(' ');
-        const firstPart = command[0];
-
-        if (firstPart) {
-          const botName = firstPart.split('@');
-
-          if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
-            return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
-          }
-        }
+    if (message) {
+      if (message.successful_payment) {
+        return this.performSuccessfulPayment(message.successful_payment, user);
       }
 
-      return this.performMessage(update.message, user);
+      if (message.new_chat_member) {
+        return this.performNewChatMember(message.new_chat_member, user);
+      }
+
+      if (message.left_chat_member) {
+        return this.performLeftChatMember(message.left_chat_member, user);
+      }
+
+      if (user.suggest_mode && !user.banned) {
+        return this.performSuggest(message, user);
+      }
+
+      if (message.reply_to_message) {
+        return this.performReply(message.reply_to_message, message, user);
+      }
+
+      if (message.text) {
+        const { text } = message;
+
+        if (text && text.startsWith('/')) {
+          const command = text.split(' ');
+          const firstPart = command[0];
+
+          if (firstPart) {
+            const botName = firstPart.split('@');
+
+            if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
+              return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
+            }
+          }
+        }
+
+        return this.performMessage(update.message, user);
+      }
+
+      throw new Error('Unknown message');
     }
 
     if (update.inline_query) {
