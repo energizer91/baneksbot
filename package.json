@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
+    "test": "mocha **/models/**/*.spec.js",
     "build": "webpack -d"
   },
   "dependencies": {
