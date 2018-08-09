@@ -4,18 +4,17 @@
 
 module.exports = function (express, botApi, configs) {
   const router = express.Router();
-  const performWebHook = require('../helpers/webhook')(configs, botApi);
   const common = require('../helpers/common')(configs);
 
   function clearDatabases () {
-    return botApi.request.fulfillAll([
+    return botApi.fulfillAll([
       botApi.mongo.Anek.remove({})
     ]);
   }
 
   function redefineDatabase (count) {
     return common.getAllAneks(count).then(function (responses) {
-      return botApi.request.fulfillAll(responses.map(function (response) {
+      return botApi.fulfillAll(responses.map(function (response) {
         return botApi.mongo.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
           anek.post_id = anek.id;
           anek.likes = anek.likes.count;
@@ -48,10 +47,6 @@ module.exports = function (express, botApi, configs) {
     return botApi.mongo.User.findOneAndUpdate({user_id: 5630968}, {admin: true}).then(function () {
       return res.send('ok');
     });
-  });
-
-  router.post('/webhook', function (req, res) {
-    return performWebHook(req.body, res);
   });
 
   router.get('/set_webhook', function (req, res, next) {

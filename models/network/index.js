@@ -1,19 +1,17 @@
-/**
- * Created by xgmv84 on 11/26/2016.
- */
-const QueueApi = require('./queue');
+const EventEmitter = require('../events');
+const Queue = require('../../helpers/queue');
 const axios = require('axios');
 
-const queue = new QueueApi();
+const queue = new Queue();
 
-module.exports = {
-  makeRequest: function (config, params) {
+class NetworkModel extends EventEmitter {
+  makeRequest (config, params) {
     if (!config) {
       throw new Error('Config not specified');
     }
 
     const paramsOrData = {};
-    const { _key: key, _rule: rule, ...httpParams } = params;
+    const {_key: key, _rule: rule, ...httpParams} = params;
 
     if (config.method === 'post') {
       paramsOrData.data = httpParams;
@@ -36,8 +34,9 @@ module.exports = {
 
         return {};
       }), key, rule);
-  },
-  fulfillAll: function (requests) {
+  }
+
+  fulfillAll (requests) {
     let results = [];
 
     if (!requests.length) {
@@ -56,31 +55,35 @@ module.exports = {
       results.push(lastResponse);
       return results;
     });
-  },
-  fulfillAllSequentally: function (requests) {
+  }
+
+  fulfillAllSequentally (requests) {
     let results = [];
 
     if (!requests.length) {
       return [];
     }
-    return requests.reduce(function (p, request) {
-      return p.then(function (result) {
+
+    return requests.reduce((p, request) => {
+      return p.then(result => {
         if (result) {
           results.push(result);
         }
 
         return request;
-      }).catch(function (error) {
+      }).catch(error => {
         console.error('Sequental fullfilment error');
         console.error(error);
       });
-    }).then(function (lastResponse) {
+    }).then(lastResponse => {
       results.push(lastResponse);
       return results;
-    }).catch(function (error) {
+    }).catch(error => {
       console.error('Sequental fullfilment error');
       console.error(error);
       return results;
     });
   }
-};
+}
+
+module.exports = NetworkModel;

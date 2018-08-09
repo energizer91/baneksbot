@@ -1,9 +1,9 @@
 const Bot = require('./models/bot');
 const User = require('./models/user');
 const Vk = require('./models/vk');
+const Statistics = require('./models/statistics');
+
 const database = require('./helpers/mongo');
-const request = require('./helpers/request');
-const statistics = require('./helpers/statistics');
 const config = require('config');
 
 const earlyResponse = (req, res, next) => {
@@ -45,9 +45,10 @@ const logMiddleware = (req, res, next) => {
     .catch(next);
 };
 
-const vk = new Vk(request);
-const bot = new Bot(request);
+const vk = new Vk();
+const bot = new Bot();
 const user = new User(database);
+const statistics = new Statistics(database);
 
 const connect = app => {
   const middlewares = [
@@ -65,7 +66,6 @@ module.exports = {
   bot,
   connect,
   database,
-  request,
   user,
   statistics,
   vk

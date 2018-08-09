@@ -325,9 +325,9 @@ botApi.bot.onCommand('broadcast', async (command, message, user) => {
 
   command.splice(0, 1);
 
-  const users = botApi.database.User.find({subscribed: true});
+  const users = await botApi.database.User.find({subscribed: true});
 
-  await botApi.request.fulfillAll(users.map(function (user) {
+  await botApi.bot.fulfillAll(users.map(function (user) {
     return this.sendMessage(user.user_id, command.join(' '));
   }, botApi.bot));
 
@@ -427,7 +427,7 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .exec();
 
   return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}))
-    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
@@ -439,7 +439,7 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .exec();
 
   return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}))
-    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
@@ -451,7 +451,7 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .exec();
 
   return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}))
-    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 botApi.bot.onCommand('top_ever', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
@@ -462,7 +462,7 @@ botApi.bot.onCommand('top_ever', async (command, message, user) => {
     .exec();
 
   return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}))
-    .then(() => botApi.request.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(message.from.id, {

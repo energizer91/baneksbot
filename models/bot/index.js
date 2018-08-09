@@ -3,8 +3,8 @@ const config = require('config');
 const Telegram = require('../telegram');
 
 class Bot extends Telegram {
-  constructor (request) {
-    super(request);
+  constructor () {
+    super();
 
     this.middleware = this.middleware.bind(this);
   }
@@ -233,7 +233,7 @@ class Bot extends Telegram {
   }
 
   sendSuggests (userId, suggests, params) {
-    return this.request.fulfillAll(suggests.map(suggest => this.sendSuggest(userId, suggest, params)));
+    return this.fulfillAll(suggests.map(suggest => this.sendSuggest(userId, suggest, params)));
   }
 
   forwardMessageToChannel (message, params) {

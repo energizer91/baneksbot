@@ -1,11 +1,9 @@
-/**
- * Created by Александр on 19.06.2017.
- */
+class Statistics {
+  constructor (database) {
+    this.database = database;
+  }
 
-const database = require('./mongo');
-
-module.exports = {
-  calculateUserStatistics: function (from, to) {
+  calculateUserStatistics (from, to) {
     const result = {
       count: 0,
       new: 0,
@@ -15,55 +13,58 @@ module.exports = {
     };
     const fromDate = new Date(from || 0);
     const toDate = new Date(to || Date.now());
-    return database.User.count({}).then(count => {
+    return this.database.User.count({}).then(count => {
       result.count = count;
 
-      return database.User.find({subscribed: true}).count();
+      return this.database.User.find({subscribed: true}).count();
     }).then(count => {
       result.subscribed = count;
 
-      return database.Log.find({'request.message.text': '/subscribe', date: {$gte: fromDate, $lte: toDate}}).count();
+      return this.database.Log.find({'request.message.text': '/subscribe', date: {$gte: fromDate, $lte: toDate}}).count();
     }).then(count => {
       result.newly_subscribed = count;
 
-      return database.Log.find({'request.message.text': '/unsubscribe', date: {$gte: fromDate, $lte: toDate}}).count();
+      return this.database.Log.find({'request.message.text': '/unsubscribe', date: {$gte: fromDate, $lte: toDate}}).count();
     }).then(count => {
       result.unsubscribed = count;
 
-      return database.User.find({date: {$gte: fromDate, $lte: toDate}}).count();
+      return this.database.User.find({date: {$gte: fromDate, $lte: toDate}}).count();
     }).then(count => {
       result.new = count;
 
       return result;
     });
-  },
-  calculateAneksStatistics: function (from, to) {
+  }
+
+  calculateAneksStatistics (from, to) {
     const result = {count: 0, new: 0};
     const fromDate = new Date(from).getTime() / 1000;
     const toDate = new Date(to).getTime() / 1000;
 
-    return database.Anek.count({}).then(count => {
+    return this.database.Anek.count({}).then(count => {
       result.count = count;
 
-      return database.Anek.find({date: {$gte: fromDate, $lte: toDate}}).count();
+      return this.database.Anek.find({date: {$gte: fromDate, $lte: toDate}}).count();
     }).then(count => {
       result.new = count;
 
       return result;
     });
-  },
-  calculateMessagesStatistics: function (from, to) {
+  }
+
+  calculateMessagesStatistics (from, to) {
     const result = {received: 0};
     const fromDate = new Date(from || 0);
     const toDate = new Date(to || Date.now());
 
-    return database.Log.count({date: {$gte: fromDate, $lte: toDate}}).then(count => {
+    return this.database.Log.count({date: {$gte: fromDate, $lte: toDate}}).then(count => {
       result.received = count;
 
       return result;
     });
-  },
-  calculateStatistics: function (from, to) {
+  }
+
+  calculateStatistics (from, to) {
     const result = {
       users: {},
       aneks: {},
@@ -71,7 +72,7 @@ module.exports = {
       date: new Date()
     };
 
-    return database.Statistic.find({}).sort({date: -1}).limit(1).exec().then(statistics => {
+    return this.database.Statistic.find({}).sort({date: -1}).limit(1).exec().then(statistics => {
       if (!(statistics && statistics.length)) {
         from = 0;
       } else {
@@ -94,13 +95,14 @@ module.exports = {
     }).then(messages => {
       result.messages = messages;
 
-      return new database.Statistic(result).save().then(() => {
+      return new this.database.Statistic(result).save().then(() => {
         return result;
       });
     });
-  },
-  getOverallStatistics: function (from, to) {
-    return database.Statistic.find({date: {$gte: from, $lte: to}})
+  }
+
+  getOverallStatistics (from, to) {
+    return this.database.Statistic.find({date: {$gte: from, $lte: to}})
       .then(result => result.reduce((p, c) => {
         p.users.count = c.users.count;
         p.users.new += c.users.new;
@@ -132,4 +134,6 @@ module.exports = {
         }
       }));
   }
-};
+}
+
+module.exports = Statistics;

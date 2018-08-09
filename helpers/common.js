@@ -3,29 +3,9 @@
  */
 
 const config = require('config');
-const requestApi = require('../helpers/request');
 const botApi = require('../botApi');
 
 module.exports = {
-  writeLog: function (data, result, error) {
-    if (Array.isArray(result)) {
-      return botApi.database.Log.insertMany(result.map(log => ({
-        date: new Date(),
-        request: data,
-        response: log,
-        error
-      })));
-    }
-
-    const logRecord = new botApi.database.Log({
-      date: new Date(),
-      request: data,
-      response: result,
-      error
-    });
-
-    return logRecord.save();
-  },
   searchAneks: function (searchPhrase, limit, skip) {
     return botApi.database.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
       if (results.length) {
@@ -66,17 +46,6 @@ module.exports = {
       });
     });
   },
-  updateUser: function (user, callback) {
-    if (!user) {
-      return {};
-    }
-
-    return botApi.database.User.findOneAndUpdate({user_id: user.id}, user, {
-      new: true,
-      upsert: true,
-      setDefaultsOnInsert: true
-    }, callback);
-  },
   performSearch: function (searchPhrase, limit, skip) {
     if (config.get('mongodb.searchEngine') === 'elastic') {
       return this.searchAneksElastic(searchPhrase, limit, skip);
@@ -113,7 +82,7 @@ module.exports = {
         requests.push(botApi.vk.getPosts({offset: current, count: step}));
       }
 
-      return requestApi.fulfillAllSequentally(requests);
+      return botApi.bot.fulfillAllSequentally(requests);
     });
   },
   zipAneks: function (responses) {
@@ -127,7 +96,7 @@ module.exports = {
   },
   redefineDatabase: function (count) {
     return this.getAllAneks(count).then(function (responses) {
-      return requestApi.fulfillAllSequentally(responses.map(function (response) {
+      return botApi.bot.fulfillAllSequentally(responses.map(function (response) {
         return botApi.database.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
           anek.post_id = anek.id;
           anek.likes = anek.likes.count;
@@ -155,7 +124,7 @@ module.exports = {
         }));
       });
 
-      return requestApi.fulfillAll(aneks.map(function (anek) {
+      return botApi.bot.fulfillAll(aneks.map(function (anek) {
         return botApi.database.Anek.findOneAndUpdate(anek[0], anek[1]);
       })).catch(function (error) {
         console.log(error);
@@ -178,7 +147,7 @@ module.exports = {
           });
       }
 
-      return requestApi.fulfillAll(users.map(function (user) {
+      return botApi.bot.fulfillAll(users.map(function (user) {
         return botApi.bot.sendAnek(user.user_id, anek, params).catch(function (error) {
           if ((!error.ok && (error.error_code === 403)) || (
             error.description === 'Bad Request: chat not found' ||

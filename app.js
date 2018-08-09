@@ -19,6 +19,10 @@ botApi.connect(app);
 
 require('./helpers/commands');
 
+// const statistics = require('./routes/statistics')(express);
+//
+// app.use('/api' + statistics.endPoint, statistics.router);
+
 const Queue = require('promise-queue');
 
 const cp = require('child_process');
@@ -55,7 +59,7 @@ function startDaemon () {
     } else if (m.type === 'broadcast' && m.users) {
       const errorMessages = [];
 
-      return botApi.request.fulfillAll(m.users.map(function (user) {
+      return botApi.bot.fulfillAll(m.users.map(function (user) {
         return botApi.bot.sendMessage(user, m.message, m.params).catch(function (error) {
           if ((!error.ok && (error.error_code === 403)) || (
             error.description === 'Bad Request: chat not found' ||

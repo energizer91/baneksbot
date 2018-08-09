@@ -1,12 +1,11 @@
-const EventEmitter = require('../events');
+const NetworkModel = require('../network');
 const config = require('config');
 
-class Vk extends EventEmitter {
-  constructor (request) {
+class Vk extends NetworkModel {
+  constructor () {
     super();
 
     this.groupId = config.get('vk.group_id');
-    this.request = request;
   }
 
   executeCommand (command, params, method = 'GET') {
@@ -25,7 +24,7 @@ class Vk extends EventEmitter {
     params._skipQueue = true;
     params._rule = 'vk';
 
-    return this.request.makeRequest(axiosConfig, params).then(function (data) {
+    return this.makeRequest(axiosConfig, params).then(function (data) {
       if (data.error) {
         throw new Error(data.error.error_msg || 'Unknown error');
       }
@@ -102,7 +101,7 @@ class Vk extends EventEmitter {
           requests.push(this.getComments({post_id: postId, offset: current, count: step}));
         }
 
-        return this.request.fulfillAll(requests);
+        return this.fulfillAll(requests);
       });
   }
 }
