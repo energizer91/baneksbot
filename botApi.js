@@ -13,10 +13,6 @@ const earlyResponse = (req, res, next) => {
   return next();
 };
 
-// const logMiddleware = (req, res, next) => {
-//
-// };
-
 const writeLog = (data, result, error) => {
   if (Array.isArray(result)) {
     return database.Log.insertMany(result.map(log => ({

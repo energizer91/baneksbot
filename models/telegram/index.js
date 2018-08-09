@@ -355,6 +355,10 @@ class Telegram extends EventEmitter {
     return this.sendRequest('getMe');
   }
 
+  getWebhookInfo () {
+    return this.sendRequest('getWebhookInfo');
+  }
+
   answerCallbackQuery (queryId, payload = {}) {
     return this.sendRequest('answerCallbackQuery', {
       callback_query_id: queryId,

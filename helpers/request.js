@@ -12,9 +12,16 @@ module.exports = {
       throw new Error('Config not specified');
     }
 
+    const paramsOrData = {};
     const { _key: key, _rule: rule, ...httpParams } = params;
 
-    return queue.request(backoff => axios({...config, params: httpParams})
+    if (config.method === 'post') {
+      paramsOrData.data = httpParams;
+    } else {
+      paramsOrData.params = httpParams;
+    }
+
+    return queue.request(backoff => axios({...config, ...paramsOrData})
       .then(response => response.data)
       .catch(error => {
         if (typeof backoff === 'function' && error.response.status === 429) {

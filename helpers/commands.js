@@ -193,6 +193,26 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
   });
 });
 
+botApi.bot.onCommand('webhook_info', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  const info = await botApi.bot.getWebhookInfo();
+
+  return botApi.bot.sendMessage(message.from.id, JSON.stringify(info));
+});
+
+botApi.bot.onCommand('me', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  const info = await botApi.bot.getMe();
+
+  return botApi.bot.sendMessage(message.from.id, JSON.stringify(info));
+});
+
 botApi.bot.onCommand('spam', async (command, message, user) => {
   if (!user.admin) {
     throw new Error('Unauthorized access');
