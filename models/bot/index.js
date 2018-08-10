@@ -85,24 +85,10 @@ class Bot extends Telegram {
     return attachments.map(attachment => this.convertAttachment(attachment));
   }
 
-  sendAnek (userId, anek, params = {}) {
-    if (!anek) {
-      return;
-    }
-
-    const {disableComments, language, forceAttachments, admin, ...rest} = params;
-
+  getAnekButtons (anek, params = {}) {
     const buttons = [];
 
-    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
-      const insideMessage = anek.copy_history[0];
-
-      insideMessage.post_id = anek.post_id;
-      insideMessage.from_id = anek.from_id;
-      insideMessage.text = anek.text + (anek.text.length ? '\n' : '') + insideMessage.text;
-
-      return this.sendAnek(userId, insideMessage, params);
-    }
+    const {disableComments, language, forceAttachments, admin} = params;
 
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
@@ -144,12 +130,30 @@ class Bot extends Telegram {
         });
       }
     }
+  }
+
+  sendAnek (userId, anek, params = {}) {
+    if (!anek) {
+      return;
+    }
+
+    const buttons = this.getAnekButtons(anek, params);
+
+    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
+      const insideMessage = anek.copy_history[0];
+
+      insideMessage.post_id = anek.post_id;
+      insideMessage.from_id = anek.from_id;
+      insideMessage.text = anek.text + (anek.text.length ? '\n' : '') + insideMessage.text;
+
+      return this.sendAnek(userId, insideMessage, params);
+    }
 
     const replyMarkup = this.prepareInlineKeyboard(buttons);
 
     return this.sendMessage(userId, anek.text, {
       reply_markup: replyMarkup,
-      ...rest
+      ...params
     })
   }
 
