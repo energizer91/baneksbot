@@ -130,6 +130,8 @@ class Bot extends Telegram {
         });
       }
     }
+
+    return buttons;
   }
 
   sendAnek (userId, anek, params = {}) {
