@@ -426,8 +426,9 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}))
-    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}));
+
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
@@ -438,8 +439,9 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}))
-    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}));
+
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
@@ -450,8 +452,9 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}))
-    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}));
+
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
 });
 botApi.bot.onCommand('top_ever', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
@@ -461,8 +464,9 @@ botApi.bot.onCommand('top_ever', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}))
-    .then(() => botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek))));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}));
+
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(message.from.id, {
@@ -683,11 +687,11 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   const queryData = data.split(' ');
   const params = {reply_to_message_id: callbackQuery.message.message_id};
 
-  await botApi.bot.answerCallbackQuery(callbackQuery.id);
-
   switch (queryData[0]) {
     case 'comment':
       const comments = await botApi.vk.getAllComments(queryData[1]);
+
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
 
       return comments
         .reduce((acc, anek) => acc.concat(anek.response.items), [])
@@ -711,32 +715,39 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         post = post.copy_history[0];
       }
 
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
+
       const attachments = botApi.bot.convertAttachments(post.attachments);
 
       return botApi.bot.sendAttachments(callbackQuery.message.chat.id, attachments, params);
     case 'spam':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
+      await botApi.bot.answerCallbackQuery(callbackQuery.id);
 
       return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как спам.');
     case 'unspam':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false});
+      await botApi.bot.answerCallbackQuery(callbackQuery.id);
 
       return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как нормальный.');
     case 's_a':
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено' });
+
       return acceptSuggest(queryData, callbackQuery, params, true);
     case 's_aa':
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено анонимно' });
+
       return acceptSuggest(queryData, callbackQuery, params, false);
     case 's_d':
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
 
       return botApi.bot.editMessageButtons(callbackQuery.message, []);
     case 's_da':
       await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
-      await botApi.bot.editMessageButtons(callbackQuery.message, []);
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.' });
 
-      return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Предложение будет опубликовано неанонимно.');
-    case 'a_a':
-      return botApi.database.Anek.findOneAndUpdate({_id: botApi.database.Anek.convertId(queryData[1])}, {});
+      return botApi.bot.editMessageButtons(callbackQuery.message, []);
   }
 
   throw new Error('Unknown callback query ' + queryData);

@@ -223,24 +223,16 @@ class Telegram extends NetworkModel {
       });
   }
 
-  editMessageButtons (message, buttons) {
+  editMessageButtons (message, buttons = []) {
     if (!message) {
       return;
     }
 
-    if (buttons) {
-      message.reply_markup = JSON.stringify({inline_keyboard: buttons});
-    } else {
-      const newButtons = this.prepareButtons(message);
-
-      message.reply_markup = JSON.stringify({inline_keyboard: newButtons});
-    }
+    message.reply_markup = this.prepareInlineKeyboard(buttons);
 
     if (message.chat && message.chat.id) {
       message.chat_id = message.chat.id;
     }
-
-    message.text = 'Решение принято';
 
     return this.sendRequest('editMessageReplyMarkup', message)
       .catch(function (error) {
