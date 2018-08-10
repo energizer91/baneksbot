@@ -689,9 +689,9 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
   switch (queryData[0]) {
     case 'comment':
-      const comments = await botApi.vk.getAllComments(queryData[1]);
-
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
+
+      const comments = await botApi.vk.getAllComments(queryData[1]);
 
       return comments
         .reduce((acc, anek) => acc.concat(anek.response.items), [])
@@ -700,6 +700,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}))
         .map(comment => botApi.bot.sendComment(callbackQuery.message.chat.id, comment, params));
     case 'attach':
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
+
       const posts = await botApi.vk.getPostById(queryData[1]);
       let post = posts.response[0];
 
@@ -714,8 +716,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       while (!post.attachments && post.copy_history) {
         post = post.copy_history[0];
       }
-
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
 
       const attachments = botApi.bot.convertAttachments(post.attachments);
 
