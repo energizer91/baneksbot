@@ -777,8 +777,6 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
           highlightText = anek._highlight.text[0];
         }
 
-        const buttons = botApi.bot.getAnekButtons(anek);
-
         return {
           type: 'article',
           id: anek.post_id.toString(),
@@ -787,7 +785,9 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
             message_text: anek.text,
             parse_mode: 'HTML'
           },
-          reply_markup: botApi.bot.prepareInlineKeyboard(buttons),
+          reply_markup: {
+            inline_keyboard: botApi.bot.getAnekButtons(anek)
+          },
           description: highlightText.slice(0, 100)
         };
       });
