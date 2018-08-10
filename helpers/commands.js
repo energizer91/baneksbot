@@ -685,7 +685,9 @@ botApi.bot.on('suggest', async (suggest, user) => {
 botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   const {data = ''} = callbackQuery;
   const queryData = data.split(' ');
-  const params = {reply_to_message_id: callbackQuery.message.message_id};
+  const params = {
+    reply_to_message_id: callbackQuery.message && callbackQuery.message.message_id
+  };
 
   switch (queryData[0]) {
     case 'comment':
@@ -777,7 +779,7 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
           highlightText = anek._highlight.text[0];
         }
 
-        const buttons = botApi.bot.getAnekButtons(anek);
+        const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
 
         return {
           type: 'article',

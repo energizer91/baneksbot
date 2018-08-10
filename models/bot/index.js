@@ -88,7 +88,7 @@ class Bot extends Telegram {
   getAnekButtons (anek, params = {}) {
     const buttons = [];
 
-    const {disableComments, language, forceAttachments, admin} = params;
+    const {disableComments, language, forceAttachments, admin, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
@@ -106,13 +106,15 @@ class Bot extends Telegram {
     }
 
     if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
-      buttons.push([]);
-      buttons[buttons.length - 1].push({
-        text: dict.translate(language, 'attachments'),
-        callback_data: 'attach ' + anek.post_id
-      });
+      if (!disableAttachments) {
+        buttons.push([]);
+        buttons[buttons.length - 1].push({
+          text: dict.translate(language, 'attachments'),
+          callback_data: 'attach ' + anek.post_id
+        });
 
-      anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
+        anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
+      }
     }
 
     if (anek.post_id) {
