@@ -240,7 +240,7 @@ class Bot extends Telegram {
     if (!config.get('telegram.baneksChannel')) {
       return;
     }
-    return this.forwardMessage(config.get('telegram.baneksChannel'), message, params);
+    return this.sendSuggest(config.get('telegram.baneksChannel'), message, params);
   }
 
   sendMessageToAdmin (text) {

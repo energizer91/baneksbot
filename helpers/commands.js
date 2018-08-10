@@ -733,11 +733,11 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 's_a':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено' });
 
-      return acceptSuggest(queryData, callbackQuery, params, true);
+      return acceptSuggest(queryData, callbackQuery, params, false);
     case 's_aa':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено анонимно' });
 
-      return acceptSuggest(queryData, callbackQuery, params, false);
+      return acceptSuggest(queryData, callbackQuery, params, true);
     case 's_d':
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
