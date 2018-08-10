@@ -2,11 +2,11 @@
 import type Bot from './models/bot';
 import type User from './models/user';
 import type Vk from './models/vk';
-import database from './helpers/mongo';
 import type Statistics from './models/statistics';
+import database from './helpers/mongo';
 
 declare module.exports: {
-  connect: (app: {}) => void,
+  connect(app: {}): void,
   bot: Bot,
   database: typeof database,
   user: User,

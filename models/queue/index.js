@@ -30,14 +30,6 @@ class Queue {
     this.heatPart = this.params.overallLimit * 1000 / this.params.overallRate;
   }
 
-  /**
-   * Creates new queue
-   * @param {string} queueName Queue name
-   * @param {Function} request Request function
-   * @param {Function} callback Callback function
-   * @param rule
-   * @returns {*}
-   */
   createQueue (queueName, request, callback, rule) {
     if (!this.queue[queueName]) {
       this.queue[queueName] = {
@@ -72,11 +64,6 @@ class Queue {
     return this.params.rules[name];
   }
 
-  /**
-   * Adding request to backoff
-   * @param {Object} item request
-   * @param {number} delay delay
-   */
   addBackoff (item, delay) {
     setTimeout(() => {
       return this.add(item.item.request, item.item.callback, item.queue.key, item.queue.ruleName);

@@ -1,5 +1,5 @@
 const EventEmitter = require('../events');
-const Queue = require('../../helpers/queue');
+const Queue = require('../queue');
 const axios = require('axios');
 
 const queue = new Queue();
@@ -23,6 +23,7 @@ class NetworkModel extends EventEmitter {
       .then(response => response.data)
       .catch(error => {
         if (typeof backoff === 'function' && error.response.status === 429) {
+          console.warn('Back off request', error.response.parameters);
           return backoff(error.response.parameters.retry_after);
         }
 

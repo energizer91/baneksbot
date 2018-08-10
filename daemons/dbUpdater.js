@@ -1,12 +1,13 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
-let updateInProcess = false;
-let forceDenyUpdate = false;
 const CronJob = require('cron').CronJob;
 const config = require('config');
 const common = require('../helpers/common');
 const botApi = require('../botApi');
+
+let updateInProcess = false;
+let forceDenyUpdate = false;
 
 function checkUpdateProgress (operation, ignoreUpdateProcess) {
   return new Promise(function (resolve, reject) {
