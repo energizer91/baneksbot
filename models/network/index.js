@@ -5,6 +5,12 @@ const axios = require('axios');
 const queue = new Queue();
 
 class NetworkModel extends EventEmitter {
+  constructor () {
+    super();
+
+    this.queue = queue;
+  }
+
   makeRequest (config, params) {
     if (!config) {
       throw new Error('Config not specified');
@@ -19,7 +25,7 @@ class NetworkModel extends EventEmitter {
       paramsOrData.params = httpParams;
     }
 
-    return queue.request(backoff => axios({...config, ...paramsOrData})
+    return this.queue.request(backoff => axios({...config, ...paramsOrData})
       .then(response => response.data)
       .catch(error => {
         if (typeof backoff === 'function' && error.response.status === 429) {

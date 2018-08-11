@@ -3,6 +3,8 @@ const common = require('./common');
 const dict = require('./dictionary');
 const botApi = require('../botApi');
 
+let debugTimer;
+
 function generateUserInfo (user) {
   return '```\n' +
     'User ' + user.user_id + ':\n' +
@@ -32,6 +34,13 @@ function generateStatistics (interval, stats) {
     'Новых:                  ' + stats.aneks.new + '\n' +
     'Сообщения\n' +
     'Всего:                  ' + stats.messages.received + '```';
+}
+
+function generateDebug () {
+  return '```\n' +
+    'time: ' + new Date() + '\n' +
+    'queue length: ' + botApi.bot.queue.getTotalLength + '\n' +
+    '```';
 }
 
 async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
@@ -149,6 +158,42 @@ async function performSuggest (command, message, user) {
     ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
     'добавлен в ваш список предложки анонимно.');
 }
+
+botApi.bot.onCommand('debug', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  const params = {
+    parse_mode: 'Markdown'
+  };
+  let editedMessage;
+
+  clearInterval(debugTimer);
+
+  debugTimer = setInterval(async () => {
+    if (!editedMessage) {
+      const sentMessage = await botApi.bot.sendMessage(message.from.id, generateDebug(), params);
+
+      editedMessage = sentMessage.message_id;
+
+      return;
+    }
+
+    try {
+      await botApi.bot.editMessageText(message.from.id, editedMessage, generateDebug(), params);
+    } catch (e) {
+      console.log('debug error', e);
+      clearInterval(debugTimer);
+    }
+  }, 1500);
+});
+
+botApi.bot.onCommand('stop_debug', (command, message) => {
+  clearInterval(debugTimer);
+
+  return botApi.bot.sendMessage(message.from.id, 'дебаг прекращен');
+});
 
 botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {

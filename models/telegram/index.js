@@ -198,6 +198,19 @@ class Telegram extends NetworkModel {
       });
   }
 
+  editMessageText (chatId, messageId, text, params = {}) {
+    if (!text || !messageId) {
+      return {};
+    }
+
+    return this.sendRequest('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      ...params
+    })
+  }
+
   editMessageButtons (message, buttons = []) {
     if (!message) {
       return;
