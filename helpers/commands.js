@@ -721,18 +721,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       const attachments = botApi.bot.convertAttachments(post.attachments);
 
-      const mediaGroup = attachments
-        .filter(attachment => attachment.type === 'photo')
-        .map(attachment => ({
-          type: attachment.type,
-          media: attachment.photo,
-          caption: attachment.caption
-        }));
-
-      if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
-        return botApi.bot.sendMediaGroup(callbackQuery.message.chat.id, mediaGroup, params);
-      }
-
       return botApi.bot.sendAttachments(callbackQuery.message.chat.id, attachments, params);
     case 'spam':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});

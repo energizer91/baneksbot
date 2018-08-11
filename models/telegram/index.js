@@ -48,57 +48,6 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(messages.map(message => this.sendMessage(userId, message, params)));
   }
 
-  // forwardMessage (userId, message, params) {
-  //   const buttons = this.prepareButtons(message, params);
-  //   let sendMessage = {
-  //     chat_id: userId,
-  //     text: message.text,
-  //     caption: message.caption
-  //   };
-  //   let commandType = '';
-  //
-  //   if (buttons.length) {
-  //     sendMessage.reply_markup = {};
-  //     sendMessage.reply_markup.inline_keyboard = buttons;
-  //     sendMessage.reply_markup = JSON.stringify(sendMessage.reply_markup);
-  //   }
-  //
-  //   if (params.native) {
-  //     let chatId = userId;
-  //
-  //     if (message && message.chat && message.chat.id) {
-  //       chatId = message.chat.id;
-  //     }
-  //
-  //     commandType = 'forwardMessage';
-  //     sendMessage = {
-  //       chat_id: userId,
-  //       from_chat_id: chatId,
-  //       message_id: message.message_id
-  //     };
-  //   } else if (message.audio && message.audio.file_id) {
-  //     commandType = 'sendAudio';
-  //     sendMessage.audio = message.audio.file_id;
-  //   } else if (message.voice && message.voice.file_id) {
-  //     commandType = 'sendVoice';
-  //     sendMessage.voice = message.voice.file_id;
-  //   } else if (message.video_note && message.video_note.file_id) {
-  //     commandType = 'sendVideoNote';
-  //     sendMessage.video_note = message.video_note.file_id;
-  //   } else if (message.document && message.document.file_id) {
-  //     commandType = 'sendDocument';
-  //     sendMessage.document = message.document.file_id;
-  //   } else if (message.photo && message.photo.length > 0) {
-  //     commandType = 'sendPhoto';
-  //     sendMessage.photo = message.photo[message.photo.length - 1].file_id;
-  //   } else {
-  //     commandType = 'sendMessage';
-  //     sendMessage.text = sendMessage.text || 'Пустое сообщение';
-  //   }
-  //
-  //   return this.sendRequest(commandType, sendMessage);
-  // }
-
   forwardMessage (userId, messageId, fromId) {
     return this.sendRequest('forwardMessage', {
       chat_id: userId,
@@ -151,6 +100,20 @@ class Telegram extends NetworkModel {
     });
   }
 
+  async sendMediaGroup (userId, mediaGroup, params) {
+    if (!mediaGroup.length) {
+      return {};
+    }
+
+    await this.sendChatAction(userId, 'upload_photo');
+
+    return this.sendRequest('sendMediaGroup', {
+      chat_id: userId,
+      media: JSON.stringify(mediaGroup),
+      ...params
+    });
+  }
+
   async sendMessageWithChatAction (userId, chatAction, message, params) {
     await this.sendChatAction(userId, chatAction);
 
@@ -182,19 +145,19 @@ class Telegram extends NetworkModel {
   }
 
   sendAttachments (userId, attachments, params) {
-    return this.fulfillAll(attachments.map(attachment => this.sendAttachment(userId, attachment, params)));
-  }
+    const mediaGroup = attachments
+      .filter(attachment => attachment.type === 'photo')
+      .map(attachment => ({
+        type: attachment.type,
+        media: attachment.photo,
+        caption: attachment.caption
+      }));
 
-  sendMediaGroup (userId, mediaGroup, params) {
-    if (!mediaGroup.length) {
-      return {};
+    if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
+      return this.sendMediaGroup(userId, mediaGroup, params);
     }
 
-    return this.sendRequest('sendMediaGroup', {
-      chat_id: userId,
-      media: JSON.stringify(mediaGroup),
-      ...params
-    });
+    return this.fulfillAll(attachments.map(attachment => this.sendAttachment(userId, attachment, params)));
   }
 
   sendSticker (userId, stickerId) {
