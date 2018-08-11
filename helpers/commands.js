@@ -772,7 +772,7 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
 
   return searchAction
     .then(aneks => {
-      results = aneks.map(anek => {
+      results = aneks.map((anek, index) => {
         let highlightText = anek.text;
 
         if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
@@ -783,7 +783,7 @@ botApi.bot.on('inlineQuery', (inlineQuery, user) => {
 
         return {
           type: 'article',
-          id: anek.post_id.toString(),
+          id: anek.post_id.toString() + index,
           title: dict.translate(user.language, 'anek_number', {number: anek.post_id || 0}),
           input_message_content: {
             message_text: anek.text,
