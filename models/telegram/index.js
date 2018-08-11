@@ -185,6 +185,18 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(attachments.map(attachment => this.sendAttachment(userId, attachment, params)));
   }
 
+  sendMediaGroup (userId, mediaGroup, params) {
+    if (!mediaGroup.length) {
+      return {};
+    }
+
+    return this.sendRequest('sendMediaGroup', {
+      chat_id: userId,
+      media: JSON.stringify(mediaGroup),
+      ...params
+    });
+  }
+
   sendSticker (userId, stickerId) {
     if (!stickerId) {
       throw new Error('No sticker specified!');
