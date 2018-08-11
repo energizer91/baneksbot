@@ -31,20 +31,15 @@ function updateAneksTimer () {
     .then(function () {
       return botApi.database.Anek.count();
     })
-    .then(function (count) {
-      return common.redefineDatabase(count)
-        .then(common.zipAneks);
-    })
-    .then(function (aneks) {
+    .then(count => common.redefineDatabase(count))
+    .then(aneks => {
       if (aneks.length) {
         console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
       } else {
         console.log(new Date(), aneks.length + ' aneks found.');
       }
       return botApi.database.User.find({subscribed: true})
-        .then(function (users) {
-          return common.broadcastAneks(users, aneks, {_rule: 'common'});
-        });
+        .then(users => common.broadcastAneks(users, aneks, {_rule: 'common'}));
     })
     .catch(function (error) {
       console.error(new Date(), 'An error occured: ' + error.message);

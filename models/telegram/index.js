@@ -18,7 +18,7 @@ class Telegram extends NetworkModel {
       }
     }
 
-    return this.makeRequest(axiosConfig, params).then(response => response.result);
+    return this.makeRequest(axiosConfig, params).then(response => response ? response.result : {});
   }
 
   sendInline (inlineId, results, nextOffset) {

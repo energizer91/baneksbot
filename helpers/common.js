@@ -85,30 +85,29 @@ module.exports = {
       return botApi.bot.fulfillAllSequentally(requests);
     });
   },
-  zipAneks: function (responses) {
-    let result = [];
-    for (let i = 0; i < responses.length; i++) {
-      if (responses[i] && responses[i].ops) {
-        result = result.concat(responses[i].ops);
-      }
-    }
-    return result;
-  },
-  redefineDatabase: function (count) {
-    return this.getAllAneks(count).then(function (responses) {
-      return botApi.bot.fulfillAllSequentally(responses.map(function (response) {
-        return botApi.database.Anek.collection.insertMany(response.response.items.reverse().map(function (anek) {
-          anek.post_id = anek.id;
-          anek.likes = anek.likes.count;
-          anek.reposts = anek.reposts.count;
-          delete anek.id;
-          return anek;
-        })).catch(function (error) {
-          console.log(error);
+  redefineDatabase: async function (count) {
+    const responses = await this.getAllAneks(count);
+
+    const aneks = responses
+      .reduce((acc, response) => acc.concat(response.response.items.reverse()), [])
+      .map(anek => {
+        anek.post_id = anek.id;
+        anek.likes = anek.likes.count;
+        anek.reposts = anek.reposts.count;
+        delete anek.id;
+        return anek;
+      });
+
+    if (aneks.length) {
+      return botApi.database.Anek.collection.insertMany(aneks)
+        .catch(err => {
+          console.log(err);
+
           return [];
         });
-      }));
-    });
+    }
+
+    return [];
   },
   updateAneks: function () {
     return this.getAllAneks().then(function (responses) {

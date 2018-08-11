@@ -36,14 +36,14 @@ class Vk extends NetworkModel {
   getPostById (postId, params = {}) {
     params.posts = this.groupId + '_' + postId;
     params._key = this.groupId;
-    console.log('Making VK request wall.getById', params);
+    // console.log('Making VK request wall.getById', params);
     return this.executeCommand('wall.getById', params, 'GET');
   }
 
   getPosts (params = {}) {
     params.owner_id = this.groupId;
 
-    console.log('Making VK request wall.get', params);
+    // console.log('Making VK request wall.get', params);
 
     params._key = this.groupId;
 
@@ -73,7 +73,7 @@ class Vk extends NetworkModel {
     params.owner_id = this.groupId;
     params.need_likes = 1;
 
-    console.log('Making VK request wall.getComments', params);
+    // console.log('Making VK request wall.getComments', params);
 
     params._key = this.groupId;
 
