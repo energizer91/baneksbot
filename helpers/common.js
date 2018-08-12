@@ -104,7 +104,8 @@ module.exports = {
           console.log(err);
 
           return [];
-        });
+        })
+        .then(() => aneks);
     }
 
     return [];

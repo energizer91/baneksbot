@@ -28,10 +28,8 @@ let dbUpdater;
 let forceStopDaemon = false;
 
 function startDaemon () {
-  const debug = typeof v8debug === 'object'; // eslint-disable-line
-
-  if (debug) {
-    process.execArgv.push('--debug=' + (40894)); // eslint-disable-line
+  if (process.env.NODE_ENV !== 'production') {
+    process.execArgv.push('--inspect=' + (40894));
   }
 
   dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js')); // eslint-disable-line

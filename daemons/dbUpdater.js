@@ -10,94 +10,97 @@ let updateInProcess = false;
 let forceDenyUpdate = false;
 
 function checkUpdateProgress (operation, ignoreUpdateProcess) {
-  return new Promise(function (resolve, reject) {
-    console.log(new Date(), operation);
-    if (updateInProcess && !ignoreUpdateProcess) {
-      return reject(new Error('Update is in progress'));
+  console.log(new Date(), operation);
+
+  if (updateInProcess && !ignoreUpdateProcess) {
+    throw new Error('Update is in progress');
+  }
+
+  if (forceDenyUpdate) {
+    throw new Error('Update is disabled');
+  }
+
+  if (!ignoreUpdateProcess) {
+    updateInProcess = true;
+  }
+
+  return true;
+}
+
+async function updateAneksTimer () {
+  try {
+    checkUpdateProgress('Initializing aneks update');
+
+    const count = await botApi.database.Anek.count();
+    const aneks = await common.redefineDatabase(count);
+
+    if (aneks.length) {
+      console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
+
+      const users = await botApi.database.User.find({subscribed: true});
+
+      await common.broadcastAneks(users, aneks, {_rule: 'common'});
+    } else {
+      console.log(new Date(), aneks.length + ' aneks found.');
     }
-    if (forceDenyUpdate) {
-      return reject(new Error('Update is disabled'));
-    }
-    if (!ignoreUpdateProcess) {
-      updateInProcess = true;
-    }
-
-    return resolve();
-  });
-}
-
-function updateAneksTimer () {
-  return checkUpdateProgress('Initializing aneks update')
-    .then(function () {
-      return botApi.database.Anek.count();
-    })
-    .then(count => common.redefineDatabase(count))
-    .then(aneks => {
-      if (aneks.length) {
-        console.log(new Date(), aneks.length + ' aneks found. Start broadcasting');
-      } else {
-        console.log(new Date(), aneks.length + ' aneks found.');
-      }
-      return botApi.database.User.find({subscribed: true})
-        .then(users => common.broadcastAneks(users, aneks, {_rule: 'common'}));
-    })
-    .catch(function (error) {
-      console.error(new Date(), 'An error occured: ' + error.message);
-    })
-    .then(function () {
-      console.log(new Date(), 'Updating aneks finished');
-      updateInProcess = false;
-    });
-}
-
-function updateLastAneksTimer () {
-  return checkUpdateProgress('Initializing last aneks update')
-    .then(function () {
-      return common.getLastAneks(100);
-    })
-    .catch(function (error) {
-      console.error(new Date(), 'An error occured: ' + error.message);
-    })
-    .then(function () {
-      console.log(new Date(), 'Updating last aneks finished');
-      updateInProcess = false;
-    });
-}
-
-function refreshAneksTimer () {
-  return checkUpdateProgress('Initializing aneks refresh')
-    .then(common.updateAneks.bind(common))
-    .catch(function (error) {
-      console.error(new Date(), 'An error occured: ' + error.message);
-    })
-    .then(function () {
-      console.log(new Date(), 'Refreshing aneks finished');
-      updateInProcess = false;
-    });
-}
-
-function synchronizeDatabase () {
-  return checkUpdateProgress('Initializing aneks refresh', true)
-    .then(synchronizeWithElastic)
-    .then(function (count) {
-      console.log(new Date(), 'Successfully indexed', count, 'records');
-    })
-    .catch(function (error) {
-      console.error(new Date(), 'An error occured: ' + error.message);
-    })
-    .then(function () {
-      console.log(new Date(), 'Synchronize database finished');
-    });
-}
-
-function calculateStatisticsTimer () {
-  return checkUpdateProgress('Initializing statistics calculate', true).then(function () {
-    return botApi.statistics.calculateStatistics();
-  }).catch(function (error) {
+  } catch (error) {
     console.error(new Date(), 'An error occured: ' + error.message);
-  }).then(function () {
+  } finally {
+    console.log(new Date(), 'Updating aneks finished');
+    updateInProcess = false;
+  }
+}
+
+async function updateLastAneksTimer () {
+  try {
+    checkUpdateProgress('Initializing last aneks update');
+
+    await common.getLastAneks(100);
+  } catch (error) {
+    console.error(new Date(), 'An error occured: ' + error.message);
+  } finally {
+    console.log(new Date(), 'Updating last aneks finished');
+    updateInProcess = false;
+  }
+}
+
+async function refreshAneksTimer () {
+  try {
+    checkUpdateProgress('Initializing aneks refresh');
+
+    await common.updateAneks();
+  } catch (error) {
+    console.error(new Date(), 'An error occured: ' + error.message);
+  } finally {
+    console.log(new Date(), 'Refreshing aneks finished');
+    updateInProcess = false;
+  }
+}
+
+async function synchronizeDatabase () {
+  try {
+    checkUpdateProgress('Initializing aneks refresh', true);
+
+    const count = await synchronizeWithElastic();
+
+    console.log(new Date(), 'Successfully indexed', count, 'records');
+  } catch (error) {
+    console.error(new Date(), 'An error occured: ' + error.message);
+  } finally {
+    console.log(new Date(), 'Synchronize database finished');
+  }
+}
+
+async function calculateStatisticsTimer () {
+  try {
+    checkUpdateProgress('Initializing statistics calculate', true);
+
+    await botApi.statistics.calculateStatistics();
+  } catch (error) {
+    console.error(new Date(), 'An error occured: ' + error.message);
+  } finally {
     console.log(new Date(), 'Statistics calculate finished');
-  });
+  }
 }
 
 const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, true);
