@@ -156,7 +156,7 @@ process.on('message', function (m) {
 
 function synchronizeWithElastic () {
   return new Promise(function (resolve, reject) {
-    if (config.get('mongodb.searchEngine')) {
+    if (config.get('mongodb.searchEngine') !== 'elastic') {
       console.log('Database synchronizing is only available on elasticsearch engine');
       return;
     }
