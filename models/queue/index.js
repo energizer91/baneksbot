@@ -228,12 +228,7 @@ class Queue {
   }
 
   get getTotalLength () {
-    let count = 0;
-    Object.keys(this.queue).forEach(function (key) {
-      count += this.queue[key].data.length;
-    }, this);
-
-    return count;
+    return Object.keys(this.queue).reduce((acc, key) => acc + this.queue[key].data.length, 0);
   }
 }
 

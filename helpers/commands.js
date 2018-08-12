@@ -165,28 +165,27 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
   }
 
   const params = {
-    parse_mode: 'Markdown'
+    parse_mode: 'Markdown',
+    _key: 'debug',
+    _rule: 'common'
   };
-  let editedMessage;
 
-  clearInterval(debugTimer);
+  if (debugTimer) {
+    clearInterval(debugTimer);
+  }
+
+  const sentMessage = await botApi.bot.sendMessage(message.from.id, generateDebug(), params);
+
+  let editedMessage = sentMessage.message_id;
 
   debugTimer = setInterval(async () => {
-    if (!editedMessage) {
-      const sentMessage = await botApi.bot.sendMessage(message.from.id, generateDebug(), params);
-
-      editedMessage = sentMessage.message_id;
-
-      return;
-    }
-
     try {
       await botApi.bot.editMessageText(message.from.id, editedMessage, generateDebug(), params);
     } catch (e) {
       console.log('debug error', e);
       clearInterval(debugTimer);
     }
-  }, 1500);
+  }, 1000);
 });
 
 botApi.bot.onCommand('stop_debug', (command, message) => {
