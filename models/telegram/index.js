@@ -134,7 +134,7 @@ class Telegram extends NetworkModel {
         return this.sendAudio(userId, attach, params);
       case 'video':
         return this.sendVideo(userId, attach, params);
-      case 'doc':
+      case 'document':
         return this.sendDocument(userId, attach, params);
       case 'poll':
         const poll = 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map((answer, index) => {
