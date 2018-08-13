@@ -147,7 +147,7 @@ module.exports = {
 
     return aneks
       .filter(this.filterAnek)
-      .map(anek => botApi.bot.fulfillAll(users.map(user => botApi.bot.sendAnek(user.user_id, anek, params)
+      .map(anek => botApi.bot.fulfillAll(users.map(user => botApi.bot.sendAnek(user.user_id, Object.assign({}, anek), params)
         .catch(function (error) {
           if ((!error.ok && (error.error_code === 403)) || (
             error.description === 'Bad Request: chat not found' ||

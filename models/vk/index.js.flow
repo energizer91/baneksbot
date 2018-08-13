@@ -55,6 +55,15 @@ export type Comment = {
   attachments: Attachment[]
 }
 
+export type Anek = {
+  post_id: number,
+  from_id: number,
+  text: string,
+  attachments: Attachment[],
+  copy_history: Anek[],
+  marked_as_ads: boolean
+}
+
 declare export default class Vk {
   getAllComments(postId: string): Promise<Comment[]>
 }
