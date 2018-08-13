@@ -60,6 +60,7 @@ class NetworkModel extends EventEmitter {
       });
     }).then(lastResponse => {
       results.push(lastResponse);
+
       return results;
     });
   }

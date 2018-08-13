@@ -140,7 +140,12 @@ class Telegram extends NetworkModel {
         return this.sendMessageWithChatAction(userId, 'typing', poll, params);
       case 'link':
         const link = attachment.link.title + '\n' + attachment.link.url;
+
         return this.sendMessageWithChatAction(userId, 'typing', link, params);
+      default:
+        console.log('Unknown attachment', attachment);
+
+        return {};
     }
   }
 
