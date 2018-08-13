@@ -37,6 +37,10 @@ class Telegram extends NetworkModel {
   }
 
   sendMessage (userId, message, params) {
+    if (!message) {
+      return {};
+    }
+
     return this.sendRequest('sendMessage', {
       chat_id: userId,
       text: message,

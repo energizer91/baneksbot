@@ -48,7 +48,7 @@ async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
 
   await botApi.bot.editMessageButtons(callbackQuery.message, []);
 
-  const sendMessage = await botApi.bot.forwardMessageToChannel(suggest, {native: anonymous});
+  const sendMessage = await botApi.bot.forwardMessageToChannel(suggest, {native: !anonymous});
 
   await botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Предложение одобрено.');
 
