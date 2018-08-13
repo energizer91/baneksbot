@@ -141,21 +141,31 @@ class Bot extends Telegram {
       return;
     }
 
-    const buttons = this.getAnekButtons(anek, params);
+    const immutableAnek = Object.assign({}, anek);
 
-    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
-      const insideMessage = anek.copy_history[0];
+    const buttons = this.getAnekButtons(immutableAnek, params);
 
-      insideMessage.post_id = anek.post_id;
-      insideMessage.from_id = anek.from_id;
-      insideMessage.text = anek.text + (anek.text.length ? '\n' : '') + insideMessage.text;
+    if (immutableAnek.copy_history && immutableAnek.copy_history.length && immutableAnek.post_id) {
+      const insideMessage = immutableAnek.copy_history[0];
+
+      insideMessage.post_id = immutableAnek.post_id;
+      insideMessage.from_id = immutableAnek.from_id;
+      insideMessage.text = immutableAnek.text + (immutableAnek.text.length ? '\n' : '') + insideMessage.text;
+
+      if (immutableAnek.attachments && immutableAnek.attachments.length) {
+        if (!insideMessage.attachments || !insideMessage.attachments.length) {
+          insideMessage.attachments = [];
+        }
+
+        insideMessage.attachments = insideMessage.attachments.concat(immutableAnek.attachments);
+      }
 
       return this.sendAnek(userId, insideMessage, params);
     }
 
     const replyMarkup = this.prepareInlineKeyboard(buttons);
 
-    return this.sendMessage(userId, anek.text, {
+    return this.sendMessage(userId, immutableAnek.text, {
       reply_markup: replyMarkup,
       ...params
     })
