@@ -199,7 +199,7 @@ if (config.get('mongodb.searchEngine') === 'elastic') {
     hosts: config.get('mongodb.elasticHosts'),
     hydrate: true,
     hydrateOptions: {
-      select: 'text post_id likes'
+      select: 'text post_id from_id likes'
     }
   });
 } else if (config.get('mongodb.searchEngine') === 'native') {
