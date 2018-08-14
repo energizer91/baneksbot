@@ -225,6 +225,15 @@ botApi.bot.onCommand('redefine_database', async (command, message, user) => {
 
   return botApi.bot.sendMessage(message.from.id, 'redefine success');
 });
+botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  botApi.updater.sendMessage({type: 'service', action: 'synchronize', value: true});
+
+  return botApi.bot.sendMessage(message.from.id, 'synchronize start');
+});
 
 botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {
@@ -705,31 +714,6 @@ botApi.bot.onCommand('find', async (command, message, user) => {
 
     return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_not_found'));
   }
-});
-
-botApi.bot.onCommand('synchronize', async (command, message, user) => {
-  if (!user.admin) {
-    throw new Error('Unauthorized access');
-  }
-
-  return new Promise(function (resolve, reject) {
-    const stream = botApi.database.Anek.synchronize();
-    let count = 0;
-
-    stream.on('data', function () {
-      count++;
-    });
-    stream.on('close', function () {
-      return resolve(count);
-    });
-    stream.on('error', function (err) {
-      return reject(err);
-    });
-  }).then(function (count) {
-    return botApi.bot.sendMessage(message.chat.id, 'Successfully indexed ' + count + ' records');
-  }).catch(function (error) {
-    return botApi.bot.sendMessage(message.chat.id, 'An error occured: ' + error.message);
-  });
 });
 
 botApi.bot.on('suggest', async (suggest, user) => {
