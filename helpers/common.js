@@ -17,7 +17,7 @@ module.exports = {
   },
   searchAneksElastic: function (searchPhrase, limit, skip) {
     return new Promise(function (resolve, reject) {
-      return botApi.database.Anek.esSearch({
+      return botApi.database.Anek.search({
         query: {
           match: {
             text: searchPhrase

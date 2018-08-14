@@ -813,52 +813,50 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   throw new Error('Unknown callback query ' + queryData);
 });
 
-botApi.bot.on('inlineQuery', (inlineQuery, user) => {
+botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   const aneksCount = 5;
   let results = [];
-  let searchAction;
+  let aneks = [];
 
-  if (!inlineQuery.query) {
-    searchAction = botApi.database.Anek.find({text: {$ne: ''}})
-      .sort({date: -1})
-      .skip(inlineQuery.offset || 0)
-      .limit(aneksCount)
-      .exec();
-  } else {
-    searchAction = common.performSearch(inlineQuery.query, aneksCount, inlineQuery.offset || 0);
+  try {
+    if (!inlineQuery.query) {
+      aneks = await botApi.database.Anek.find({text: {$ne: ''}})
+        .sort({date: -1})
+        .skip(inlineQuery.offset || 0)
+        .limit(aneksCount)
+        .exec();
+    } else {
+      aneks = await common.performSearch(inlineQuery.query, aneksCount, inlineQuery.offset || 0);
+    }
+
+    results = aneks.map((anek, index) => {
+      let highlightText = anek.text;
+
+      if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
+        highlightText = anek._highlight.text[0];
+      }
+
+      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
+
+      return {
+        type: 'article',
+        id: anek.post_id.toString() + index,
+        title: dict.translate(user.language, 'anek_number', {number: anek.post_id || index}),
+        input_message_content: {
+          message_text: anek.text,
+          parse_mode: 'HTML'
+        },
+        reply_markup: {
+          inline_keyboard: buttons
+        },
+        description: highlightText.slice(0, 100)
+      };
+    });
+
+    return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
+  } catch (error) {
+    console.error('inline querry error', error);
+
+    return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
   }
-
-  return searchAction
-    .then(aneks => {
-      results = aneks.map((anek, index) => {
-        let highlightText = anek.text;
-
-        if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
-          highlightText = anek._highlight.text[0];
-        }
-
-        const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
-
-        return {
-          type: 'article',
-          id: anek.post_id.toString() + index,
-          title: dict.translate(user.language, 'anek_number', {number: anek.post_id || 0}),
-          input_message_content: {
-            message_text: anek.text,
-            parse_mode: 'HTML'
-          },
-          reply_markup: {
-            inline_keyboard: buttons
-          },
-          description: highlightText.slice(0, 100)
-        };
-      });
-
-      return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
-    })
-    .catch(error => {
-      console.error('inline querry error', error);
-
-      return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
-    })
 });

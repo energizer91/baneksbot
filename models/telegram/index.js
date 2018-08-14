@@ -8,7 +8,9 @@ class Telegram extends NetworkModel {
       method: method.toLowerCase()
     };
 
-    params._key = params._key || params.chat_id;
+    if (!params._key) {
+      params._key = params.chat_id;
+    }
 
     if (!params._rule) {
       if (params._key > 0) {
