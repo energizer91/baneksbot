@@ -187,11 +187,43 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
     }
   }, 1000);
 });
+botApi.bot.onCommand('stop_debug', (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
 
-botApi.bot.onCommand('stop_debug', (command, message) => {
   clearInterval(debugTimer);
 
   return botApi.bot.sendMessage(message.from.id, 'дебаг прекращен');
+});
+botApi.bot.onCommand('disable_update', (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  botApi.updater.sendMessage({type: 'service', action: 'update', value: false});
+
+  return botApi.bot.sendMessage(message.from.id, 'Апдейтер отключен');
+});
+botApi.bot.onCommand('enable_update', (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  botApi.updater.sendMessage({type: 'service', action: 'update', value: true});
+
+  return botApi.bot.sendMessage(message.from.id, 'Апдейтер включен');
+});
+botApi.bot.onCommand('redefine_database', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  await botApi.bot.sendMessage(message.from.id, 'redefine start');
+  await botApi.database.Anek.remove({});
+  await common.redefineDatabase(0);
+
+  return botApi.bot.sendMessage(message.from.id, 'redefine success');
 });
 
 botApi.bot.onCommand('user', async (command, message, user) => {
@@ -417,7 +449,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 });
 
 botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin')));
-botApi.bot.onCommand('error', (command, message) => botApi.bot.sendMessage(message.chat.id, null));
+botApi.bot.onCommand('error', (command, message) => botApi.bot.sendMessage(message.chat.id, ''));
 botApi.bot.onCommand('bret', (command, message) => botApi.bot.sendMessage(message.chat.id, 'Удолил'));
 botApi.bot.onCommand('madway', (command, message) => botApi.bot.sendMessage(message.chat.id, '@Lyasya кикай'));
 botApi.bot.onCommand('do_rock', (command, message) => botApi.bot.sendMessage(message.chat.id, 'денис'));

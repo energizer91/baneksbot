@@ -29,8 +29,8 @@ class NetworkModel extends EventEmitter {
       .then(response => response.data)
       .catch(error => {
         if (typeof backoff === 'function' && error.response.status === 429) {
-          console.warn('Back off request', error.response.parameters);
-          return backoff(error.response.parameters.retry_after);
+          console.warn('Back off request', error.response.data.parameters);
+          return backoff(error.response.data.parameters.retry_after);
         }
 
         if (error.response.status >= 400 && error.response.status <= 600) {

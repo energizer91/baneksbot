@@ -43,11 +43,11 @@ async function updateAneksTimer () {
     } else {
       console.log(new Date(), aneks.length + ' aneks found.');
     }
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'An error occured: ' + error.message);
   } finally {
     console.log(new Date(), 'Updating aneks finished');
-    updateInProcess = false;
   }
 }
 
@@ -56,11 +56,11 @@ async function updateLastAneksTimer () {
     checkUpdateProgress('Initializing last aneks update');
 
     await common.getLastAneks(100);
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'An error occured: ' + error.message);
   } finally {
     console.log(new Date(), 'Updating last aneks finished');
-    updateInProcess = false;
   }
 }
 
@@ -69,11 +69,11 @@ async function refreshAneksTimer () {
     checkUpdateProgress('Initializing aneks refresh');
 
     await common.updateAneks();
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'An error occured: ' + error.message);
   } finally {
     console.log(new Date(), 'Refreshing aneks finished');
-    updateInProcess = false;
   }
 }
 

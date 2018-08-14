@@ -7,6 +7,11 @@ import database from './helpers/mongo';
 
 declare module.exports: {
   connect(app: {}): void,
+  updater: {
+    connected: boolean,
+    connect(): void,
+    sendMessage(message: {}): void,
+  },
   bot: Bot,
   database: typeof database,
   user: User,

@@ -2,6 +2,8 @@ const Bot = require('./models/bot');
 const User = require('./models/user');
 const Vk = require('./models/vk');
 const Statistics = require('./models/statistics');
+const path = require('path');
+const cp = require('child_process');
 
 const database = require('./helpers/mongo');
 const config = require('config');
@@ -62,11 +64,63 @@ const connect = app => {
   app.post(config.get('telegram.endpoint'), middlewares);
 };
 
+let dbUpdater;
+
+function startDaemon () {
+  if (process.env.NODE_ENV !== 'production') {
+    process.execArgv.push('--inspect=' + (40894));
+  }
+
+  dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
+
+  const text = 'Aneks update process has been started at ' + new Date().toISOString();
+
+  console.log(text);
+  bot.sendMessageToAdmin(text);
+
+  dbUpdater.on('close', function (code, signal) {
+    console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+    bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+
+    startDaemon();
+  });
+
+  dbUpdater.on('message', m => {
+    switch (m.type) {
+      case 'message':
+        if (!m.message) {
+          return;
+        }
+
+        return bot.sendMessage(m.userId, m.message, m.params);
+    }
+
+    console.log('PARENT got message:', m);
+  });
+}
+
+function sendUpdaterMessage (message) {
+  if (!dbUpdater || !dbUpdater.connected) {
+    throw new Error('Updater is not connected');
+  }
+
+  if (!message || !message.type || !message.action) {
+    throw new Error('Message is not defined properly');
+  }
+
+  dbUpdater.send(message);
+}
+
 module.exports = {
   bot,
   connect,
   database,
   user,
   statistics,
-  vk
+  vk,
+  updater: {
+    ...dbUpdater,
+    connect: startDaemon,
+    sendMessage: sendUpdaterMessage
+  }
 };
