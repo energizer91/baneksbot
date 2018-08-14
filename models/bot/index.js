@@ -141,7 +141,7 @@ class Bot extends Telegram {
       return;
     }
 
-    const immutableAnek = Object.assign({}, anek.toObject());
+    const immutableAnek = Object.assign({}, anek.toObject ? anek.toObject() : anek);
 
     const buttons = this.getAnekButtons(immutableAnek, params);
 
