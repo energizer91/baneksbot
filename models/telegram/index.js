@@ -23,11 +23,11 @@ class Telegram extends NetworkModel {
     return this.makeRequest(axiosConfig, params).then(response => response ? response.result : {});
   }
 
-  sendInline (inlineId, results, nextOffset) {
+  sendInline (inlineId, results, nextOffset = 0) {
     return this.sendRequest('answerInlineQuery', {
       inline_query_id: inlineId,
       results: JSON.stringify(results),
-      next_offset: nextOffset || 0,
+      next_offset: String(nextOffset),
       cache_time: 0,
       _key: Number(inlineId),
       _rule: config.get('telegram.rules.inlineQuery')

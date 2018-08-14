@@ -6,18 +6,12 @@ const config = require('config');
 const botApi = require('../botApi');
 
 module.exports = {
-  searchAneks: function (searchPhrase, limit, skip) {
-    return botApi.database.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip || 0).exec().then(function (results) {
-      if (results.length) {
-        return results;
-      }
-
-      throw new Error('Nothing was found.');
-    });
+  searchAneks: function (searchPhrase, skip = 0, limit) {
+    return botApi.database.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip).exec();
   },
-  searchAneksElastic: function (searchPhrase, limit, skip) {
+  searchAneksElastic: function (searchPhrase, skip = 0, limit) {
     return new Promise(function (resolve, reject) {
-      return botApi.database.Anek.search({
+      return botApi.database.Anek.esSearch({
         query: {
           match: {
             text: searchPhrase
@@ -42,16 +36,16 @@ module.exports = {
           return resolve(results.hits.hits);
         }
 
-        return reject(new Error('Nothing was found.'));
+        return resolve([]);
       });
     });
   },
-  performSearch: function (searchPhrase, limit, skip) {
+  performSearch: function (searchPhrase, skip, limit) {
     if (config.get('mongodb.searchEngine') === 'elastic') {
-      return this.searchAneksElastic(searchPhrase, limit, skip);
+      return this.searchAneksElastic(searchPhrase, skip, limit);
     }
 
-    return this.searchAneks(searchPhrase, limit, skip);
+    return this.searchAneks(searchPhrase, skip, limit);
   },
   getLastAneks: function (count) {
     botApi.vk.getPosts({offset: 0, count: count})

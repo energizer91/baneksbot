@@ -814,7 +814,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 });
 
 botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
-  const aneksCount = 5;
+  const skip = Number(inlineQuery.offset || 0);
+  const limit = 5;
   let results = [];
   let aneks = [];
 
@@ -822,11 +823,11 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
     if (!inlineQuery.query) {
       aneks = await botApi.database.Anek.find({text: {$ne: ''}})
         .sort({date: -1})
-        .skip(inlineQuery.offset || 0)
-        .limit(aneksCount)
+        .skip(skip)
+        .limit(limit)
         .exec();
     } else {
-      aneks = await common.performSearch(inlineQuery.query, aneksCount, inlineQuery.offset || 0);
+      aneks = await common.performSearch(inlineQuery.query, limit, skip);
     }
 
     results = aneks.map((anek, index) => {
@@ -853,10 +854,10 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
       };
     });
 
-    return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
+    return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
   } catch (error) {
     console.error('inline querry error', error);
 
-    return botApi.bot.sendInline(inlineQuery.id, results, inlineQuery.offset + aneksCount);
+    return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
   }
 });
