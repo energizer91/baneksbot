@@ -706,7 +706,7 @@ botApi.bot.onCommand('find', async (command, message, user) => {
   }
 
   try {
-    const aneks = await common.performSearch(searchPhrase, 1, 0, botApi.database);
+    const aneks = await common.performSearch(searchPhrase, 0, 1, botApi.database);
 
     return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language});
   } catch (e) {
@@ -827,7 +827,7 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
         .limit(limit)
         .exec();
     } else {
-      aneks = await common.performSearch(inlineQuery.query, limit, skip);
+      aneks = await common.performSearch(inlineQuery.query, skip, limit);
     }
 
     results = aneks.map((anek, index) => {
