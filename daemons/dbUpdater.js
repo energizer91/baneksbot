@@ -7,14 +7,18 @@ const common = require('../helpers/common');
 const botApi = require('../botApi');
 
 let updateInProcess = false;
+let currentUpdate = '';
 let forceDenyUpdate = false;
 
 async function updateAneksTimer () {
-  if (updateInProcess || forceDenyUpdate) {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and update aneks');
+
     return;
   }
 
   updateInProcess = true;
+  currentUpdate = 'update aneks';
 
   try {
     const count = await botApi.database.Anek.count();
@@ -26,41 +30,53 @@ async function updateAneksTimer () {
       const users = await botApi.database.User.find({subscribed: true});
 
       await common.broadcastAneks(users, aneks, {_rule: 'common'});
+      updateInProcess = false;
     }
   } catch (error) {
     console.error(new Date(), 'Update aneks error', error);
+    updateInProcess = false;
   } finally {
     updateInProcess = false;
   }
 }
 
 async function updateLastAneksTimer () {
-  if (updateInProcess || forceDenyUpdate) {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and update last anek');
+
     return;
   }
 
   updateInProcess = true;
+  currentUpdate = 'update last anek';
 
   try {
     await common.getLastAneks(100);
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'Last aneks error', error);
+    updateInProcess = false;
   } finally {
     updateInProcess = false;
   }
 }
 
 async function refreshAneksTimer () {
-  if (updateInProcess || forceDenyUpdate) {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and refresh aneks');
+
     return;
   }
 
   updateInProcess = true;
+  currentUpdate = 'refresh aneks';
 
   try {
     await common.updateAneks();
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'Aneks refresh', error);
+    updateInProcess = false;
   } finally {
     updateInProcess = false;
   }
