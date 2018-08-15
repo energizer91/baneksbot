@@ -30,8 +30,8 @@ async function updateAneksTimer () {
       const users = await botApi.database.User.find({subscribed: true});
 
       await common.broadcastAneks(users, aneks, {_rule: 'common'});
-      updateInProcess = false;
     }
+    updateInProcess = false;
   } catch (error) {
     console.error(new Date(), 'Update aneks error', error);
     updateInProcess = false;
