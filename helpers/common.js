@@ -48,7 +48,7 @@ module.exports = {
     return this.searchAneks(searchPhrase, skip, limit);
   },
   getLastAneks: function (count) {
-    botApi.vk.getPosts({offset: 0, count: count})
+    return botApi.vk.getPosts({offset: 0, count: count})
       .then(function (response) {
         return response.response.items.map(function (anek) {
           return botApi.database.Anek.findOneAndUpdate({post_id: anek.post_id}, {
