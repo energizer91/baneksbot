@@ -38,7 +38,7 @@ class Telegram extends NetworkModel {
     return JSON.stringify({ inline_keyboard: buttons });
   }
 
-  sendMessage (userId, message, params) {
+  async sendMessage (userId, message, params) {
     if (!message) {
       return {};
     }
@@ -126,7 +126,7 @@ class Telegram extends NetworkModel {
     return this.sendMessage(userId, message, params);
   }
 
-  sendAttachment (userId, attachment, params) {
+  async sendAttachment (userId, attachment, params) {
     const {type, ...attach} = attachment;
 
     switch (type) {
@@ -139,15 +139,8 @@ class Telegram extends NetworkModel {
       case 'document':
         return this.sendDocument(userId, attach, params);
       case 'poll':
-        const poll = 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map((answer, index) => {
-          return (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)';
-        }).join('\n');
-
-        return this.sendMessageWithChatAction(userId, 'typing', poll, params);
       case 'link':
-        const link = attachment.link.title + '\n' + attachment.link.url;
-
-        return this.sendMessageWithChatAction(userId, 'typing', link, params);
+        return this.sendMessageWithChatAction(userId, 'typing', attach.text, params);
       default:
         console.log('Unknown attachment', attachment);
 
