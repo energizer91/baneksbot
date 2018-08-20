@@ -276,6 +276,16 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
   });
 });
 
+botApi.bot.onCommand('xax', async (command, message, user) => {
+  const aneks = await botApi.database.Anek.find({ $where: 'this.text.length < 10 && this.text.length > 0' }).exec();
+  const anek = aneks[Math.floor(aneks.length * Math.random())];
+
+  return botApi.bot.sendAnek(message.chat.id, anek, {
+    language: user.language,
+    admin: user.admin && (message.chat.id === message.from.id)
+  });
+});
+
 botApi.bot.onCommand('webhook_info', async (command, message, user) => {
   if (!user.admin) {
     throw new Error('Unauthorized access');
