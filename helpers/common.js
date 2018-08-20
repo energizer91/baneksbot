@@ -133,7 +133,7 @@ module.exports = {
     return !donate && !ads;
   },
   broadcastAneks: async function (users, aneks, params) {
-    let errorMessages = [];
+    let errorMessages = {};
 
     if (!users.length || !aneks.length) {
       return [];
@@ -147,21 +147,30 @@ module.exports = {
             error.description === 'Bad Request: chat not found' ||
             error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
             error.description === 'Bad Request: chat_id is empty')) {
-            errorMessages.push(user.user_id);
+            errorMessages[user.user_id] = true;
+
             return {};
           }
 
           return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
-        })))
-        .then(() => {
-          if (errorMessages.length) {
-            let text = errorMessages.length + ' messages has been sent with errors due to access errors. Unsubscribing them: \n' + errorMessages.join(', ');
-            console.log(text);
-            let bulk = botApi.database.User.collection.initializeOrderedBulkOp();
-            bulk.find({user_id: {$in: errorMessages}}).update({$set: {subscribed: false, deleted_subscribe: true}});
-            botApi.bot.sendMessageToAdmin(text);
-            return bulk.execute();
-          }
-        }));
+        }))))
+      .then(() => {
+        const usersArray = Object.keys(errorMessages).map(user => user);
+
+        if (usersArray.length) {
+          let text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
+          console.log(text);
+
+          let bulk = botApi.database.User.collection.initializeOrderedBulkOp();
+
+          bulk.find({user_id: {$in: usersArray}}).update({$set: {subscribed: false, deleted_subscribe: true}});
+          botApi.bot.sendMessageToAdmin(text);
+
+          return bulk.execute();
+        }
+      })
+      .catch(error => {
+        console.log('Some unknown error', error);
+      })
   }
 };

@@ -12,7 +12,7 @@ let forceDenyUpdate = false;
 
 function updateAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and update aneks');
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update aneks');
 
     return;
   }
@@ -32,6 +32,7 @@ function updateAneksTimer () {
     })
     .catch((error) => {
       console.error(new Date(), 'Update aneks error', error);
+      updateInProcess = false;
     })
     .then(() => {
       updateInProcess = false;
@@ -40,7 +41,7 @@ function updateAneksTimer () {
 
 function updateLastAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and update last anek');
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update last anek');
 
     return;
   }
@@ -51,6 +52,7 @@ function updateLastAneksTimer () {
   return common.getLastAneks(100)
     .catch((error) => {
       console.error(new Date(), 'Last aneks error', error);
+      updateInProcess = false;
     })
     .then(() => {
       updateInProcess = false;
@@ -59,7 +61,7 @@ function updateLastAneksTimer () {
 
 function refreshAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating', currentUpdate, 'and refresh aneks');
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and refresh aneks');
 
     return;
   }
