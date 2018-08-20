@@ -32,7 +32,6 @@ function updateAneksTimer () {
     })
     .catch((error) => {
       console.error(new Date(), 'Update aneks error', error);
-      updateInProcess = false;
     })
     .then(() => {
       updateInProcess = false;
@@ -52,7 +51,6 @@ function updateLastAneksTimer () {
   return common.getLastAneks(100)
     .catch((error) => {
       console.error(new Date(), 'Last aneks error', error);
-      updateInProcess = false;
     })
     .then(() => {
       updateInProcess = false;
@@ -144,13 +142,13 @@ process.on('message', function (m) {
   }
 });
 
-function synchronizeWithElastic () {
-  return new Promise(function (resolve, reject) {
-    if (config.get('mongodb.searchEngine') !== 'elastic') {
-      console.log('Database synchronizing is only available on elasticsearch engine');
-      return;
-    }
+async function synchronizeWithElastic () {
+  if (config.get('mongodb.searchEngine') !== 'elastic') {
+    console.log('Database synchronizing is only available on elasticsearch engine');
+    return;
+  }
 
+  return new Promise(function (resolve, reject) {
     let stream;
     let count = 0;
 
@@ -159,8 +157,6 @@ function synchronizeWithElastic () {
     } catch (err) {
       return reject(err);
     }
-
-    updateInProcess = true;
 
     stream.on('data', function () {
       count++;
