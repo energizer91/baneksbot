@@ -132,11 +132,11 @@ module.exports = {
 
     return !donate && !ads;
   },
-  broadcastAneks: function (users, aneks, params) {
+  broadcastAneks: async function (users, aneks, params) {
     let errorMessages = [];
 
     if (!users.length || !aneks.length) {
-      return Promise.resolve([]);
+      return [];
     }
 
     return aneks

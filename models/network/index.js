@@ -28,6 +28,10 @@ class NetworkModel extends EventEmitter {
     return this.queue.request(backoff => axios({...config, ...paramsOrData})
       .then(response => response.data)
       .catch(error => {
+        if (!error || !error.response) {
+          throw error;
+        }
+
         if (typeof backoff === 'function' && error.response.status === 429) {
           console.warn('Back off request', error.response.data.parameters);
           return backoff(error.response.data.parameters.retry_after);
