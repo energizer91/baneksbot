@@ -47,29 +47,41 @@ class NetworkModel extends EventEmitter {
       }), key, rule);
   }
 
-  fulfillAll (requests) {
+  async fulfillAll (requests) {
     let results = [];
 
     if (!requests.length) {
-      return Promise.resolve([]);
+      return [];
     }
 
     return requests.reduce((p, request) => {
-      return p.then(result => {
-        if (result) {
-          results.push(result);
-        }
+      return p
+        .then(result => {
+          if (result) {
+            results.push(result);
+          }
 
-        return request;
+          return request;
+        })
+        .catch(error => {
+          console.error('single fulfillment error', error);
+
+          return {};
+        })
+    }, Promise.resolve())
+      .then(lastResponse => {
+        results.push(lastResponse);
+
+        return results;
+      })
+      .catch(error => {
+        console.error('fulfillment error', error);
+
+        return results;
       });
-    }).then(lastResponse => {
-      results.push(lastResponse);
-
-      return results;
-    });
   }
 
-  fulfillAllSequentally (requests) {
+  async fulfillAllSequentally (requests) {
     let results = [];
 
     if (!requests.length) {
@@ -84,14 +96,14 @@ class NetworkModel extends EventEmitter {
 
         return request;
       }).catch(error => {
-        console.error('Sequental fullfilment error');
+        console.error('single sequental fulfillment error');
         console.error(error);
       });
-    }).then(lastResponse => {
+    }, Promise.resolve()).then(lastResponse => {
       results.push(lastResponse);
       return results;
     }).catch(error => {
-      console.error('Sequental fullfilment error');
+      console.error('Sequental fulfillment error');
       console.error(error);
       return results;
     });

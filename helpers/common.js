@@ -139,7 +139,7 @@ module.exports = {
       return [];
     }
 
-    return aneks
+    return Promise.all(aneks
       .filter(this.filterAnek)
       .map(anek => botApi.bot.fulfillAll(users.map(user => botApi.bot.sendAnek(user.user_id, anek, params)
         .catch(function (error) {
@@ -153,7 +153,7 @@ module.exports = {
           }
 
           return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
-        }))))
+        })))))
       .then(() => {
         const usersArray = Object.keys(errorMessages).map(user => user);
 
