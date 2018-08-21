@@ -6,9 +6,20 @@ const config = require('config');
 const common = require('../helpers/common');
 const botApi = require('../botApi');
 
+let updateInProcess = false;
+let currentUpdate = '';
 let forceDenyUpdate = false;
 
 function updateAneksTimer () {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update aneks');
+
+    return;
+  }
+
+  updateInProcess = true;
+  currentUpdate = 'update aneks';
+
   return botApi.database.Anek.count()
     .then(count => common.redefineDatabase(count))
     .then(aneks => {
@@ -21,20 +32,47 @@ function updateAneksTimer () {
     })
     .catch((error) => {
       console.error(new Date(), 'Update aneks error', error);
+    })
+    .then(() => {
+      updateInProcess = false;
     });
 }
 
 function updateLastAneksTimer () {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update last anek');
+
+    return;
+  }
+
+  updateInProcess = true;
+  currentUpdate = 'update last anek';
+
   return common.getLastAneks(100)
     .catch((error) => {
       console.error(new Date(), 'Last aneks error', error);
+    })
+    .then(() => {
+      updateInProcess = false;
     });
 }
 
 function refreshAneksTimer () {
+  if (updateInProcess) {
+    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and refresh aneks');
+
+    return;
+  }
+
+  updateInProcess = true;
+  currentUpdate = 'refresh aneks';
+
   return common.updateAneks()
     .catch((error) => {
       console.error(new Date(), 'Aneks refresh', error);
+    })
+    .then(() => {
+      updateInProcess = false;
     });
 }
 
