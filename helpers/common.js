@@ -151,7 +151,7 @@ module.exports = {
           return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
         })))))
       .then(() => {
-        const usersArray = Object.keys(errorMessages).map(user => user);
+        const usersArray = Object.keys(errorMessages);
 
         if (usersArray.length) {
           let text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
@@ -162,9 +162,6 @@ module.exports = {
 
           return bulk.execute();
         }
-      })
-      .catch(error => {
-        console.log('Some unknown error', error);
-      })
+      });
   }
 };
