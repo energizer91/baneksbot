@@ -23,6 +23,7 @@ class Vk extends NetworkModel {
 
     params._skipQueue = true;
     params._rule = 'vk';
+    params._getBackoff = () => 300;
 
     return this.makeRequest(axiosConfig, params).then(function (data) {
       if (data.error) {

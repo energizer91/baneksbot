@@ -20,6 +20,8 @@ class Telegram extends NetworkModel {
       }
     }
 
+    params._getBackoff = error => error.response.data.parameters.retry_after;
+
     return this.makeRequest(axiosConfig, params).then(response => response ? response.result : {});
   }
 

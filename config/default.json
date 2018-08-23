@@ -56,15 +56,20 @@
         "priority": 4
       }
     },
-    "defaultRule": "common",
-    "defaultKey": "common",
-    "overallRate": 30,
-    "overallLimit": 1,
-    "defaultRate": 30,
-    "defaultLimit": 1,
+    "overall": {
+      "rate": 30,
+      "limit": 1
+    },
+    "default": {
+      "rule": "common",
+      "key": "common",
+      "rate": 30,
+      "limit": 1,
+      "priority": 3
+    },
     "backOffTime": 300,
     "backOffTimeout": 900,
-    "ignoreOverallOverheat": true
+    "ignoreOverallOverheat": false
   },
   "vk": {
     "url": "https://api.vk.com/method/",

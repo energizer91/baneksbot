@@ -31,8 +31,8 @@ declare export default class Queue {
   createQueue(queueName: string, request: Request, callback: Callback, rule: Rule): QueueItem;
   getRule(name: string, params?: {}): Rule;
   addBackOff(item: ShiftItemStructure, delay: number): void;
-  execute(): Promise<boolean | QueueItem>;
-  shift(): ShiftItemStructure;
+  execute(queue?: QueueItem): Promise<boolean | QueueItem>;
+  shift(queue?: QueueItem): ShiftItemStructure;
   heat(): void;
   findMostImportant(bestQueue?: QueueItem): QueueItem;
   setCooldown(queue: QueueItem): void;

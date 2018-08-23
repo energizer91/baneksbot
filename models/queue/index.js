@@ -13,12 +13,17 @@ class Queue {
           priority: 3
         }
       },
-      defaultRule: 'common',
-      defaultKey: 'common',
-      defaultRate: 30,
-      defaultLimit: 1,
-      overallRate: 30,
-      overallLimit: 1,
+      default: {
+        rule: 'common',
+        key: 'common',
+        rate: 30,
+        limit: 1,
+        priority: 3
+      },
+      overall: {
+        rate: 30,
+        limit: 1
+      },
       backOffTime: 300,
       backOffTimeout: 900,
       ignoreOverallOverheat: true
@@ -27,7 +32,7 @@ class Queue {
     this.queue = {};
     this.overheat = 0;
     this.pending = false;
-    this.heatPart = this.params.overallLimit * 1000 / this.params.overallRate;
+    this.heatPart = this.params.overall.limit * 1000 / this.params.overall.rate;
   }
 
   createQueue (queueName, request, callback, rule) {
@@ -56,31 +61,30 @@ class Queue {
     }
 
     this.params.rules[name] = Object.assign({
-      rate: this.params.defaultRate,
-      limit: this.params.defaultLimit,
-      priority: 3
+      rate: this.params.default.rate,
+      limit: this.params.default.limit,
+      priority: this.params.default.priority
     }, params);
 
     return this.params.rules[name];
   }
 
   addBackoff (item, delay) {
-    setTimeout(() => {
-      return this.add(item.item.request, item.item.callback, item.queue.key, item.queue.ruleName);
-    }, delay * 1000);
+    return this.delay(delay * 1000)
+      .then(() => this.add(item.item, item.queue.key, item.queue.ruleName));
   }
 
-  add (request, callback, key, rule) {
-    const queue = this.createQueue(key || this.params.defaultKey, request, callback, rule || this.params.defaultRule);
+  add (request, callback, key = this.params.default.key, rule = this.params.default.rule) {
+    const queue = this.createQueue(key, request, callback, rule);
 
     if (!this.pending) {
-      this.execute();
+      return this.execute(queue);
     }
 
     return queue;
   }
 
-  execute () {
+  execute (queue) {
     this.pending = true;
 
     let backoffState = false;
@@ -90,10 +94,10 @@ class Queue {
       backoffTimer = delay || this.params.backOffTime;
     };
 
-    return this.shift()
+    return this.shift(queue)
       .then(nextItem => {
-        if (!nextItem.item) {
-          return false;
+        if (!nextItem || !nextItem.item) {
+          return;
         }
 
         this.heat();
@@ -115,36 +119,37 @@ class Queue {
       });
   }
 
-  shift () {
-    return this.findMostImportant().then((currentQueue) => {
-      if (!currentQueue || !currentQueue.data.length) {
-        return false;
-      }
+  shift (queue) {
+    return this.findMostImportant(queue)
+      .then((currentQueue) => {
+        if (!currentQueue || !currentQueue.data.length) {
+          return;
+        }
 
-      this.setCooldown(currentQueue);
+        this.setCooldown(currentQueue);
 
-      return {
-        queue: currentQueue,
-        item: currentQueue.data.shift()
-      };
-    });
+        return {
+          queue: currentQueue,
+          item: currentQueue.data.shift()
+        };
+      });
   };
 
   heat () {
     if (this.params.ignoreOverallOverheat) {
-      return false;
+      return;
     }
 
-    this.overheat = this.heatPart;
+    this.overheat += this.heatPart;
 
     setTimeout(() => {
-      this.overheat = 0;
+      this.overheat = Math.max(this.overheat - this.heatPart, 0);
     }, this.heatPart);
   }
 
-  findMostImportant (bestQueue) {
+  async findMostImportant (bestQueue) {
     if (bestQueue) {
-      return Promise.resolve(bestQueue);
+      return bestQueue;
     }
 
     let maximumPriority = Infinity;
@@ -160,23 +165,23 @@ class Queue {
       if (this.queue[queue].cooldown < minimalCooldown) {
         minimalCooldown = this.queue[queue].cooldown;
       }
-    }, this);
+    });
 
     if (minimalCooldown > 0 && minimalCooldown !== Infinity) {
       return this.delay(minimalCooldown)
-        .then(this.findMostImportant.bind(this));
+        .then(queue => this.findMostImportant(queue));
     }
 
     if (this.isOverheated && !this.params.ignoreOverallOverheat) {
       return this.delay(this.overheat)
-        .then(this.findMostImportant.bind(this));
+        .then(queue => this.findMostImportant(queue));
     }
 
     if (!selectedQueue && this.getTotalLength === 0) {
       this.pending = false;
     }
 
-    return Promise.resolve(selectedQueue);
+    return selectedQueue;
   }
 
   setCooldown (queue) {
@@ -194,16 +199,13 @@ class Queue {
     }, cooldown);
   }
 
-  delay (time) {
-    return new Promise(function (resolve) {
-      setTimeout(function () {
-        return resolve();
-      }, time || 0);
-    });
+  delay (time = 0) {
+    return new Promise(resolve => setTimeout(resolve, time));
   }
 
   isCool (queue) {
     const cooldown = this.queue[queue].rule.limit * 1000 / this.queue[queue].rule.rate;
+
     return this.queue[queue].cooldown < cooldown;
   }
 
@@ -213,7 +215,7 @@ class Queue {
 
   request (fn, key = 'common', rule = 'common') {
     return new Promise((resolve, reject) => {
-      return this.add(fn, function (error, data) {
+      return this.add(fn, (error, data) => {
         if (error) {
           return reject(error);
         }

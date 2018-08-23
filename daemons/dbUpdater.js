@@ -27,7 +27,7 @@ function updateAneksTimer () {
         console.log(new Date(), aneks.length + ' anek(s) found. Start broadcasting');
 
         return botApi.database.User.find({subscribed: true}).exec()
-          .then(users => common.broadcastAneks(users, aneks, {_rule: 'common'}));
+          .then(users => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
       }
     })
     .catch((error) => {

@@ -17,7 +17,7 @@ class NetworkModel extends EventEmitter {
     }
 
     const paramsOrData = {};
-    const {_key: key, _rule: rule, ...httpParams} = params;
+    const {_key: key, _rule: rule, getBackoff: _getBackoff, ...httpParams} = params;
 
     if (config.method === 'post') {
       paramsOrData.data = httpParams;
@@ -34,12 +34,13 @@ class NetworkModel extends EventEmitter {
 
         if (typeof backoff === 'function' && error.response.status === 429) {
           console.warn('Back off request', error.response.data.parameters);
-          return backoff(error.response.data.parameters.retry_after);
+          backoff(_getBackoff ? _getBackoff(error) : 300);
+
+          return error;
         }
 
         if (error.response.status >= 400 && error.response.status <= 600) {
-          console.error('An error occured with code ' + error.response.status);
-          console.error(error.response.data);
+          console.error('An error occured with code ' + error.response.status, error.response.data);
           throw error.response.data;
         }
 

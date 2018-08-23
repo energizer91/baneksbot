@@ -235,6 +235,12 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
   return botApi.bot.sendMessage(message.from.id, 'synchronize start');
 });
 
+// botApi.bot.onCommand('bc', async (command, message, user) => {
+//   const aneks = await botApi.database.Anek.find().sort({date: -1}).limit(10).exec();
+//
+//   return common.broadcastAneks([user, {user_id: 1}, {user_id: 2}, {user_id: 3}, {user_id: 4}, {user_id: 5}], aneks);
+// });
+
 botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {
     const count = await botApi.database.User.count();
