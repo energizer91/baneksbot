@@ -105,26 +105,22 @@ module.exports = {
     return [];
   },
   updateAneks: function () {
-    return this.getAllAneks().then(function (responses) {
-      let aneks = [];
+    return this.getAllAneks()
+      .then(responses => {
+        let bulk = botApi.database.Anek.collection.initializeOrderedBulkOp();
 
-      responses.forEach(function (response) {
-        aneks = aneks.concat(response.response.items.reverse().map(function (anek) {
-          return [{post_id: anek.post_id}, {
-            likes: anek.likes.count,
-            comments: anek.comments,
-            reposts: anek.reposts.count
-          }];
-        }));
-      });
+        responses.forEach(response => {
+          response.response.items.forEach(anek => {
+            bulk.find({post_id: anek.post_id}).update({$set: {
+              likes: anek.likes.count,
+              comments: anek.comments,
+              reposts: anek.reposts.count
+            }});
+          });
+        });
 
-      return botApi.bot.fulfillAll(aneks.map(function (anek) {
-        return botApi.database.Anek.findOneAndUpdate(anek[0], anek[1]);
-      })).catch(function (error) {
-        console.log(error);
-        return [];
+        return bulk.execute();
       });
-    });
   },
   filterAnek: function (anek) {
     const donate = (anek.text || '').indexOf('#донат') >= 0;
@@ -159,8 +155,6 @@ module.exports = {
 
         if (usersArray.length) {
           let text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
-          console.log(text);
-
           let bulk = botApi.database.User.collection.initializeOrderedBulkOp();
 
           bulk.find({user_id: {$in: usersArray}}).update({$set: {subscribed: false, deleted_subscribe: true}});
