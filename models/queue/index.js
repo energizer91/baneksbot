@@ -71,7 +71,7 @@ class Queue {
 
   addBackoff (item, delay) {
     return this.delay(delay * 1000)
-      .then(() => this.add(item.item, item.queue.key, item.queue.ruleName));
+      .then(() => this.add(item.item.request, item.queue.key, item.queue.ruleName));
   }
 
   add (request, callback, key = this.params.default.key, rule = this.params.default.rule) {
