@@ -90,9 +90,9 @@ function calculateStatisticsTimer () {
 }
 
 const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, true);
-const updateLastAneksCron = new CronJob('0 0 */1 * * *', updateLastAneksTimer, null, true);
+const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
-const refreshAneksCron = new CronJob('0 0 0 */1 * *', refreshAneksTimer, null, true);
+const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
 
 new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // eslint-disable-line
 
