@@ -60,7 +60,7 @@ function performSearch (searchPhrase, skip, limit) {
   return this.searchAneks(searchPhrase, skip, limit);
 }
 
-async function getAneksUpdate (skip = 0, limit = 10, aneks = []) {
+async function getAneksUpdate (skip = 0, limit = 100, aneks = []) {
   const lastDBAnek = await botApi.database.Anek.findOne().sort({date: -1}).exec();
   const lastDBAnekDate = lastDBAnek.date;
   const vkAneks = await botApi.vk.getPosts({offset: skip, count: limit});
