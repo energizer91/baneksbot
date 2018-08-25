@@ -20,8 +20,7 @@ function updateAneksTimer () {
   updateInProcess = true;
   currentUpdate = 'update aneks';
 
-  return botApi.database.Anek.count()
-    .then(count => common.redefineDatabase(count))
+  return common.getAneksUpdate()
     .then(aneks => {
       if (aneks.length) {
         console.log(new Date(), aneks.length + ' anek(s) found. Start broadcasting');
