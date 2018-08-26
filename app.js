@@ -18,7 +18,7 @@ botApi.connect(app);
 
 require('./helpers/commands');
 
-botApi.updater.connect();
+// botApi.updater.connect();
 
 app.use('/', routes);
 
