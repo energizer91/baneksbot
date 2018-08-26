@@ -285,8 +285,12 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
 botApi.bot.onCommand('xax', async (command, message, user) => {
   const max = command[1] || 300;
   const min = command[2] || 10;
-  const aneks = await botApi.database.Anek.find({ $where: `this.text.length <= ${max} && this.text.length >= ${min}` }).exec();
-  const anek = aneks[Math.floor(aneks.length * Math.random())];
+  const aneksLength = await botApi.database.Anek
+    .find({ $where: `this.text.length <= ${max} && this.text.length >= ${min}` })
+    .count();
+  const anek = await botApi.database.Anek
+    .findOne({ $where: `this.text.length <= ${max} && this.text.length >= ${min}` })
+    .skip(Math.floor(Math.random() * aneksLength));
 
   return botApi.bot.sendAnek(message.chat.id, anek, {
     language: user.language,
