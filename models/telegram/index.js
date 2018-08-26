@@ -45,6 +45,29 @@ class Telegram extends NetworkModel {
       return {};
     }
 
+    if (message.length > 4096) {
+      const messages = [];
+
+      let messageCursor = 0;
+      let messagePart = '';
+
+      do {
+        messagePart = message.slice(messageCursor, messageCursor + 4096);
+
+        if (messagePart) {
+          messages.push(messagePart);
+        }
+
+        messageCursor += 4096;
+      } while (messagePart);
+
+      if (messages.length) {
+        return this.sendMessages(userId, messages, params);
+      }
+
+      return this.sendMessage(userId, message, params);
+    }
+
     return this.sendRequest('sendMessage', {
       chat_id: userId,
       text: message,
