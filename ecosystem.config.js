@@ -4,7 +4,7 @@ module.exports = {
     script: './bin/www',
     env: {
       NODE_ENV: 'development',
-      DEBUG: '*'
+      DEBUG: 'baneks-node:*'
     },
     env_production: {
       NODE_ENV: 'production',
