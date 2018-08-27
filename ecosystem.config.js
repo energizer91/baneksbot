@@ -3,10 +3,12 @@ module.exports = {
     name: 'baneksbot',
     script: './bin/www',
     env: {
-      NODE_ENV: 'development'
+      NODE_ENV: 'development',
+      DEBUG: '*'
     },
     env_production: {
-      NODE_ENV: 'production'
+      NODE_ENV: 'production',
+      DEBUG: 'baneks-node:*:error'
     }
   }]
 };

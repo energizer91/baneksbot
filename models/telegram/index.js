@@ -1,28 +1,37 @@
 const NetworkModel = require('../network');
 const config = require('config');
+const debug = require('debug')('baneks-node:telegram');
+const debugError = require('debug')('baneks-node:telegram:error');
 
 class Telegram extends NetworkModel {
+  constructor () {
+    super();
+
+    this.endpoint = `${config.get('telegram.url')}${config.get('telegram.token')}`;
+    this.params = {
+      _getBackoff: error => error.response.data.parameters.retry_after
+    };
+    this.individualRule = config.get('telegram.rules.individualMessage');
+    this.groupRule = config.get('telegram.rules.groupMessage');
+  }
+
   sendRequest (request, params = {}, method = 'POST') {
     const axiosConfig = {
-      url: `${config.get('telegram.url')}${config.get('telegram.token')}/${request}`,
+      url: `${this.endpoint}/${request}`,
       method: method.toLowerCase()
     };
 
-    if (!params._key) {
-      params._key = params.chat_id;
+    const requestParams = Object.assign({}, this.params, params);
+
+    if (!requestParams._key) {
+      requestParams._key = requestParams.chat_id;
     }
 
-    if (!params._rule) {
-      if (params._key > 0) {
-        params._rule = config.get('telegram.rules.individualMessage');
-      } else {
-        params._rule = config.get('telegram.rules.groupMessage');
-      }
+    if (!requestParams._rule) {
+      requestParams._rule = requestParams._key > 0 ? this.individualRule : this.groupRule;
     }
 
-    params._getBackoff = error => error.response.data.parameters.retry_after;
-
-    return this.makeRequest(axiosConfig, params).then(response => response ? response.result : {});
+    return this.makeRequest(axiosConfig, requestParams).then(response => response ? response.result : {});
   }
 
   sendInline (inlineId, results, nextOffset = 0) {
@@ -61,12 +70,10 @@ class Telegram extends NetworkModel {
         messageCursor += 4096;
       } while (messagePart);
 
-      if (messages.length) {
-        return this.sendMessages(userId, messages, params);
-      }
-
-      return this.sendMessage(userId, message, params);
+      return this.sendMessages(userId, messages, params);
     }
+
+    debug('Sending message', userId, message, params);
 
     return this.sendRequest('sendMessage', {
       chat_id: userId,
@@ -75,11 +82,13 @@ class Telegram extends NetworkModel {
     });
   }
 
-  sendMessages (userId, messages, params) {
+  sendMessages (userId, messages = [], params) {
     return this.fulfillAll(messages.map(message => this.sendMessage(userId, message, params)));
   }
 
   forwardMessage (userId, messageId, fromId) {
+    debug('Forwarding message', userId, messageId, fromId);
+
     return this.sendRequest('forwardMessage', {
       chat_id: userId,
       from_chat_id: fromId,
@@ -138,6 +147,8 @@ class Telegram extends NetworkModel {
 
     await this.sendChatAction(userId, 'upload_photo');
 
+    debug('Sending media group', userId, mediaGroup, params);
+
     return this.sendRequest('sendMediaGroup', {
       chat_id: userId,
       media: JSON.stringify(mediaGroup),
@@ -154,6 +165,8 @@ class Telegram extends NetworkModel {
   async sendAttachment (userId, attachment, params) {
     const {type, ...attach} = attachment;
 
+    debug('Sending attachment', userId, attachment, params);
+
     switch (type) {
       case 'photo':
         return this.sendPhoto(userId, attach, params);
@@ -167,7 +180,7 @@ class Telegram extends NetworkModel {
       case 'link':
         return this.sendMessageWithChatAction(userId, 'typing', attach.text, params);
       default:
-        console.log('Unknown attachment', attachment);
+        debug('Unknown attachment', attachment);
 
         return {};
     }
@@ -198,6 +211,8 @@ class Telegram extends NetworkModel {
       throw new Error('No user specified!');
     }
 
+    debug('Sending sticker', userId, stickerId);
+
     return this.sendRequest('sendSticker', {
       chat_id: userId,
       sticker: stickerId
@@ -213,6 +228,8 @@ class Telegram extends NetworkModel {
   }
 
   answerCallbackQuery (queryId, payload = {}) {
+    debug('Answering callback query', queryId, payload);
+
     return this.sendRequest('answerCallbackQuery', {
       callback_query_id: queryId,
       text: payload.text,
@@ -221,8 +238,9 @@ class Telegram extends NetworkModel {
       _key: Number(queryId),
       _rule: config.get('telegram.rules.callbackQuery')
     })
-      .catch(function (error) {
-        console.error(error);
+      .catch(error => {
+        debugError(error);
+
         return {};
       });
   }
@@ -231,6 +249,8 @@ class Telegram extends NetworkModel {
     if (!text || !messageId) {
       return {};
     }
+
+    debug('Editing message text', chatId, messageId, text, params);
 
     return this.sendRequest('editMessageText', {
       chat_id: chatId,
@@ -251,21 +271,28 @@ class Telegram extends NetworkModel {
       message.chat_id = message.chat.id;
     }
 
+    debug('Editing message buttons', message, buttons);
+
     return this.sendRequest('editMessageReplyMarkup', message)
-      .catch(function (error) {
-        console.error('Editing message error', error);
+      .catch(error => {
+        debugError('Editing message error', error);
+
         return message;
       });
   }
 
   sendChatAction (userId, action) {
+    debug('Sending chat action', userId, action);
+
     return this.sendRequest('sendChatAction', {
       chat_id: userId,
-      action: action
+      action
     });
   }
 
   sendInvoice (userId, invoice) {
+    debug('Sending invoice', userId, invoice);
+
     return this.sendRequest('sendInvoice', {
       chat_id: userId,
       provider_token: config.get('telegram.paymentToken'),

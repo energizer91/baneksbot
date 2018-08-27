@@ -1,5 +1,6 @@
 const dict = require('../../helpers/dictionary');
 const config = require('config');
+const debug = require('debug')('baneks-node:bot');
 const Telegram = require('../telegram');
 
 class Bot extends Telegram {
@@ -31,6 +32,12 @@ class Bot extends Telegram {
     }
 
     return user.user_id;
+  }
+
+  convertTextLinks (text = '') {
+    const userRegexp = /\[(.+)\|(.+)\]/g;
+
+    return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
   }
 
   convertAttachment (attachment) {
@@ -165,7 +172,7 @@ class Bot extends Telegram {
 
     const replyMarkup = this.prepareInlineKeyboard(buttons);
 
-    return this.sendMessage(userId, immutableAnek.text, {
+    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
       reply_markup: replyMarkup,
       ...params
     })
@@ -174,7 +181,7 @@ class Bot extends Telegram {
   sendComment (userId, comment, params) {
     const attachments = this.convertAttachments(comment.attachments || []);
 
-    return this.sendMessage(userId, comment.text, params)
+    return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then(() => this.sendAttachments(userId, attachments, { forceAttachments: true }));
   }
 
@@ -266,32 +273,32 @@ class Bot extends Telegram {
   }
 
   performInlineQuery (inlineQuery, user) {
-    console.log('Performing inline query from ' + this.getUserInfo(user));
+    debug('Performing inline query from ' + this.getUserInfo(user));
     return this.emit('inlineQuery', inlineQuery, user);
   }
 
   performCallbackQuery (callbackQuery, user) {
-    console.log('Performing callback query from ' + this.getUserInfo(user));
+    debug('Performing callback query from ' + this.getUserInfo(user));
     return this.emit('callbackQuery', callbackQuery, user);
   }
 
   performMessage (message, user) {
-    console.log('Performing message from ' + this.getUserInfo(user));
+    debug('Performing message from ' + this.getUserInfo(user));
     return this.emit('message', message, user);
   }
 
   performCommand (command, message, user) {
-    console.log('Performing command from ' + this.getUserInfo(user));
+    debug('Performing command from ' + this.getUserInfo(user));
     return this.emit('command:' + command[0].slice(1), command, message, user);
   }
 
   performPreCheckoutQuery (preCheckoutQuery, user) {
-    console.log('Performing pre checkout query from ' + this.getUserInfo(user));
+    debug('Performing pre checkout query from ' + this.getUserInfo(user));
     return this.emit('preCheckoutQuery', preCheckoutQuery, user);
   }
 
   performSuccessfulPayment (successfulPayment, user) {
-    console.log('Performing successful payment from ' + this.getUserInfo(user));
+    debug('Performing successful payment from ' + this.getUserInfo(user));
     return this.emit('successfulPayment', successfulPayment, user);
   }
 

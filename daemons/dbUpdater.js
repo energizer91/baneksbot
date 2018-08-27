@@ -3,6 +3,8 @@
  */
 const CronJob = require('cron').CronJob;
 const config = require('config');
+const debug = require('debug')('baneks-node:updater');
+const error = require('debug')('baneks-node:updater:error');
 const common = require('../helpers/common');
 const botApi = require('../botApi');
 
@@ -12,7 +14,7 @@ let forceDenyUpdate = false;
 
 function updateAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update aneks');
+    debug('Conflict: updating ' + currentUpdate + ' and update aneks');
 
     return;
   }
@@ -23,14 +25,14 @@ function updateAneksTimer () {
   return common.getAneksUpdate()
     .then(aneks => {
       if (aneks.length) {
-        console.log(new Date(), aneks.length + ' anek(s) found. Start broadcasting');
+        debug(aneks.length + ' anek(s) found. Start broadcasting');
 
         return botApi.database.User.find({subscribed: true}).exec()
           .then(users => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
       }
     })
     .catch((error) => {
-      console.error(new Date(), 'Update aneks error', error);
+      error('Update aneks error', error);
     })
     .then(() => {
       updateInProcess = false;
@@ -39,7 +41,7 @@ function updateAneksTimer () {
 
 function updateLastAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and update last anek');
+    debug('Conflict: updating ' + currentUpdate + ' and update last anek');
 
     return;
   }
@@ -48,8 +50,8 @@ function updateLastAneksTimer () {
   currentUpdate = 'update last anek';
 
   return common.getLastAneks(100)
-    .catch((error) => {
-      console.error(new Date(), 'Last aneks error', error);
+    .catch(err => {
+      error('Last aneks error', err);
     })
     .then(() => {
       updateInProcess = false;
@@ -58,7 +60,7 @@ function updateLastAneksTimer () {
 
 function refreshAneksTimer () {
   if (updateInProcess) {
-    console.log(new Date(), 'Conflict: updating ' + currentUpdate + ' and refresh aneks');
+    debug('Conflict: updating ' + currentUpdate + ' and refresh aneks');
 
     return;
   }
@@ -67,8 +69,8 @@ function refreshAneksTimer () {
   currentUpdate = 'refresh aneks';
 
   return common.updateAneks()
-    .catch((error) => {
-      console.error(new Date(), 'Aneks refresh', error);
+    .catch(err => {
+      error('Aneks refresh', err);
     })
     .then(() => {
       updateInProcess = false;
@@ -77,15 +79,15 @@ function refreshAneksTimer () {
 
 function synchronizeDatabase () {
   return synchronizeWithElastic()
-    .catch((error) => {
-      console.error(new Date(), 'Database synchronize error', error);
+    .catch(err => {
+      error('Database synchronize error', err);
     });
 }
 
 function calculateStatisticsTimer () {
   return botApi.statistics.calculateStatistics()
-    .catch((error) => {
-      console.error(new Date(), 'Statistics calculate error', error);
+    .catch(err => {
+      error('Statistics calculate error', err);
     });
 }
 
@@ -97,11 +99,12 @@ const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, 
 new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // eslint-disable-line
 
 process.on('message', function (m) {
-  console.log('CHILD got message:', m);
+  debug('CHILD got message:', m);
+
   if (m.type === 'service') {
     switch (m.action) {
       case 'update':
-        console.log('Switch automatic updates to', m.value);
+        debug('Switch automatic updates to', m.value);
         forceDenyUpdate = !m.value;
 
         if (forceDenyUpdate) {
@@ -126,7 +129,7 @@ process.on('message', function (m) {
         process.send({type: 'message', userId: m.value, message: m.text || 'Проверка'});
         break;
       case 'anek':
-        return botApi.database.Anek.random().then(function (anek) {
+        return botApi.database.Anek.random().then(anek => {
           process.send({
             type: 'message',
             userId: m.value.user_id,
@@ -135,7 +138,7 @@ process.on('message', function (m) {
           });
         });
       default:
-        console.log('Unknown service command');
+        debug('Unknown service command');
         break;
     }
   }
@@ -143,7 +146,7 @@ process.on('message', function (m) {
 
 async function synchronizeWithElastic () {
   if (config.get('mongodb.searchEngine') !== 'elastic') {
-    console.log('Database synchronizing is only available on elasticsearch engine');
+    debug('Database synchronizing is only available on elasticsearch engine');
     return;
   }
 

@@ -65,11 +65,11 @@ async function getAneksUpdate (skip = 0, limit = 100, aneks = []) {
   const lastDBAnekDate = lastDBAnek.date;
   const vkAneks = await botApi.vk.getPosts({offset: skip, count: limit});
 
-  if (vkAneks.response.items[0] && vkAneks.response.items[0].is_pinned) {
-    vkAneks.response.items.splice(0, 1);
+  if (vkAneks.items[0] && vkAneks.items[0].is_pinned) {
+    vkAneks.items.splice(0, 1);
   }
 
-  if (!vkAneks.response.items.length) {
+  if (!vkAneks.items.length) {
     if (aneks.length) {
       return botApi.database.Anek.collection.insertMany(aneks)
         .then(() => {
@@ -80,9 +80,9 @@ async function getAneksUpdate (skip = 0, limit = 100, aneks = []) {
     return aneks;
   }
 
-  for (let i = 0; i < vkAneks.response.items.length; i++) {
-    if (vkAneks.response.items[i].date > lastDBAnekDate) {
-      aneks.unshift(processAnek(vkAneks.response.items[i]));
+  for (let i = 0; i < vkAneks.items.length; i++) {
+    if (vkAneks.items[i].date > lastDBAnekDate) {
+      aneks.unshift(processAnek(vkAneks.items[i]));
     } else {
       if (aneks.length) {
         return botApi.database.Anek.collection.insertMany(aneks).then(() => {
@@ -100,7 +100,7 @@ async function getAneksUpdate (skip = 0, limit = 100, aneks = []) {
 function getLastAneks (count) {
   return botApi.vk.getPosts({offset: 0, count: count})
     .then(function (response) {
-      return response.response.items.map(function (anek) {
+      return response.items.map(function (anek) {
         return botApi.database.Anek.findOneAndUpdate({post_id: anek.post_id}, {
           likes: anek.likes.count,
           comments: anek.comments,
@@ -135,7 +135,7 @@ async function redefineDatabase (count) {
   const responses = await this.getAllAneks(count);
 
   const aneks = responses
-    .reduce((acc, response) => acc.concat(response.response.items.reverse()), [])
+    .reduce((acc, response) => acc.concat(response.items.reverse()), [])
     .map(anek => {
       anek.post_id = anek.id;
       anek.likes = anek.likes.count;
@@ -146,11 +146,7 @@ async function redefineDatabase (count) {
 
   if (aneks.length) {
     return botApi.database.Anek.collection.insertMany(aneks)
-      .catch(err => {
-        console.log(err);
-
-        return [];
-      })
+      .catch(() => [])
       .then(() => aneks);
   }
 
@@ -163,7 +159,7 @@ function updateAneks () {
       let bulk = botApi.database.Anek.collection.initializeOrderedBulkOp();
 
       responses.forEach(response => {
-        response.response.items.forEach(anek => {
+        response.items.forEach(anek => {
           bulk.find({post_id: anek.post_id}).update({$set: {
             likes: anek.likes.count,
             comments: anek.comments,

@@ -5,15 +5,17 @@
 const mongoose = require('mongoose');
 const mongoosastic = require('mongoosastic');
 const config = require('config');
+const debug = require('debug')('baneks-node:mongo');
+const error = require('debug')('baneks-node:mongo:error');
 
 const db = mongoose.connection;
 
 mongoose.Promise = Promise;
 
-db.on('error', console.error);
+db.on('error', error);
 
 db.once('open', function () {
-  console.log('MongoDB connection successful');
+  debug('MongoDB connection successful');
 });
 
 const anekSchema = mongoose.Schema({

@@ -1,6 +1,7 @@
 const EventEmitter = require('../events');
 const Queue = require('../queue');
 const axios = require('axios');
+const debugError = require('debug')('baneks-node:network:error');
 
 const queue = new Queue();
 
@@ -33,14 +34,14 @@ class NetworkModel extends EventEmitter {
         }
 
         if (typeof backoff === 'function' && error.response.status === 429) {
-          console.warn('Back off request', error.response.data.parameters);
+          debugError('Back off request', error.response.data.parameters);
           backoff(_getBackoff ? _getBackoff(error) : 300);
 
           return error;
         }
 
         if (error.response.status >= 400 && error.response.status <= 600) {
-          console.error('An error occured with code ' + error.response.status, error.response.data);
+          debugError('An error occured with code ' + error.response.status, error.response.data);
           throw error.response.data;
         }
 
@@ -65,7 +66,7 @@ class NetworkModel extends EventEmitter {
           return request;
         })
         .catch(error => {
-          console.error('single fulfillment error', error);
+          debugError('single fulfillment error', error);
 
           return {};
         })
@@ -76,7 +77,7 @@ class NetworkModel extends EventEmitter {
         return results;
       })
       .catch(error => {
-        console.error('fulfillment error', error);
+        debugError('fulfillment error', error);
 
         return results;
       });
@@ -97,15 +98,13 @@ class NetworkModel extends EventEmitter {
 
         return request;
       }).catch(error => {
-        console.error('single sequental fulfillment error');
-        console.error(error);
+        debugError('single sequental fulfillment error', error);
       });
     }, Promise.resolve()).then(lastResponse => {
       results.push(lastResponse);
       return results;
     }).catch(error => {
-      console.error('Sequental fulfillment error');
-      console.error(error);
+      debugError('Sequental fulfillment error', error);
       return results;
     });
   }

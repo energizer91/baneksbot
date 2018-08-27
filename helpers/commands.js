@@ -2,6 +2,7 @@ const config = require('config');
 const common = require('./common');
 const dict = require('./dictionary');
 const botApi = require('../botApi');
+const debugError = require('debug')('baneks-node:commands:error');
 
 let debugTimer;
 
@@ -182,7 +183,6 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
     try {
       await botApi.bot.editMessageText(message.from.id, editedMessage, generateDebug(), params);
     } catch (e) {
-      console.log('debug error', e);
       clearInterval(debugTimer);
     }
   }, 1000);
@@ -480,7 +480,11 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 });
 
 botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin')));
-botApi.bot.onCommand('error', (command, message) => botApi.bot.sendMessage(message.chat.id, ''));
+botApi.bot.onCommand('error', (command, message) => {
+  debugError('lol kek');
+
+  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin'));
+});
 botApi.bot.onCommand('bret', (command, message) => botApi.bot.sendMessage(message.chat.id, 'Удолил'));
 botApi.bot.onCommand('madway', (command, message) => botApi.bot.sendMessage(message.chat.id, '@Lyasya кикай'));
 botApi.bot.onCommand('do_rock', (command, message) => botApi.bot.sendMessage(message.chat.id, 'денис'));
@@ -732,7 +736,7 @@ botApi.bot.onCommand('find', async (command, message, user) => {
 
     return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language});
   } catch (e) {
-    console.error(e);
+    debugError(e);
 
     return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_not_found'));
   }
@@ -776,16 +780,15 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       const comments = await botApi.vk.getAllComments(queryData[1]);
 
       return comments
-        .reduce((acc, anek) => acc.concat(anek.response.items), [])
+        .reduce((acc, anek) => acc.concat(anek.items), [])
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
         .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}))
-        .map(comment => botApi.bot.sendComment(callbackQuery.message.chat.id, comment, params));
+        .map(comment => botApi.bot.sendComment(callbackQuery.message.chat.id, comment, {...params, parse_mode: 'Markdown', disable_web_page_preview: true}));
     case 'attach':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
 
-      const posts = await botApi.vk.getPostById(queryData[1]);
-      let post = posts.response[0];
+      let post = await botApi.vk.getPostById(queryData[1]);
 
       if (!post) {
         throw new Error('Post not found');
@@ -878,7 +881,7 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
 
     return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
   } catch (error) {
-    console.error('inline querry error', error);
+    error('inline querry error', error);
 
     return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
   }

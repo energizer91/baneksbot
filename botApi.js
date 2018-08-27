@@ -7,6 +7,7 @@ const cp = require('child_process');
 
 const database = require('./helpers/mongo');
 const config = require('config');
+const debug = require('debug')('baneks-node:api');
 
 const earlyResponse = (req, res, next) => {
   res.status(200);
@@ -75,11 +76,11 @@ function startDaemon () {
 
   const text = 'Aneks update process has been started at ' + new Date().toISOString();
 
-  console.log(text);
+  debug(text);
   bot.sendMessageToAdmin(text);
 
   dbUpdater.on('close', function (code, signal) {
-    console.log('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+    debug('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
     bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
 
     startDaemon();
@@ -95,7 +96,7 @@ function startDaemon () {
         return bot.sendMessage(m.userId, m.message, m.params);
     }
 
-    console.log('PARENT got message:', m);
+    debug('PARENT got message:', m);
   });
 }
 

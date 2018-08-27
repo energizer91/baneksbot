@@ -1,50 +1,60 @@
 const NetworkModel = require('../network');
 const config = require('config');
+const debug = require('debug')('baneks-node:vk');
 
 class Vk extends NetworkModel {
   constructor () {
     super();
 
+    this.endpoint = config.get('vk.url');
     this.groupId = config.get('vk.group_id');
+    this.params = {
+      _skipQueue: true,
+      _rule: 'vk',
+      _getBackoff: () => 300,
+      v: config.get('vk.api_version'),
+      access_token: config.get('vk.access_token')
+    };
   }
 
   executeCommand (command, params, method = 'GET') {
     const axiosConfig = {
-      url: config.get('vk.url') + command,
+      url: this.endpoint + command,
       method: method.toLowerCase()
     };
 
-    if (config.get('vk.api_version')) {
-      params.v = config.get('vk.api_version');
-    }
-    if (config.get('vk.access_token')) {
-      params.access_token = config.get('vk.access_token');
-    }
+    const requestParams = Object.assign({}, this.params, params);
 
-    params._skipQueue = true;
-    params._rule = 'vk';
-    params._getBackoff = () => 300;
+    return this.makeRequest(axiosConfig, requestParams)
+      .then(data => {
+        if (data.error) {
+          throw new Error(data.error.error_msg || 'Unknown error');
+        }
 
-    return this.makeRequest(axiosConfig, params).then(function (data) {
-      if (data.error) {
-        throw new Error(data.error.error_msg || 'Unknown error');
-      }
-
-      return data;
-    });
+        return data.response || {};
+      });
   }
 
   getPostById (postId, params = {}) {
     params.posts = this.groupId + '_' + postId;
     params._key = this.groupId;
-    // console.log('Making VK request wall.getById', params);
-    return this.executeCommand('wall.getById', params, 'GET');
+
+    debug('Making VK request wall.getById', params);
+
+    return this.executeCommand('wall.getById', params, 'GET')
+      .then(posts => {
+        if (posts.length && posts[0]) {
+          return posts[0];
+        }
+
+        return null;
+      });
   }
 
   getPosts (params = {}) {
     params.owner_id = this.groupId;
 
-    // console.log('Making VK request wall.get', params);
+    debug('Making VK request wall.get', params);
 
     params._key = this.groupId;
 
@@ -54,18 +64,18 @@ class Vk extends NetworkModel {
   getCommentsCount (postId) {
     return this.getComments({post_id: postId, offset: 0, count: 1})
       .then(function (count) {
-        return (count.response || {}).count || 0;
+        return (count || {}).count || 0;
       });
   }
 
   getPostsCount () {
     return this.getPosts({offset: 0, count: 1})
-      .then(function (count) {
-        const postCount = (count.response || {}).count || 0;
+      .then(response => {
+        const count = (response || {}).count || 0;
 
         return {
-          count: postCount,
-          hasPinned: count.response.items ? count.response.items[0].is_pinned : false
+          count,
+          hasPinned: response.items ? response.items[0].is_pinned : false
         };
       });
   }
@@ -74,7 +84,7 @@ class Vk extends NetworkModel {
     params.owner_id = this.groupId;
     params.need_likes = 1;
 
-    // console.log('Making VK request wall.getComments', params);
+    debug('Making VK request wall.getComments', params);
 
     params._key = this.groupId;
 
