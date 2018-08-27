@@ -1,6 +1,6 @@
 const dict = require('../../helpers/dictionary');
 const config = require('config');
-const debug = require('debug')('baneks-node:bot');
+const debug = require('../../helpers/debug')('baneks-node:bot');
 const Telegram = require('../telegram');
 
 class Bot extends Telegram {

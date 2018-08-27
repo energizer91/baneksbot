@@ -7,7 +7,7 @@ const cp = require('child_process');
 
 const database = require('./helpers/mongo');
 const config = require('config');
-const debug = require('debug')('baneks-node:api');
+const debug = require('./helpers/debug')('baneks-node:api');
 
 const earlyResponse = (req, res, next) => {
   res.status(200);

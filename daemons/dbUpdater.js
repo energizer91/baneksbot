@@ -3,7 +3,7 @@
  */
 const CronJob = require('cron').CronJob;
 const config = require('config');
-const debug = require('debug')('baneks-node:updater');
+const debug = require('../helpers/debug')('baneks-node:updater');
 const error = require('debug')('baneks-node:updater:error');
 const common = require('../helpers/common');
 const botApi = require('../botApi');

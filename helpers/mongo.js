@@ -5,7 +5,7 @@
 const mongoose = require('mongoose');
 const mongoosastic = require('mongoosastic');
 const config = require('config');
-const debug = require('debug')('baneks-node:mongo');
+const debug = require('./debug')('baneks-node:mongo');
 const error = require('debug')('baneks-node:mongo:error');
 
 const db = mongoose.connection;

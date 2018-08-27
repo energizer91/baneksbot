@@ -1,6 +1,6 @@
 const NetworkModel = require('../network');
 const config = require('config');
-const debug = require('debug')('baneks-node:telegram');
+const debug = require('../../helpers/debug')('baneks-node:telegram');
 const debugError = require('debug')('baneks-node:telegram:error');
 
 class Telegram extends NetworkModel {

@@ -1,6 +1,6 @@
 const NetworkModel = require('../network');
 const config = require('config');
-const debug = require('debug')('baneks-node:vk');
+const debug = require('../../helpers/debug')('baneks-node:vk');
 
 class Vk extends NetworkModel {
   constructor () {
