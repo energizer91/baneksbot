@@ -778,7 +778,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 'comment':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
 
-      const comments = await botApi.vk.getAllComments(queryData[1])
+      const commentsResponse = await botApi.vk.getAllComments(queryData[1]);
+      const comments = commentsResponse
         .reduce((acc, anek) => acc.concat(anek.items), [])
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
