@@ -39,10 +39,21 @@ declare type Audio = {
   is_hq: number
 }
 
+declare type Video = {
+  id: number,
+  title?: string,
+  photo_800?: string,
+  photo_640?: string,
+  photo_320?: string,
+  photo_130?: string,
+  text: string
+}
+
 export type Attachment = {
   type: string,
   photo?: Photo,
-  audio?: Audio
+  audio?: Audio,
+  video?: Video
 }
 
 export type Comment = {

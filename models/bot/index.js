@@ -59,7 +59,8 @@ class Bot extends Telegram {
       case 'video':
         return {
           type: 'video',
-          text: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id
+          photo: attachment.video.photo_800 || attachment.video.photo_640 || attachment.video.photo_320 || attachment.video.photo_130,
+          caption: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id
         };
       case 'doc':
         return {
@@ -95,7 +96,7 @@ class Bot extends Telegram {
   getAnekButtons (anek, params = {}) {
     const buttons = [];
 
-    const {disableComments, language, forceAttachments, admin, disableAttachments} = params;
+    const {disableComments, language, admin} = params;
 
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
@@ -109,18 +110,6 @@ class Bot extends Telegram {
           text: dict.translate(language, 'comments'),
           callback_data: 'comment ' + anek.post_id
         });
-      }
-    }
-
-    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
-      if (!disableAttachments) {
-        buttons.push([]);
-        buttons[buttons.length - 1].push({
-          text: dict.translate(language, 'attachments'),
-          callback_data: 'attach ' + anek.post_id
-        });
-
-        anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
       }
     }
 
@@ -143,9 +132,9 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  sendAnek (userId, anek, params = {}) {
+  async sendAnek (userId, anek, params = {}) {
     if (!anek) {
-      return;
+      return {};
     }
 
     const immutableAnek = Object.assign({}, anek.toObject ? anek.toObject() : anek);
@@ -172,17 +161,33 @@ class Bot extends Telegram {
 
     const replyMarkup = this.prepareInlineKeyboard(buttons);
 
-    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
+    const message = await this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
       reply_markup: replyMarkup,
       ...params
-    })
+    });
+
+    if (immutableAnek.attachments) {
+      const attachments = this.convertAttachments(immutableAnek.attachments);
+
+      await this.sendAttachments(userId, attachments, {
+        reply_markup: replyMarkup,
+        forcePlaceholder: !immutableAnek.text,
+        ...params
+      });
+    }
+
+    return message;
   }
 
   sendComment (userId, comment, params) {
     const attachments = this.convertAttachments(comment.attachments || []);
 
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
-      .then(() => this.sendAttachments(userId, attachments, { forceAttachments: true }));
+      .then(() => this.sendAttachments(userId, attachments));
+  }
+
+  sendComments (userId, comments = [], params) {
+    return this.fulfillAll(comments.map(comment => this.sendComment(userId, comment, params)));
   }
 
   sendSuggest (userId, suggest, params) {

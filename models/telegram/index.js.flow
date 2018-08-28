@@ -123,13 +123,19 @@ declare type Photo = {
   parse_mode: 'markdown' | 'html'
 }
 
+declare type Video = {
+  type: 'video',
+  photo: string,
+  caption: string
+}
+
 declare type Audio = {
   type: 'audio',
   audio: string,
   caption: string
 }
 
-export type Attachment = Photo | Audio
+export type Attachment = Photo | Audio | Video
 
 declare export default class Telegram {
   prepareButtons(message: Message, params?: MessageParams): InlineKeyboardMarkup;

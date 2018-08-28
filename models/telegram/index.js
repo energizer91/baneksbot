@@ -123,7 +123,7 @@ class Telegram extends NetworkModel {
   async sendVideo (userId, video, params) {
     await this.sendChatAction(userId, 'upload_video');
 
-    return this.sendRequest('sendMessage', {
+    return this.sendRequest('sendPhoto', {
       chat_id: userId,
       ...video,
       ...params
@@ -146,6 +146,10 @@ class Telegram extends NetworkModel {
     }
 
     await this.sendChatAction(userId, 'upload_photo');
+
+    if (params.forcePlaceholder) {
+      await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
+    }
 
     debug('Sending media group', userId, mediaGroup, params);
 
@@ -186,7 +190,11 @@ class Telegram extends NetworkModel {
     }
   }
 
-  sendAttachments (userId, attachments, params) {
+  async sendAttachments (userId, attachments = [], params) {
+    if (!attachments.length) {
+      return [];
+    }
+
     const mediaGroup = attachments
       .filter(attachment => attachment.type === 'photo')
       .map(attachment => ({

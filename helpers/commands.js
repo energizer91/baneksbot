@@ -480,11 +480,6 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 });
 
 botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin')));
-botApi.bot.onCommand('error', (command, message) => {
-  debugError('lol kek');
-
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin'));
-});
 botApi.bot.onCommand('bret', (command, message) => botApi.bot.sendMessage(message.chat.id, 'Удолил'));
 botApi.bot.onCommand('madway', (command, message) => botApi.bot.sendMessage(message.chat.id, '@Lyasya кикай'));
 botApi.bot.onCommand('do_rock', (command, message) => botApi.bot.sendMessage(message.chat.id, 'денис'));
@@ -497,6 +492,12 @@ botApi.bot.onCommand('shlyapa', (command, message) => botApi.bot.sendMessage(mes
 botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
 botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
 botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.id, message.chat.id));
+
+botApi.bot.onCommand('attach', async (command, message) => {
+  const anek = await botApi.database.Anek.findOne({ attachments: { $size: Number(command[1]) || 1 } }).skip(Number(command[2] || 0)).exec();
+
+  return botApi.bot.sendAnek(message.chat.id, anek);
+});
 
 botApi.bot.onCommand('anek_by_id', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({post_id: command[1]});
@@ -777,14 +778,13 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 'comment':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
 
-      const comments = await botApi.vk.getAllComments(queryData[1]);
-
-      return comments
+      const comments = await botApi.vk.getAllComments(queryData[1])
         .reduce((acc, anek) => acc.concat(anek.items), [])
         .sort((a, b) => b.likes.count - a.likes.count)
         .slice(0, 3)
-        .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}))
-        .map(comment => botApi.bot.sendComment(callbackQuery.message.chat.id, comment, {...params, parse_mode: 'Markdown', disable_web_page_preview: true}));
+        .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
+
+      return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: 'Markdown', disable_web_page_preview: true});
     case 'attach':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
 
@@ -862,7 +862,7 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
         highlightText = anek._highlight.text[0];
       }
 
-      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
+      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true });
 
       return {
         type: 'article',
