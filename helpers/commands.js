@@ -391,7 +391,7 @@ botApi.bot.onCommand('help', async (command, message, user) => {
 botApi.bot.onCommand('force_attachments', async (command, message, user) => {
   const forceAttachments = !user.force_attachments;
 
-  await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {force_attachments: forceAttachments});
+  await botApi.database.User.findOneAndUpdate({user_id: message.from.id}, {force_attachments: forceAttachments});
 
   return botApi.bot.sendMessage(message.chat.id, 'Автовложения ' + (forceAttachments ? 'включены' : 'отключены' + '.'));
 });
