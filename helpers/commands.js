@@ -602,7 +602,7 @@ botApi.bot.onCommand('subscribe', async (command, message) => {
   let user;
 
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.updateWith({user_id: message.chat.id});
+    user = await botApi.user.updateWith(message.chat);
   } else {
     user = await botApi.database.User.findOne({user_id: message.from.id});
   }
@@ -620,7 +620,7 @@ botApi.bot.onCommand('unsubscribe', async (command, message) => {
   let user;
 
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.updateWith({user_id: message.chat.id});
+    user = await botApi.user.updateWith(message.chat);
   } else {
     user = await botApi.database.User.findOne({user_id: message.from.id});
   }

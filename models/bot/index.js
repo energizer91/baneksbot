@@ -31,6 +31,10 @@ class Bot extends Telegram {
       return user.last_name + ' (' + user.user_id + ')';
     }
 
+    if (user.title) {
+      return user.title;
+    }
+
     return user.user_id;
   }
 

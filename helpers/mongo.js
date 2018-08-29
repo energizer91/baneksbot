@@ -45,6 +45,7 @@ const userSchema = mongoose.Schema({
   username: String,
   first_name: String,
   last_name: String,
+  title: String,
   user_id: Number,
   subscribed: {type: Boolean, default: false},
   deleted_subscribe: {type: Boolean, default: false},

@@ -42,6 +42,15 @@ describe('Bot model', () => {
       expect(bot.getUserInfo(user)).to.equals('user (123)');
     });
 
+    it('should return title if it is exist', () => {
+      const user = {
+        user_id: 123,
+        title: 'super chat'
+      };
+
+      expect(bot.getUserInfo(user)).to.equals('super chat');
+    });
+
     it('should return user_id if nothing exists', () => {
       const user = {
         user_id: 123
