@@ -188,7 +188,7 @@ async function broadcastAneks (users, aneks, params) {
 
   return Promise.all(aneks
     .filter(this.filterAnek)
-    .map(anek => botApi.bot.fulfillAll(users.map(user => botApi.bot.sendAnek(user.user_id, anek, params)
+    .map(anek => botApi.bot.fulfillAll(users.map(user => botApi.bot.sendAnek(user.user_id, anek, {...params, forceAttachments: user.force_attachments})
       .catch(function (error) {
         if ((!error.ok && (error.error_code === 403)) || (
           error.description === 'Bad Request: chat not found' ||

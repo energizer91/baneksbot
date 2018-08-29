@@ -77,9 +77,9 @@ class Bot extends Telegram {
       case 'poll':
         return {
           type: 'poll',
-          text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || []).map(function (answer, index) {
-            return (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)';
-          }).join('\n')
+          text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || [])
+            .map((answer, index) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
+            .join('\n')
         };
       case 'link':
         return {
@@ -96,7 +96,7 @@ class Bot extends Telegram {
   getAnekButtons (anek, params = {}) {
     const buttons = [];
 
-    const {disableComments, language, admin} = params;
+    const {disableComments, language, forceAttachments, admin, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
@@ -110,6 +110,18 @@ class Bot extends Telegram {
           text: dict.translate(language, 'comments'),
           callback_data: 'comment ' + anek.post_id
         });
+      }
+    }
+
+    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
+      if (!disableAttachments) {
+        buttons.push([]);
+        buttons[buttons.length - 1].push({
+          text: dict.translate(language, 'attachments'),
+          callback_data: 'attach ' + anek.post_id
+        });
+
+        anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
       }
     }
 
@@ -166,7 +178,7 @@ class Bot extends Telegram {
       ...params
     });
 
-    if (immutableAnek.attachments) {
+    if (immutableAnek.attachments && params.forceAttachments) {
       const attachments = this.convertAttachments(immutableAnek.attachments);
 
       await this.sendAttachments(userId, attachments, {
@@ -183,11 +195,11 @@ class Bot extends Telegram {
     const attachments = this.convertAttachments(comment.attachments || []);
 
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
-      .then(() => this.sendAttachments(userId, attachments));
+      .then(() => this.sendAttachments(userId, attachments, { forceAttachments: true }));
   }
 
   sendComments (userId, comments = [], params) {
-    return this.fulfillAll(comments.map(comment => this.sendComment(userId, comment, params)));
+    return this.fulfillAllSequentally(comments.map(comment => this.sendComment(userId, comment, params)));
   }
 
   sendSuggest (userId, suggest, params) {

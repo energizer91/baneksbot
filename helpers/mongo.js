@@ -49,6 +49,7 @@ const userSchema = mongoose.Schema({
   subscribed: {type: Boolean, default: false},
   deleted_subscribe: {type: Boolean, default: false},
   feedback_mode: {type: Boolean, default: false},
+  force_attachments: {type: Boolean, default: false},
   suggest_mode: {type: Boolean, default: false},
   admin: {type: Boolean, default: false},
   editor: {type: Boolean, default: false},

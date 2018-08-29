@@ -271,7 +271,7 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
   } else if (command[1] && (!isNaN(Number(command[1])))) {
     const anek = await botApi.database.Anek.findOne().skip(parseInt(command[1]) - 1).exec();
 
-    return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language, forceAttachments: user.force_attachments});
   }
 
   const anek = await botApi.database.Anek.random();
@@ -294,7 +294,8 @@ botApi.bot.onCommand('xax', async (command, message, user) => {
 
   return botApi.bot.sendAnek(message.chat.id, anek, {
     language: user.language,
-    admin: user.admin && (message.chat.id === message.from.id)
+    admin: user.admin && (message.chat.id === message.from.id),
+    forceAttachments: user.force_attachments
   });
 });
 
@@ -387,6 +388,13 @@ botApi.bot.onCommand('help', async (command, message, user) => {
   return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'start'));
 });
 
+botApi.bot.onCommand('force_attachments', async (command, message, user) => {
+  const forceAttachments = !user.force_attachments;
+
+  await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {force_attachments: forceAttachments});
+
+  return botApi.bot.sendMessage(message.chat.id, 'Автовложения ' + (forceAttachments ? 'включены' : 'отключены' + '.'));
+});
 botApi.bot.onCommand('keyboard', async (command, message, user) => {
   if (message.chat.id !== message.from.id) {
     return botApi.bot.sendMessage(message.chat.id, 'Запрещено использовать клавиатуры в группах.');
@@ -397,11 +405,13 @@ botApi.bot.onCommand('keyboard', async (command, message, user) => {
   await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {keyboard: keyboardToggle});
 
   const params = {};
+
   if (keyboardToggle) {
     params.keyboard = true;
   } else {
     params.remove_keyboard = true;
   }
+
   return botApi.bot.sendMessage(message.chat.id, 'Клавиатура ' + (keyboardToggle ? 'включена' : 'отключена' + '.'), params);
 });
 botApi.bot.onCommand('english', async (command, message, user) => {
@@ -493,16 +503,16 @@ botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(mess
 botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
 botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.id, message.chat.id));
 
-botApi.bot.onCommand('attach', async (command, message) => {
+botApi.bot.onCommand('attach', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({ attachments: { $size: Number(command[1]) || 1 } }).skip(Number(command[2] || 0)).exec();
 
-  return botApi.bot.sendAnek(message.chat.id, anek);
+  return botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments});
 });
 
 botApi.bot.onCommand('anek_by_id', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({post_id: command[1]});
 
-  return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language});
+  return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language, forceAttachments: user.force_attachments});
 });
 
 botApi.bot.onCommand('find_user', async (command, message) => {
@@ -538,7 +548,7 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
 
   await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
@@ -551,7 +561,7 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
 
   await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
@@ -564,7 +574,7 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
 
   await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_ever', async (command, message, user) => {
   const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
@@ -576,7 +586,7 @@ botApi.bot.onCommand('top_ever', async (command, message, user) => {
 
   await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek)));
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(message.from.id, {
@@ -735,7 +745,7 @@ botApi.bot.onCommand('find', async (command, message, user) => {
   try {
     const aneks = await common.performSearch(searchPhrase, 0, 1, botApi.database);
 
-    return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language});
+    return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language, forceAttachments: user.force_attachments});
   } catch (e) {
     debugError(e);
 
@@ -863,7 +873,7 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
         highlightText = anek._highlight.text[0];
       }
 
-      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true });
+      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
 
       return {
         type: 'article',

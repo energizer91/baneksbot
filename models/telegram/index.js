@@ -101,7 +101,7 @@ class Telegram extends NetworkModel {
   }
 
   async sendPhoto (userId, photo, params) {
-    await this.sendChatAction(userId, 'upload_photo');
+    this.sendChatAction(userId, 'upload_photo');
 
     return this.sendRequest('sendPhoto', {
       chat_id: userId,
@@ -111,7 +111,7 @@ class Telegram extends NetworkModel {
   }
 
   async sendAudio (userId, audio, params) {
-    await this.sendChatAction(userId, 'upload_audio');
+    this.sendChatAction(userId, 'upload_audio');
 
     return this.sendRequest('sendAudio', {
       chat_id: userId,
@@ -121,7 +121,7 @@ class Telegram extends NetworkModel {
   }
 
   async sendVideo (userId, video, params) {
-    await this.sendChatAction(userId, 'upload_video');
+    this.sendChatAction(userId, 'upload_video');
 
     return this.sendRequest('sendPhoto', {
       chat_id: userId,
@@ -131,7 +131,7 @@ class Telegram extends NetworkModel {
   }
 
   async sendDocument (userId, video, params) {
-    await this.sendChatAction(userId, 'upload_document');
+    this.sendChatAction(userId, 'upload_document');
 
     return this.sendRequest('sendDocument', {
       chat_id: userId,
@@ -145,11 +145,11 @@ class Telegram extends NetworkModel {
       return {};
     }
 
-    await this.sendChatAction(userId, 'upload_photo');
-
     if (params.forcePlaceholder) {
       await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
     }
+
+    this.sendChatAction(userId, 'upload_photo');
 
     debug('Sending media group', userId, mediaGroup, params);
 
@@ -161,7 +161,7 @@ class Telegram extends NetworkModel {
   }
 
   async sendMessageWithChatAction (userId, chatAction, message, params) {
-    await this.sendChatAction(userId, chatAction);
+    this.sendChatAction(userId, chatAction);
 
     return this.sendMessage(userId, message, params);
   }
