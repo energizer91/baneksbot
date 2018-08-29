@@ -8,7 +8,7 @@ class User {
     return this.updateWith(user);
   }
 
-  updateWith (user, params = {}) {
+  updateWith (user, params) {
     if (!user) {
       return {};
     }
