@@ -610,7 +610,7 @@ botApi.bot.onCommand('subscribe', async (command, message) => {
   if (user) {
     if (!user.subscribed) {
       await botApi.user.updateWith(user, {subscribed: true});
-      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_success', {first_name: user.first_name}));
+      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_success', {first_name: user.first_name || user.title}));
     } else {
       return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_fail'));
     }
