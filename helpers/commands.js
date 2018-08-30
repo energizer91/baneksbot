@@ -2,7 +2,6 @@ const config = require('config');
 const common = require('./common');
 const dict = require('./dictionary');
 const botApi = require('../botApi');
-const debugError = require('debug')('baneks-node:commands:error');
 
 let debugTimer;
 
@@ -112,6 +111,32 @@ function generateRandomAnswer (answers) {
   const random = Math.floor(Math.random() * answers.length);
 
   return answers[random];
+}
+
+function transformAneks (aneks, user) {
+  return aneks.map((anek, index) => {
+    let highlightText = anek.text;
+
+    if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
+      highlightText = anek._highlight.text[0];
+    }
+
+    const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
+
+    return {
+      type: 'article',
+      id: anek.post_id.toString() + index,
+      title: dict.translate(user.language, 'anek_number', {number: anek.post_id || index}),
+      input_message_content: {
+        message_text: anek.text,
+        parse_mode: 'HTML'
+      },
+      reply_markup: {
+        inline_keyboard: buttons
+      },
+      description: highlightText.slice(0, 100)
+    };
+  });
 }
 
 async function performSuggest (command, message, user) {
@@ -743,21 +768,20 @@ botApi.bot.onCommand('find', async (command, message, user) => {
   const searchPhrase = command.join(' ');
 
   if (!searchPhrase.length) {
-    if (searchPhrase.length < 4 && searchPhrase.length > 0) {
-      return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_short'));
-    }
     return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_empty'));
   }
 
-  try {
-    const aneks = await common.performSearch(searchPhrase, 0, 1, botApi.database);
+  if (searchPhrase.length < 4) {
+    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_short'));
+  }
 
-    return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language, forceAttachments: user.force_attachments});
-  } catch (e) {
-    debugError(e);
+  const aneks = await common.performSearch(searchPhrase, 0, 1, botApi.database);
 
+  if (!aneks.length) {
     return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_not_found'));
   }
+
+  return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language, forceAttachments: user.force_attachments});
 });
 
 botApi.bot.on('suggest', async (suggest, user) => {
@@ -859,48 +883,19 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   const skip = Number(inlineQuery.offset || 0);
   const limit = 5;
-  let results = [];
   let aneks = [];
 
-  try {
-    if (!inlineQuery.query) {
-      aneks = await botApi.database.Anek.find({text: {$ne: ''}})
-        .sort({date: -1})
-        .skip(skip)
-        .limit(limit)
-        .exec();
-    } else {
-      aneks = await common.performSearch(inlineQuery.query, skip, limit);
-    }
-
-    results = aneks.map((anek, index) => {
-      let highlightText = anek.text;
-
-      if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
-        highlightText = anek._highlight.text[0];
-      }
-
-      const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
-
-      return {
-        type: 'article',
-        id: anek.post_id.toString() + index,
-        title: dict.translate(user.language, 'anek_number', {number: anek.post_id || index}),
-        input_message_content: {
-          message_text: anek.text,
-          parse_mode: 'HTML'
-        },
-        reply_markup: {
-          inline_keyboard: buttons
-        },
-        description: highlightText.slice(0, 100)
-      };
-    });
-
-    return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
-  } catch (error) {
-    error('inline querry error', error);
-
-    return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
+  if (!inlineQuery.query) {
+    aneks = await botApi.database.Anek.find({text: {$ne: ''}})
+      .sort({date: -1})
+      .skip(skip)
+      .limit(limit)
+      .exec();
+  } else {
+    aneks = await common.performSearch(inlineQuery.query, skip, limit);
   }
+
+  const results = transformAneks(aneks, user);
+
+  return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
 });

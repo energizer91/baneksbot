@@ -96,10 +96,6 @@ class Telegram extends NetworkModel {
     });
   }
 
-  forwardMessages (userId, messages, params) {
-    return this.fulfillAll(messages.map(message => this.forwardMessage(userId, message, params)));
-  }
-
   async sendPhoto (userId, photo, params) {
     this.sendChatAction(userId, 'upload_photo');
 

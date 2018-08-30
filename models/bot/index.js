@@ -210,7 +210,7 @@ class Bot extends Telegram {
   }
 
   sendComments (userId, comments = [], params) {
-    return Promise.all(comments.map(comment => this.sendComment(userId, comment, params)));
+    return this.fulfillAll(comments.map(comment => this.sendComment(userId, comment, params)));
   }
 
   sendSuggest (userId, suggest, params) {
