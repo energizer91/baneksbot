@@ -12,10 +12,8 @@ declare type RequestParams = {
 
 }
 
-declare var queue: Queue;
-
 declare export default class NetworkModel {
+  queue: Queue;
   makeRequest(config: RequestConfig, params: RequestParams): Promise<any>;
   fulfillAll<T>(requests: Promise<T>[]): Promise<T[]>;
-  fulfillAllSequentally<T>(requests: Promise<T>[]): Promise<T[]>;
 }

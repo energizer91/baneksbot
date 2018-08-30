@@ -177,33 +177,40 @@ class Bot extends Telegram {
 
     const replyMarkup = this.prepareInlineKeyboard(buttons);
 
-    const message = await this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
+    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
       reply_markup: replyMarkup,
       ...params
-    });
+    })
+      .then(message => {
+        if (immutableAnek.attachments && params.forceAttachments) {
+          const attachments = this.convertAttachments(immutableAnek.attachments);
 
-    if (immutableAnek.attachments && params.forceAttachments) {
-      const attachments = this.convertAttachments(immutableAnek.attachments);
+          return this.sendAttachments(userId, attachments, {
+            reply_markup: replyMarkup,
+            forcePlaceholder: !immutableAnek.text,
+            ...params
+          });
+        }
 
-      await this.sendAttachments(userId, attachments, {
-        reply_markup: replyMarkup,
-        forcePlaceholder: !immutableAnek.text,
-        ...params
-      });
-    }
-
-    return message;
+        return message;
+      })
   }
 
   sendComment (userId, comment, params) {
     const attachments = this.convertAttachments(comment.attachments || []);
 
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
-      .then(() => this.sendAttachments(userId, attachments, { forceAttachments: true }));
+      .then(message => {
+        if (attachments.length) {
+          return this.sendAttachments(userId, attachments, { forceAttachments: true });
+        }
+
+        return message;
+      });
   }
 
   sendComments (userId, comments = [], params) {
-    return this.fulfillAllSequentally(comments.map(comment => this.sendComment(userId, comment, params)));
+    return Promise.all(comments.map(comment => this.sendComment(userId, comment, params)));
   }
 
   sendSuggest (userId, suggest, params) {

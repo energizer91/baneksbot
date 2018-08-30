@@ -82,32 +82,6 @@ class NetworkModel extends EventEmitter {
         return results;
       });
   }
-
-  async fulfillAllSequentally (requests) {
-    let results = [];
-
-    if (!requests.length) {
-      return [];
-    }
-
-    return requests.reduce((p, request) => {
-      return p.then(result => {
-        if (result) {
-          results.push(result);
-        }
-
-        return request;
-      }).catch(error => {
-        debugError('single sequental fulfillment error', error);
-      });
-    }, Promise.resolve()).then(lastResponse => {
-      results.push(lastResponse);
-      return results;
-    }).catch(error => {
-      debugError('Sequental fulfillment error', error);
-      return results;
-    });
-  }
 }
 
 module.exports = NetworkModel;

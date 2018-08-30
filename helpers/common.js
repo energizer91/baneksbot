@@ -127,7 +127,7 @@ function getAllAneks (start) {
       requests.push(botApi.vk.getPosts({offset: current, count: step}));
     }
 
-    return botApi.bot.fulfillAllSequentally(requests);
+    return botApi.bot.fulfillAll(requests);
   });
 }
 

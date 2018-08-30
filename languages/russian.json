@@ -24,6 +24,7 @@
   "top_day": "Топ {count} за сутки:",
   "top_week": "Топ {count} за неделю:",
   "top_month": "Топ {count} за месяц:",
+  "top_year": "Топ {count} за год:",
   "top_ever": "Топ {count} за всё время:",
   "th_place": "{nth} место:\n",
   "go_to_anek": "К анеку",

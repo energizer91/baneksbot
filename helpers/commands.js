@@ -235,12 +235,6 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
   return botApi.bot.sendMessage(message.from.id, 'synchronize start');
 });
 
-// botApi.bot.onCommand('bc', async (command, message, user) => {
-//   const aneks = await botApi.database.Anek.find().sort({date: -1}).limit(10).exec();
-//
-//   return common.broadcastAneks([user, {user_id: 1}, {user_id: 2}, {user_id: 3}, {user_id: 4}, {user_id: 5}], aneks);
-// });
-
 botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {
     const count = await botApi.database.User.count();
@@ -573,6 +567,19 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .exec();
 
   await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}));
+
+  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+});
+botApi.bot.onCommand('top_year', async (command, message, user) => {
+  const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
+  const aneks = await botApi.database.Anek
+    .find({})
+    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 365}})
+    .sort({likes: -1})
+    .limit(count)
+    .exec();
+
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_year', {count: count}));
 
   return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });

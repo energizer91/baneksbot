@@ -24,6 +24,7 @@
   "top_day": "Top {count} daily:",
   "top_week": "Top {count} weekly:",
   "top_month": "Top {count} monthly:",
+  "top_year": "Top {count} yearly:",
   "top_ever": "Top {count} ever:",
   "th_place": "{nth} place:\n",
   "go_to_anek": "Go to",

@@ -211,12 +211,12 @@ class Telegram extends NetworkModel {
   }
 
   sendSticker (userId, stickerId) {
-    if (!stickerId) {
-      throw new Error('No sticker specified!');
-    }
-
     if (!userId) {
       throw new Error('No user specified!');
+    }
+
+    if (!stickerId) {
+      throw new Error('No sticker specified!');
     }
 
     debug('Sending sticker', userId, stickerId);
