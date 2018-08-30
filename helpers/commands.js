@@ -565,7 +565,7 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count: count}));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count}));
 
   return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
@@ -578,7 +578,7 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count: count}));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count}));
 
   return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
@@ -591,7 +591,7 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count: count}));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count}));
 
   return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
@@ -604,7 +604,7 @@ botApi.bot.onCommand('top_year', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_year', {count: count}));
+  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_year', {count}));
 
   return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
