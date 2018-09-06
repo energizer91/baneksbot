@@ -65,9 +65,9 @@ const connect = app => {
   app.post(config.get('telegram.endpoint'), middlewares);
 };
 
-let dbUpdater;
+let dbUpdater = null;
 
-function startDaemon () {
+async function startDaemon () {
   if (process.env.NODE_ENV !== 'production') {
     process.execArgv.push('--inspect=' + (40894));
   }
@@ -77,13 +77,13 @@ function startDaemon () {
   const text = 'Aneks update process has been started at ' + new Date().toISOString();
 
   debug(text);
-  bot.sendMessageToAdmin(text);
+  await bot.sendMessageToAdmin(text);
 
-  dbUpdater.on('close', function (code, signal) {
+  dbUpdater.on('close', async (code, signal) => {
     debug('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
-    bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+    await bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
 
-    startDaemon();
+    await startDaemon();
   });
 
   dbUpdater.on('message', m => {

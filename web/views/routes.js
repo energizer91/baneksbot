@@ -6,42 +6,36 @@ import UserInfoPage from './UsersPage/UserInfoPage/UserInfoPage';
 import AneksPage from './AneksPage/AneksPage';
 
 const routes = {
-    // base component (wrapper for the whole application).
-    component: Base,
-    childRoutes: [
+  // base component (wrapper for the whole application).
+  component: Base,
+  childRoutes: [
+    {
+      path: '/',
+      component: HomePage
+    },
+    {
+      path: '/users',
+      component: UsersPage
+    },
+    {
+      path: '/users/:userid',
+      component: UserInfoPage
+    },
+    {
+      path: '/aneks',
+      component: AneksPage,
+      childRoutes: [
         {
-            path: '/',
-            component: HomePage
-        },
-        {
-            path: '/users',
-            component: UsersPage/*,
-            childRoutes: [
-                {
-                    path: '/:userid',
-                    component: UserInfoPage
-                }
-            ]*/
-        },
-        {
-            path: '/users/:userid',
-            component: UserInfoPage
-        },
-        {
-            path: '/aneks',
-            component: AneksPage,
-            childRoutes: [
-                {
-                    path: ':anekid',
-                    component: UserInfoPage
-                }
-            ]
-        },
-        {
-            path: '*',
-            component: NotFound
+          path: ':anekid',
+          component: UserInfoPage
         }
-    ]
+      ]
+    },
+    {
+      path: '*',
+      component: NotFound
+    }
+  ]
 };
 
 export default routes;

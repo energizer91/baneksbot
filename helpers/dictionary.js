@@ -8,20 +8,14 @@ const languages = {
 };
 
 module.exports = {
-  translate: function (language, string, params) {
+  translate (language, string, params = {}) {
     if (!language || !this.languageExists(language)) {
       language = 'russian';
     }
 
-    if (!params) {
-      params = {};
-    }
-
-    return (languages[language][string] || '').replace(/\{(\w+)}/g, function (match, param) {
-      return params[param] || 'not defined';
-    });
+    return (languages[language][string] || '').replace(/{(\w+)}/g, (match, param) => params[param] || 'not defined');
   },
-  languageExists: function (language) {
+  languageExists (language) {
     return languages.hasOwnProperty(language);
   }
 };

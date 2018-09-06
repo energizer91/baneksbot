@@ -31,8 +31,8 @@ function updateAneksTimer () {
           .then(users => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
       }
     })
-    .catch((error) => {
-      error('Update aneks error', error);
+    .catch(err => {
+      error('Update aneks error', err);
     })
     .then(() => {
       updateInProcess = false;

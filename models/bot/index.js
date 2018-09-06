@@ -11,7 +11,7 @@ class Bot extends Telegram {
   }
 
   onCommand (command, callback) {
-    return this.on('command:' + command, callback);
+    this.on('command:' + command, callback);
   }
 
   getUserInfo (user) {
@@ -39,7 +39,7 @@ class Bot extends Telegram {
   }
 
   convertTextLinks (text = '') {
-    const userRegexp = /\[(.+)\|(.+)\]/g;
+    const userRegexp = /\[(.+)\|(.+)]/g;
 
     return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
   }
@@ -193,7 +193,7 @@ class Bot extends Telegram {
         }
 
         return message;
-      })
+      });
   }
 
   sendComment (userId, comment, params) {
@@ -202,7 +202,7 @@ class Bot extends Telegram {
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then(message => {
         if (attachments.length) {
-          return this.sendAttachments(userId, attachments, { forceAttachments: true });
+          return this.sendAttachments(userId, attachments, {forceAttachments: true});
         }
 
         return message;
@@ -351,7 +351,7 @@ class Bot extends Telegram {
       throw new Error('No webhook data specified');
     }
 
-    const { message } = update;
+    const {message} = update;
 
     if (message) {
       if (message.successful_payment) {
@@ -375,7 +375,7 @@ class Bot extends Telegram {
       }
 
       if (message.text) {
-        const { text } = message;
+        const {text} = message;
 
         if (text && text.startsWith('/')) {
           const command = text.split(' ');
@@ -411,26 +411,28 @@ class Bot extends Telegram {
     return Promise.resolve([]);
   }
 
-  async middleware (req, res, next) {
+  middleware (req, res, next) {
     const update = req.body;
 
     if (!update) {
-      return next(new Error('No webhook data specified'));
+      next(new Error('No webhook data specified'));
+
+      return;
     }
 
-    const { user } = req;
+    const {user} = req;
 
     this.emit('update', update, user);
 
     req.update = update;
 
-    try {
-      req.results = await this.performUpdate(update, user);
+    this.performUpdate(update, user)
+      .then(results => {
+        req.results = results;
 
-      return next();
-    } catch (error) {
-      return next(error);
-    }
+        next();
+      })
+      .catch(next);
   }
 }
 

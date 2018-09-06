@@ -55,7 +55,7 @@ async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
   const foundUser = botApi.database.User.findOne({_id: suggest.user});
 
   if (sendMessage.ok && sendMessage.result) {
-    return botApi.bot.forwardMessage(foundUser.user_id, sendMessage.result, {native: true});
+    return botApi.bot.sendSuggest(foundUser.user_id, sendMessage.result, {native: true});
   }
 }
 
@@ -262,7 +262,7 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
 
 botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {
-    const count = await botApi.database.User.count();
+    const count = await botApi.database.User.count(null);
 
     return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'current_user_count', {count}));
   } else if (command[1] === 'subscribed') {
@@ -284,9 +284,9 @@ botApi.bot.onCommand('user', async (command, message, user) => {
 
 botApi.bot.onCommand('anek', async (command, message, user) => {
   if (command[1] === 'count') {
-    const count = await botApi.database.Anek.count();
+    const count = await botApi.database.Anek.count(null);
 
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}), {language: user.language});
+    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}));
   } else if (command[1] && (!isNaN(Number(command[1])))) {
     const anek = await botApi.database.Anek.findOne().skip(parseInt(command[1]) - 1).exec();
 
@@ -520,7 +520,7 @@ botApi.bot.onCommand('krevet', (command, message, user) => botApi.bot.sendMessag
 botApi.bot.onCommand('shlyapa', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(shlyapaAnswers)));
 botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
 botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
-botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.id, message.chat.id));
+botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.message_id, message.chat.id));
 
 botApi.bot.onCommand('attach', async (command, message, user) => {
   const anek = await botApi.database.Anek.findOne({ attachments: { $size: Number(command[1]) || 1 } }).skip(Number(command[2] || 0)).exec();
@@ -673,7 +673,7 @@ botApi.bot.onCommand('feedback', async (command, message, user) => {
 
     const userId = command.splice(0, 1)[0];
 
-    return botApi.bot.sendMessage(userId, 'Сообщение от службы поддержки: ' + command.join(' '));
+    return botApi.bot.sendMessage(Number(userId), 'Сообщение от службы поддержки: ' + command.join(' '));
   } else if (user.feedback_mode) {
     return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме обратной связи.');
   }

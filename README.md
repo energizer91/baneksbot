@@ -1,15 +1,22 @@
 # Baneksbot
+
 Bot for getting aneks from https://vk.com/baneks
+
 ## Installation
-```
+
+```bash
 npm install
 npm start
 ```
+
 ## Testing
-```
+
+```bash
 npm run test
 ```
+
 ## Available commands
+
 `/anek` - Get random anek
 
 `/top_day` - Get most popular anek per 24 hours

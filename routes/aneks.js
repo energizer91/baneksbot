@@ -5,19 +5,19 @@ module.exports = function (express, botApi) {
   const router = express.Router();
 
   router.get('/', function (req, res, next) {
-    var params = {},
-      limit = parseInt(req.query.limit) || 10,
-      offset = parseInt(req.query.offset) || 0,
-      total = 0;
+    const params = {};
+    let limit = parseInt(req.query.limit) || 10;
+    let offset = parseInt(req.query.offset) || 0;
+    let total = 0;
 
     return botApi.mongo.Anek.count(params).then(function (count) {
       total = count;
 
       return botApi.mongo.Anek.find(params).skip(offset).limit(limit).then(function (users) {
         return res.json({
-          offset: offset,
-          limit: limit,
-          total: total,
+          offset,
+          limit,
+          total,
           items: users
         });
       });

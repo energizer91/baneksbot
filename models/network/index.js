@@ -17,16 +17,16 @@ class NetworkModel extends EventEmitter {
       throw new Error('Config not specified');
     }
 
-    const paramsOrData = {};
+    let request;
     const {_key: key, _rule: rule, getBackoff: _getBackoff, ...httpParams} = params;
 
-    if (config.method === 'post') {
-      paramsOrData.data = httpParams;
+    if (config.method === 'get') {
+      request = axios({...config, params: httpParams});
     } else {
-      paramsOrData.params = httpParams;
+      request = axios({...config, data: httpParams});
     }
 
-    return this.queue.request(backoff => axios({...config, ...paramsOrData})
+    return this.queue.request(backoff => request
       .then(response => response.data)
       .catch(error => {
         if (!error || !error.response) {
@@ -41,7 +41,7 @@ class NetworkModel extends EventEmitter {
         }
 
         if (error.response.status >= 400 && error.response.status <= 600) {
-          debugError('An error occured with code ' + error.response.status, error.response.data);
+          debugError('An error occurred with code ' + error.response.status, error.response.data);
           throw error.response.data;
         }
 

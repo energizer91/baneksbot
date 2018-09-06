@@ -14,7 +14,7 @@ module.exports = function (express) {
       if (!step) {
         step = 12;
       }
-      if ((i + 1) % step === 0 && i || i === results.length + 1) {
+      if (((i + 1) % step === 0 && i) || i === results.length + 1) {
         if (i !== results.length + 1) {
           previousStart = (i + 1) - step;
         }
@@ -44,11 +44,12 @@ module.exports = function (express) {
   });
 
   router.get('/users', (req, res) => {
-    var from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
-      to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+    const from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+
     return botApi.database.Statistic.find({date: {$gte: from, $lte: to}}, {users: 1, date: 1})
       .then(results => {
-        var resultArray = reduceResults(results, (p, c) => {
+        const resultArray = reduceResults(results, (p, c) => {
           return {
             date: c.date,
             users: {
@@ -66,22 +67,24 @@ module.exports = function (express) {
   });
 
   router.get('/aneks', (req, res) => {
-    var from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
-      to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+    const from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+
     return botApi.database.Statistic.find({date: {$gte: from, $lte: to}}, {aneks: 1, date: 1})
       .then(results => res.json(results.map(({date, aneks}) => Object.assign({date}, aneks.toObject()))));
   });
 
   router.get('/messages', (req, res) => {
-    var from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
-      to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+    const from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+
     return botApi.database.Statistic.find({date: {$gte: from, $lte: to}}, {messages: 1, date: 1})
       .then(results => {
-        var resultArray = reduceResults(results, (p, c) => {
+        const resultArray = reduceResults(results, (p, c) => {
           return {
             date: c.date,
             messages: {
-              received: p.messages.received + c.messages.received,
+              received: p.messages.received + c.messages.received
             }
           };
         }, 12);
@@ -91,8 +94,9 @@ module.exports = function (express) {
   });
 
   router.get('/', (req, res) => {
-    var from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0)),
-      to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+    const from = req.query.from ? new Date(parseInt(req.query.from)) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(parseInt(req.query.to)) : new Date();
+
     return botApi.statistics.getOverallStatistics(from, to).then(result => res.json(result));
   });
 

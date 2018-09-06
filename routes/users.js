@@ -2,13 +2,13 @@
  * Created by Александр on 13.12.2015.
  */
 module.exports = function (express, botApi) {
-  var router = express.Router();
+  const router = express.Router();
 
   router.get('/', function (req, res, next) {
-    var params = {},
-      limit = parseInt(req.query.limit) || 10,
-      offset = parseInt(req.query.offset) || 0,
-      total = 0;
+    const params = {};
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
+    let total = 0;
 
     if (req.query.filter) {
       switch (req.query.filter) {

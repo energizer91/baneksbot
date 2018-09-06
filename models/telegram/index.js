@@ -86,13 +86,14 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(messages.map(message => this.sendMessage(userId, message, params)));
   }
 
-  forwardMessage (userId, messageId, fromId) {
+  forwardMessage (userId, messageId, fromId, params = {}) {
     debug('Forwarding message', userId, messageId, fromId);
 
     return this.sendRequest('forwardMessage', {
       chat_id: userId,
       from_chat_id: fromId,
-      message_id: messageId
+      message_id: messageId,
+      ...params
     });
   }
 
