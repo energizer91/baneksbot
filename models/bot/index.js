@@ -2,6 +2,7 @@ const dict = require('../../helpers/dictionary');
 const config = require('config');
 const debug = require('../../helpers/debug')('baneks-node:bot');
 const Telegram = require('../telegram');
+const cloneDeep = require('lodash/cloneDeep');
 
 class Bot extends Telegram {
   constructor () {
@@ -153,7 +154,7 @@ class Bot extends Telegram {
       return {};
     }
 
-    const immutableAnek = Object.assign({}, anek.toObject ? anek.toObject() : anek);
+    const immutableAnek = cloneDeep(anek.toObject ? anek.toObject() : anek);
 
     const buttons = this.getAnekButtons(immutableAnek, params);
 
