@@ -17,16 +17,16 @@ class NetworkModel extends EventEmitter {
       throw new Error('Config not specified');
     }
 
-    let request;
+    let data;
     const {_key: key, _rule: rule, getBackoff: _getBackoff, ...httpParams} = params;
 
     if (config.method === 'get') {
-      request = axios({...config, params: httpParams});
+      data = {...config, params: httpParams};
     } else {
-      request = axios({...config, data: httpParams});
+      data = {...config, data: httpParams};
     }
 
-    return this.queue.request(backoff => request
+    return this.queue.request(backoff => axios(data)
       .then(response => response.data)
       .catch(error => {
         if (!error || !error.response) {

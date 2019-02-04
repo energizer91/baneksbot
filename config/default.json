@@ -17,7 +17,8 @@
       "individualMessage": "individual",
       "groupMessage": "group"
     },
-    "secret": ""
+    "secret": "",
+    "daemonEnabled": true
   },
   "mongodb": {
     "server": "",

@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const routes = require('./index')(express);
 const botApi = require('./botApi');
 const debugError = require('debug')('baneks-node:app:error');
+const config = require('config');
 
 const app = express();
 
@@ -17,7 +18,9 @@ botApi.connect(app);
 
 require('./helpers/commands');
 
-botApi.updater.connect();
+if (config.get('telegram.daemonEnabled')) {
+  botApi.updater.connect();
+}
 
 app.use('/', routes);
 

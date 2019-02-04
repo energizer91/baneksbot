@@ -2,6 +2,8 @@
  * Created by energizer on 13.06.17.
  */
 const config = require('config');
+const debug = require('debug')('baneks-node:queue');
+const debugError = require('debug')('baneks-nod:error:queue');
 
 class Queue {
   constructor () {
@@ -36,6 +38,8 @@ class Queue {
   }
 
   createQueue (queueName, request, callback, rule) {
+    debug('Creating queue', queueName, rule);
+
     if (!this.queue[queueName]) {
       this.queue[queueName] = {
         cooldown: 0,
@@ -75,6 +79,8 @@ class Queue {
   }
 
   add (request, callback, key = this.params.default.key, rule = this.params.default.rule) {
+    debug('Adding request to the queue', key, rule);
+
     const queue = this.createQueue(key, request, callback, rule);
 
     if (!this.pending) {
@@ -85,6 +91,8 @@ class Queue {
   }
 
   execute (queue) {
+    debug('Executing queue', queue);
+
     this.pending = true;
 
     let backoffState = false;
@@ -113,6 +121,8 @@ class Queue {
             }
           })
           .catch(error => {
+            debugError('Queue request error', error);
+
             nextItem.item.callback(error);
           })
           .then(() => this.execute());
@@ -142,13 +152,21 @@ class Queue {
 
     this.overheat += this.heatPart;
 
+    debug('Heating queue', this.overheat);
+
     setTimeout(() => {
       this.overheat = Math.max(this.overheat - this.heatPart, 0);
+
+      debug('Cooling down heat', this.overheat);
     }, this.heatPart);
   }
 
   async findMostImportant (bestQueue) {
+    debug('Finding most important queue');
+
     if (bestQueue) {
+      debug('Providing best queue', bestQueue.rule, bestQueue.key);
+
       return bestQueue;
     }
 
@@ -168,18 +186,28 @@ class Queue {
     });
 
     if (minimalCooldown > 0 && minimalCooldown !== Infinity) {
+      debug('Waiting for cooldown', minimalCooldown);
+
       return this.delay(minimalCooldown)
         .then(queue => this.findMostImportant(queue));
     }
 
     if (this.isOverheated && !this.params.ignoreOverallOverheat) {
+      debug('Everything is overheated');
+
       return this.delay(this.overheat)
         .then(queue => this.findMostImportant(queue));
     }
 
     if (!selectedQueue && this.getTotalLength === 0) {
+      debug('Stopping queue');
+
       this.pending = false;
+
+      return;
     }
+
+    debug('Finding best queue', selectedQueue);
 
     return selectedQueue;
   }
@@ -217,6 +245,8 @@ class Queue {
     return new Promise((resolve, reject) => {
       return this.add(fn, (error, data) => {
         if (error) {
+          debugError('Queue fulfilling error', error);
+
           return reject(error);
         }
 
