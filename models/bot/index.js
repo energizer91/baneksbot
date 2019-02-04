@@ -379,10 +379,6 @@ class Bot extends Telegram {
         return this.performReply(message.reply_to_message, message, user);
       }
 
-      if (user.feedback_mode && !user.banned) {
-        return this.performFeedback(message, user);
-      }
-
       if (message.text) {
         const {text} = message;
 
@@ -397,6 +393,10 @@ class Bot extends Telegram {
               return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
             }
           }
+        }
+
+        if (user.feedback_mode && !user.banned) {
+          return this.performFeedback(message, user);
         }
 
         return this.performMessage(update.message, user);
