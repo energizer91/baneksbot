@@ -910,6 +910,6 @@ botApi.bot.on('reply', async (reply, message) => {
   return botApi.bot.sendMessage(reply.from.id, 'Сообщение от службы поддержки: ' + message.text);
 });
 
-botApi.bot.on('feedback', async (message, user) => {
-  return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message, user.from.id);
+botApi.bot.on('feedback', message => {
+  return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message, message.from.id);
 });
