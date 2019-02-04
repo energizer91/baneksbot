@@ -900,14 +900,20 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
 });
 
-botApi.bot.on('reply', async (reply, message) => {
-  const replyUser = await botApi.database.User.findOne({ user_id: reply.from.id });
+botApi.bot.on('reply', async (reply, message, user) => {
+  if (user.admin) {
+    const replyUser = await botApi.database.User.findOne({ user_id: reply.from.id });
 
-  if (!replyUser || !replyUser.feedback_mode) {
-    return Promise.resolve();
+    if (!replyUser) {
+      throw new Error('Reply user not found');
+    }
+
+    if (!replyUser.feedback_mode) {
+      throw new Error('Reply user is not in feedback mode');
+    }
+
+    return botApi.bot.sendMessage(reply.from.id, 'Сообщение от службы поддержки: ' + message.text);
   }
-
-  return botApi.bot.sendMessage(reply.from.id, 'Сообщение от службы поддержки: ' + message.text);
 });
 
 botApi.bot.on('feedback', message => {
