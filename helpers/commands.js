@@ -911,5 +911,5 @@ botApi.bot.on('reply', async (reply, message) => {
 });
 
 botApi.bot.on('feedback', message => {
-  return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message, message.from.id);
+  return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message.message_id, message.chat.id);
 });
