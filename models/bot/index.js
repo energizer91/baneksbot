@@ -347,6 +347,10 @@ class Bot extends Telegram {
     return this.emit('reply', reply, message, user);
   }
 
+  performFeedback (message, user) {
+    return this.emit('feedback', message, user);
+  }
+
   performUpdate (update, user) {
     if (!update) {
       throw new Error('No webhook data specified');
@@ -373,6 +377,10 @@ class Bot extends Telegram {
 
       if (message.reply_to_message) {
         return this.performReply(message.reply_to_message, message, user);
+      }
+
+      if (user.feedback_mode && !user.banned) {
+        return this.performFeedback(message, user);
       }
 
       if (message.text) {

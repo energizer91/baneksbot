@@ -899,3 +899,17 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
 
   return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
 });
+
+botApi.bot.on('reply', async (reply, message) => {
+  const replyUser = await botApi.database.User.findOne({ user_id: reply.from.id });
+
+  if (!replyUser || !replyUser.feedback_mode) {
+    return Promise.resolve();
+  }
+
+  return botApi.bot.sendMessage(reply.from.id, 'Сообщение от службы поддержки: ' + message.text);
+});
+
+botApi.bot.on('feedback', async (message, user) => {
+  return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message, user.from.id);
+});
