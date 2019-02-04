@@ -901,8 +901,8 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
 });
 
 botApi.bot.on('reply', async (reply, message, user) => {
-  if (user.admin) {
-    const replyUser = await botApi.database.User.findOne({ user_id: reply.from.id });
+  if (user.admin && reply.forward_from) {
+    const replyUser = await botApi.database.User.findOne({ user_id: reply.forward_from.id });
 
     if (!replyUser) {
       throw new Error('Reply user not found');
@@ -912,7 +912,7 @@ botApi.bot.on('reply', async (reply, message, user) => {
       throw new Error('Reply user is not in feedback mode');
     }
 
-    return botApi.bot.sendMessage(reply.from.id, 'Сообщение от службы поддержки: ' + message.text);
+    return botApi.bot.sendMessage(reply.forward_from.id, 'Сообщение от службы поддержки: ' + message.text);
   }
 });
 
