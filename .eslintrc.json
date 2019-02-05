@@ -6,7 +6,7 @@
     "node": true,
     "mocha": true
   },
-  "extends": ["plugin:flowtype/recommended", "standard"],
+  "extends": ["standard"],
   "parser": "typescript-eslint-parser",
   "plugins": [
     "typescript",

@@ -1,24 +1,33 @@
-const EventEmitter = require('../events');
-const Queue = require('../queue');
-const axios = require('axios');
+import Queue, {BackOffFunction} from '../queue';
+import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
+import {RequestParams} from './index';
+import EventEmitter from '../events';
+
 const debugError = require('debug')('baneks-node:network:error');
+
+export type RequestConfig = {
+    url: string,
+    method: 'get' | 'post'
+}
+
+export type RequestParams = {
+    _key?: string,
+    _rule?: string,
+    _getBackoff: (error: AxiosError) => number
+}
 
 const queue = new Queue();
 
 class NetworkModel extends EventEmitter {
-  constructor () {
-    super();
+  queue: Queue = queue;
 
-    this.queue = queue;
-  }
-
-  makeRequest (config, params) {
+  makeRequest (config: RequestConfig, params: RequestParams) {
     if (!config) {
       throw new Error('Config not specified');
     }
 
-    let data;
-    const {_key: key, _rule: rule, getBackoff: _getBackoff, ...httpParams} = params;
+    let data: AxiosRequestConfig;
+    const {_key: key, _rule: rule, _getBackoff, ...httpParams} = params;
 
     if (config.method === 'get') {
       data = {...config, params: httpParams};
@@ -26,9 +35,9 @@ class NetworkModel extends EventEmitter {
       data = {...config, data: httpParams};
     }
 
-    return this.queue.request(backoff => axios(data)
-      .then(response => response.data)
-      .catch(error => {
+    return this.queue.request((backoff: BackOffFunction) => axios(data)
+      .then((response: AxiosResponse) => response.data)
+      .catch((error: AxiosError) => {
         if (!error || !error.response) {
           throw error;
         }
@@ -49,8 +58,8 @@ class NetworkModel extends EventEmitter {
       }), key, rule);
   }
 
-  async fulfillAll (requests) {
-    let results = [];
+  async fulfillAll<T> (requests: Promise<T>[]): Promise<T[]> {
+    const results: T[] = [];
 
     if (!requests.length) {
       return [];
@@ -76,7 +85,7 @@ class NetworkModel extends EventEmitter {
 
         return results;
       })
-      .catch(error => {
+      .catch((error: Error) => {
         debugError('fulfillment error', error);
 
         return results;
@@ -84,4 +93,4 @@ class NetworkModel extends EventEmitter {
   }
 }
 
-module.exports = NetworkModel;
+export default NetworkModel;
