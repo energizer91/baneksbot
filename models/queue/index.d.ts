@@ -26,32 +26,32 @@ type ShiftItemStructure = {
 }
 
 declare class Queue {
-    createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: Rule): QueueItem;
+  createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: Rule): QueueItem;
 
-    getRule(name: string, params?: {}): Rule;
+  getRule(name: string, params?: {}): Rule;
 
-    addBackOff(item: ShiftItemStructure, delay: number): void;
+  addBackOff(item: ShiftItemStructure, delay: number): void;
 
-    execute(queue?: QueueItem): Promise<boolean | QueueItem>;
+  execute(queue?: QueueItem): Promise<boolean | QueueItem>;
 
-    shift(queue?: QueueItem): ShiftItemStructure;
+  shift(queue?: QueueItem): ShiftItemStructure;
 
-    heat(): void;
+  heat(): void;
 
-    findMostImportant(bestQueue?: QueueItem): QueueItem;
+  findMostImportant(bestQueue?: QueueItem): QueueItem;
 
-    setCooldown(queue: QueueItem): void;
+  setCooldown(queue: QueueItem): void;
 
-    delay(time: number): Promise<void>;
+  delay(time: number): Promise<void>;
 
-    isCool(queue: QueueItem): boolean;
+  isCool(queue: QueueItem): boolean;
 
-    remove(key: string): boolean;
+  remove(key: string): boolean;
 
-    request(fn: QueueRequest, key?: string, rule?: string): Promise<any>;
+  request(fn: QueueRequest, key?: string, rule?: string): Promise<any>;
 
-    // get isOverheated(): boolean;
-    // get getTotalLength(): number;
+  // get isOverheated(): boolean;
+  // get getTotalLength(): number;
 }
 
 export = Queue;

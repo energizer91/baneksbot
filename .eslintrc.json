@@ -7,9 +7,9 @@
     "mocha": true
   },
   "extends": ["plugin:flowtype/recommended", "standard"],
-  "parser": "babel-eslint",
+  "parser": "typescript-eslint-parser",
   "plugins": [
-    "flowtype",
+    "typescript",
     "mocha"
   ],
   "parserOptions": {
@@ -24,6 +24,7 @@
     ],
     "mocha/no-exclusive-tests": [
       "error"
-    ]
+    ],
+    "camelcase": ["off"]
   }
 }

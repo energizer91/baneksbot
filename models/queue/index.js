@@ -174,14 +174,14 @@ class Queue {
     let selectedQueue = null;
     let minimalCooldown = Infinity;
 
-    Object.keys(this.queue).forEach(queue => {
-      if (this.queue[queue].rule.priority < maximumPriority && this.queue[queue].data.length && this.isCool(queue)) {
-        maximumPriority = this.queue[queue].rule.priority;
-        selectedQueue = this.queue[queue];
+    Object.values(this.queue).forEach(queue => {
+      if (queue.rule.priority < maximumPriority && queue.data.length && this.isCool(queue)) {
+        maximumPriority = queue.rule.priority;
+        selectedQueue = queue;
       }
 
-      if (this.queue[queue].cooldown < minimalCooldown) {
-        minimalCooldown = this.queue[queue].cooldown;
+      if (queue.cooldown < minimalCooldown) {
+        minimalCooldown = queue.cooldown;
       }
     });
 
@@ -218,8 +218,12 @@ class Queue {
 
     queue.cooldown = cooldown;
 
+    debug('Setting cooldown', ruleData, cooldown);
+
     setTimeout(() => {
       queue.cooldown = Math.max(queue.cooldown - cooldown, 0);
+
+      debug('Removing cooldown', ruleData, cooldown);
 
       if (!queue.data.length) {
         this.remove(queue.key);
@@ -232,9 +236,9 @@ class Queue {
   }
 
   isCool (queue) {
-    const cooldown = this.queue[queue].rule.limit * 1000 / this.queue[queue].rule.rate;
+    const cooldown = queue.rule.limit * 1000 / queue.rule.rate;
 
-    return this.queue[queue].cooldown < cooldown;
+    return queue.cooldown < cooldown;
   }
 
   remove (key) {
@@ -249,6 +253,8 @@ class Queue {
 
           return reject(error);
         }
+
+        debug('Resolving queue request', key, rule);
 
         return resolve(data);
       }, key, rule);
