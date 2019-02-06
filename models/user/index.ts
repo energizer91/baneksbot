@@ -1,16 +1,20 @@
+import {NextFunction, Request, Response} from 'express';
+import {Database, IUser} from '../../helpers/mongo';
+
 class User {
-  constructor (database) {
+  private database: Database;
+
+  constructor(database: Database) {
     this.database = database;
-    this.middleware = this.middleware.bind(this);
   }
 
-  update (user) {
+  public update(user: IUser) {
     return this.updateWith(user);
   }
 
-  updateWith (user, params) {
+  public async updateWith(user: IUser, params?: any): Promise<IUser | void> {
     if (!user) {
-      return {};
+      return;
     }
 
     return this.database.User.findOneAndUpdate(
@@ -18,25 +22,25 @@ class User {
       params || user,
       {new: true, upsert: true, setDefaultsOnInsert: true}
     )
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
 
         return user;
-      })
+      });
   }
 
-  middleware (req, res, next) {
+  public middleware = (req: Request & {user: IUser}, res: Response, next: NextFunction) => {
     const update = req.body;
     const message = update.message || update.inline_query || update.callback_query;
     const user = message.from;
 
     return this.update(user)
-      .then(user => {
-        req.user = user;
+      .then((updatedUser: IUser) => {
+        req.user = updatedUser;
 
         return next();
       });
   }
 }
 
-module.exports = User;
+export default User;

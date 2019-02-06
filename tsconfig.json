@@ -9,7 +9,7 @@
     "target": "es2018"
   },
   "include": [
-    "**/*"
+    "**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -7,7 +7,7 @@
     "mocha": true
   },
   "extends": ["standard"],
-  "parser": "typescript-eslint-parser",
+  "parser": "eslint-plugin-typescript/parser",
   "plugins": [
     "typescript",
     "mocha"
@@ -25,6 +25,8 @@
     "mocha/no-exclusive-tests": [
       "error"
     ],
-    "camelcase": ["off"]
+    "camelcase": ["off"],
+    "no-unused-vars": "off",
+    "typescript/no-unused-vars": ["error", { "vars": "all", "args": "after-used", "ignoreRestSiblings": false }]
   }
 }

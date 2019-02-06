@@ -1,27 +1,33 @@
-import Queue, {BackOffFunction} from '../queue';
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
-import {RequestParams} from './index';
+import * as debugFactory from 'debug';
 import EventEmitter from '../events';
+import Queue, {BackOffFunction} from '../queue';
+import {RequestParams} from './index';
 
-const debugError = require('debug')('baneks-node:network:error');
+const debugError = debugFactory('baneks-node:network:error');
+
+export enum Methods {
+  GET = 'GET',
+  POST = 'POST'
+}
 
 export type RequestConfig = {
     url: string,
-    method: 'get' | 'post'
-}
+    method: Methods
+};
 
 export type RequestParams = {
     _key?: string,
     _rule?: string,
-    _getBackoff: (error: AxiosError) => number
-}
+    _getBackoff?: (error: AxiosError) => number
+};
 
 const queue = new Queue();
 
 class NetworkModel extends EventEmitter {
-  queue: Queue = queue;
+  public queue: Queue = queue;
 
-  makeRequest (config: RequestConfig, params: RequestParams) {
+  public makeRequest<R>(config: RequestConfig, params: RequestParams): Promise<R> {
     if (!config) {
       throw new Error('Config not specified');
     }
@@ -29,14 +35,14 @@ class NetworkModel extends EventEmitter {
     let data: AxiosRequestConfig;
     const {_key: key, _rule: rule, _getBackoff, ...httpParams} = params;
 
-    if (config.method === 'get') {
+    if (config.method === Methods.GET) {
       data = {...config, params: httpParams};
     } else {
       data = {...config, data: httpParams};
     }
 
     return this.queue.request((backoff: BackOffFunction) => axios(data)
-      .then((response: AxiosResponse) => response.data)
+      .then((response: AxiosResponse<R>) => response.data)
       .catch((error: AxiosError) => {
         if (!error || !error.response) {
           throw error;
@@ -58,30 +64,32 @@ class NetworkModel extends EventEmitter {
       }), key, rule);
   }
 
-  async fulfillAll<T> (requests: Promise<T>[]): Promise<T[]> {
-    const results: T[] = [];
+  public async fulfillAll<Request, Response>(requests: Array<Promise<Request>>): Promise<Response[]> {
+    const results: Response[] = [];
 
     if (!requests.length) {
       return [];
     }
 
-    return requests.reduce((p, request) => {
+    return requests.reduce((p, request: Promise<Request | void>) => {
       return p
-        .then(result => {
+        .then((result: Response | void) => {
           if (result) {
             results.push(result);
           }
 
           return request;
         })
-        .catch(error => {
+        .catch((error: Error) => {
           debugError('single fulfillment error', error);
 
           return {};
-        })
+        });
     }, Promise.resolve())
-      .then(lastResponse => {
-        results.push(lastResponse);
+      .then((lastResponse: Response | void) => {
+        if (lastResponse) {
+          results.push(lastResponse);
+        }
 
         return results;
       })

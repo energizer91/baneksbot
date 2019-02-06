@@ -12,7 +12,7 @@ type Rule = {
   rate: number,
   limit: number,
   priority: number
-}
+};
 
 export type BackOffFunction = (delay: number) => void;
 export type QueueRequest = (BackOffFunction: BackOffFunction) => Promise<any>;
@@ -22,7 +22,7 @@ type QueueItemData = {
   id: string,
   request: QueueRequest,
   callback: Callback
-}
+};
 
 type QueueItem = {
   id: string,
@@ -31,12 +31,12 @@ type QueueItem = {
   data: QueueItemData[],
   rule: Rule,
   ruleName: string
-}
+};
 
 type ShiftItemStructure = {
   queue: QueueItem,
   item: QueueItemData
-}
+};
 
 type Params = {
   rules: {
@@ -50,24 +50,24 @@ type Params = {
   backOffTime: number,
   backOffTimeout: number,
   ignoreOverallOverheat: boolean
-}
+};
 
 type QueueMap = Map<string, QueueItem>;
 
 class Queue {
-  params: Params | null = null;
-  queue: QueueMap = new Map();
-  overheat = 0;
-  pending = false;
-  heatPart = 0;
+  public params: Params | null = null;
+  public queue: QueueMap = new Map();
+  public overheat = 0;
+  public pending = false;
+  public heatPart = 0;
 
-  constructor () {
+  constructor() {
     this.params = Object.assign(config.get('queue') as Params);
 
     this.heatPart = this.params.overall.limit * 1000 / this.params.overall.rate;
   }
 
-  createQueue (queueName: string, request: QueueRequest, callback: Callback, rule: string): QueueItem {
+  public createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: string): QueueItem {
     debug('Creating queue', queueName, rule);
 
     if (!this.queue.has(queueName)) {
@@ -90,7 +90,7 @@ class Queue {
     return this.queue.get(queueName);
   }
 
-  getRule (name: string, params = {}): Rule {
+  public getRule(name: string, params = {}): Rule {
     if (this.params.rules[name]) {
       return this.params.rules[name];
     }
@@ -104,7 +104,7 @@ class Queue {
     return this.params.rules[name];
   }
 
-  addBackoff (item: ShiftItemStructure, delay: number): void {
+  public addBackoff(item: ShiftItemStructure, delay: number): void {
     debug('Adding backoff', item, delay);
 
     this.delay(delay * 1000)
@@ -113,7 +113,7 @@ class Queue {
       });
   }
 
-  add (request: QueueRequest, callback: Callback, key: string = this.params.default.key, rule: string = this.params.default.rule): void {
+  public add(request: QueueRequest, callback: Callback, key: string = this.params.default.key, rule: string = this.params.default.rule): void {
     debug('Adding request to the queue', key, rule);
 
     const queue = this.createQueue(key, request, callback, rule);
@@ -123,7 +123,7 @@ class Queue {
     }
   }
 
-  execute (queue?: QueueItem): void {
+  public execute(queue?: QueueItem): void {
     debug('Executing queue', queue);
 
     this.pending = true;
@@ -146,7 +146,7 @@ class Queue {
         debug('Executing queue item', nextItem);
 
         return nextItem.item.request(backoffFn)
-          .then(data => {
+          .then((data) => {
             if (backoffState) {
               this.addBackoff(nextItem, backoffTimer);
             } else {
@@ -157,7 +157,7 @@ class Queue {
               }
             }
           })
-          .catch(error => {
+          .catch((error) => {
             debugError('Queue item request error', error);
 
             nextItem.item.callback(error);
@@ -166,7 +166,7 @@ class Queue {
       });
   }
 
-  shift (queue: QueueItem): Promise<ShiftItemStructure> {
+  public shift(queue: QueueItem): Promise<ShiftItemStructure | void> {
     return this.findMostImportant(queue)
       .then((currentQueue?: QueueItem) => {
         if (!currentQueue || !currentQueue.data.length) {
@@ -180,9 +180,9 @@ class Queue {
           item: currentQueue.data.shift()
         };
       });
-  };
+  }
 
-  heat (): void {
+  public heat(): void {
     if (this.params.ignoreOverallOverheat) {
       return;
     }
@@ -198,7 +198,7 @@ class Queue {
     }, this.heatPart);
   }
 
-  async findMostImportant (bestQueue?: QueueItem): Promise<QueueItem | null> {
+  public async findMostImportant(bestQueue?: QueueItem): Promise<QueueItem | void> {
     debug('Finding most important queue');
 
     if (bestQueue) {
@@ -208,7 +208,7 @@ class Queue {
     }
 
     let maximumPriority = Infinity;
-    let selectedQueue = null;
+    let selectedQueue: QueueItem = null;
     let minimalCooldown = Infinity;
 
     this.queue.forEach((queue: QueueItem) => {
@@ -249,7 +249,7 @@ class Queue {
     return selectedQueue;
   }
 
-  setCooldown (queue: QueueItem): void {
+  public setCooldown(queue: QueueItem): void {
     const ruleData = this.params.rules[queue.ruleName];
     const cooldown = ruleData.limit * 1000 / ruleData.rate;
 
@@ -268,21 +268,21 @@ class Queue {
     }, cooldown);
   }
 
-  delay (time = 0): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, time));
+  public delay(time = 0): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, time));
   }
 
-  isCool (queue: QueueItem): boolean {
+  public isCool(queue: QueueItem): boolean {
     const cooldown = queue.rule.limit * 1000 / queue.rule.rate;
 
     return queue.cooldown < cooldown;
   }
 
-  remove (key: string) {
+  public remove(key: string) {
     this.queue.delete(key);
   }
 
-  public request<T> (fn: QueueRequest, key = 'common', rule = 'common'): Promise<T> {
+  public request<T>(fn: QueueRequest, key = 'common', rule = 'common'): Promise<T> {
     return new Promise((resolve, reject) => {
       this.add(fn, (error, data) => {
         if (error) {
@@ -298,11 +298,11 @@ class Queue {
     });
   }
 
-  get isOverheated (): boolean {
+  get isOverheated(): boolean {
     return this.overheat > 0;
   }
 
-  get getTotalLength (): number {
+  get getTotalLength(): number {
     return Object.values(this.queue).reduce((acc: number, queue: QueueItem) => acc + queue.data.length, 0);
   }
 }

@@ -1,0 +1,32 @@
+/// <reference types="node" />
+
+declare module 'mongoosastic' {
+  import { Stats } from "fs";
+
+  export interface IReadOptions {
+    filter?: RegExp | Filter;
+    dirTransform?: DirTransform;
+    fileTransform?: FileTransform;
+  }
+
+  export type Filter = (file: File) => boolean;
+  export type DirTransform = (file: File, value: any) => any;
+  export type FileTransform = (file: File) => any;
+
+  export function readDirectory(dir: string, options?: IReadOptions): object;
+
+  export class File {
+    key: string;
+    readonly path: string;
+    readonly fullpath: string;
+    readonly ext: string;
+    readonly name: string;
+    readonly basename: string;
+
+    constructor(dir: string, file: string);
+
+    readonly attributes: Stats;
+    readonly isDirectory: boolean;
+    readonly isRequirable: boolean;
+  }
+}

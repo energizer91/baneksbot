@@ -1,12 +1,16 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
-const CronJob = require('cron').CronJob;
-const config = require('config');
-const debug = require('../helpers/debug')('baneks-node:updater');
-const error = require('debug')('baneks-node:updater:error');
+import * as config from 'config';
+import {CronJob} from 'cron';
+import * as debugFactory from 'debug';
+import {UpdaterMessageTypes} from './types';
+
 const common = require('../helpers/common');
 const botApi = require('../botApi');
+
+const debug = debugFactory('baneks-node:updater');
+const error = debugFactory('baneks-node:updater:error');
 
 let updateInProcess = false;
 let currentUpdate = '';
@@ -98,7 +102,7 @@ const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, 
 
 new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // eslint-disable-line
 
-process.on('message', function (m) {
+process.on('message', (m: UpdaterMessageTypes) => {
   debug('CHILD got message:', m);
 
   if (m.type === 'service') {
@@ -120,21 +124,20 @@ process.on('message', function (m) {
         }
         break;
       case 'synchronize':
-        synchronizeDatabase();
-        break;
+        return synchronizeDatabase();
       case 'last':
-        updateLastAneksTimer();
-        break;
+        return updateLastAneksTimer();
       case 'message':
-        process.send({type: 'message', userId: m.value, message: m.text || 'Проверка'});
+        process.send({type: 'service', action: 'message', value: m.value, text: m.text || 'Проверка'});
+
         break;
       case 'anek':
         return botApi.database.Anek.random().then(anek => {
           process.send({
-            type: 'message',
-            userId: m.value.user_id,
             message: anek.text,
-            params: {language: m.value.language}
+            params: {language: m.value.language},
+            type: 'message',
+            userId: m.value.user_id
           });
         });
       default:
@@ -144,7 +147,7 @@ process.on('message', function (m) {
   }
 });
 
-async function synchronizeWithElastic () {
+async function synchronizeWithElastic() {
   if (config.get('mongodb.searchEngine') !== 'elastic') {
     debug('Database synchronizing is only available on elasticsearch engine');
     return;
