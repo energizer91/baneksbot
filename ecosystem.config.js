@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'baneksbot',
-    script: './bin/www',
+    script: './dist/bin/www',
     env: {
       NODE_ENV: 'development',
       DEBUG: 'baneks-node:*'

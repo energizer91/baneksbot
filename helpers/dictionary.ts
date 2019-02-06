@@ -13,7 +13,7 @@ const languages: Languages = {
   russian: require('../languages/russian.json')
 };
 
-export const translate = (language: string, part: string, params: {[key: string]: string} = {}): string => {
+export const translate = (language: string, part: string, params: any = {}): string => {
   if (!language || !this.languageExists(language)) {
     language = 'russian';
   }

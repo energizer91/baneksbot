@@ -1,13 +1,7 @@
 import {NextFunction, Request, Response} from 'express';
-import {Database, IUser} from '../../helpers/mongo';
+import {IUser, User as UserModel} from '../../helpers/mongo';
 
 class User {
-  private database: Database;
-
-  constructor(database: Database) {
-    this.database = database;
-  }
-
   public update(user: IUser) {
     return this.updateWith(user);
   }
@@ -17,12 +11,12 @@ class User {
       return;
     }
 
-    return this.database.User.findOneAndUpdate(
+    return UserModel.findOneAndUpdate(
       {user_id: user.user_id || user.id},
       params || user,
       {new: true, upsert: true, setDefaultsOnInsert: true}
     )
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(error);
 
         return user;

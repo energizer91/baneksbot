@@ -3,7 +3,7 @@ export type Callback = (...params: any) => any | Promise<any>;
 class EventEmitter {
   public events: Map<string, Callback[]> = new Map();
 
-  public on(event: string, callback: () => void | Promise<any>): void {
+  public on(event: string, callback: (...params: any) => void | Promise<any>): void {
     if (!this.events.has(event)) {
       this.events.set(event, []);
     }

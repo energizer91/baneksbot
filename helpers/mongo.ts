@@ -4,7 +4,7 @@
 
 import * as config from 'config';
 import * as debugFactory from 'debug';
-import * as mongoosastic from 'mongoosastic';
+import mongoosastic, {SearchCallback, SearchParams, SearchQuery} from 'mongoosastic';
 import * as mongoose from 'mongoose';
 import {Stream} from "stream";
 
@@ -103,7 +103,7 @@ interface ILog extends mongoose.Document {
   error: {};
 }
 
-interface IStatistics extends mongoose.Document {
+export interface IStatistics extends mongoose.Document {
   aneks: {
     count: number,
     new: number
@@ -122,9 +122,10 @@ interface IStatistics extends mongoose.Document {
   };
 }
 
-interface IAnekModel extends mongoose.Model<IAnek> {
+export interface IAnekModel extends mongoose.Model<IAnek> {
   random(): Promise<IAnek>;
   synchronize(): Stream;
+  esSearch(query: SearchQuery, params: SearchParams, callback: SearchCallback): void;
 }
 
 interface ISuggestModel extends mongoose.Model<ISuggest> {
@@ -138,6 +139,9 @@ export type Database = {
   Statistic: mongoose.Model<IStatistics>,
   Anek: IAnekModel
 };
+
+// @ts-ignore
+mongoose.Promise = Promise;
 
 const db = mongoose.connection;
 
@@ -286,7 +290,7 @@ const statisticsSchema = new mongoose.Schema({
   }
 });
 
-anekSchema.statics.random = () => {
+anekSchema.statics.random = function() {
   const request = {
     $or: [
       {spam: {$ne: true}},
@@ -330,7 +334,7 @@ if (db.readyState === 0) {
 
 if (config.get('mongodb.searchEngine') === 'elastic') {
   anekSchema.plugin(mongoosastic, {
-    hosts: config.get('mongodb.elasticHosts'),
+    hosts: config.get('mongodb.elasticHosts') as string[],
     hydrate: true,
     hydrateOptions: {
       select: 'text post_id from_id likes'
@@ -344,10 +348,10 @@ if (config.get('mongodb.searchEngine') === 'elastic') {
   });
 }
 
-export const Anek = mongoose.model('Anek', anekSchema);
+export const Anek = mongoose.model('Anek', anekSchema) as IAnekModel;
 export const Comment = mongoose.model('Comment', commentSchema);
 export const GroupAdmin = mongoose.model('GroupAdmin', groupAdminSchema);
 export const Log = mongoose.model('Log', logSchema);
 export const Statistic = mongoose.model('Statistic', statisticsSchema);
-export const Suggest = mongoose.model('Suggest', suggestSchema);
-export const User = mongoose.model('User', userSchema);
+export const Suggest = mongoose.model('Suggest', suggestSchema) as ISuggestModel;
+export const User = mongoose.model('User', userSchema) as mongoose.Model<IUser>;

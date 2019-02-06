@@ -1,11 +1,15 @@
-const config = require('config');
-const common = require('./common');
-const dict = require('./dictionary');
-const botApi = require('../botApi');
+import * as config from 'config';
+import * as botApi from '../botApi';
+import {StatisticsData} from "../models/statistics";
+import {AllMessageParams, CallbackQuery, Message} from "../models/telegram";
+import {Comment, MultipleResponse} from "../models/vk";
+import * as common from './common';
+import {languageExists, translate} from './dictionary';
+import {IAnek, IAnekModel, IUser} from './mongo';
 
-let debugTimer;
+let debugTimer: NodeJS.Timeout;
 
-function generateUserInfo (user) {
+function generateUserInfo(user: IUser) {
   return '```\n' +
     'User ' + user.user_id + ':\n' +
     'Имя:        ' + (user.first_name || 'Не указано') + '\n' +
@@ -20,7 +24,7 @@ function generateUserInfo (user) {
     'Платформа:  ' + (user.client || 'Не выбрана') + '```';
 }
 
-function generateStatistics (interval, stats) {
+function generateStatistics(interval: string, stats: StatisticsData) {
   return '```\n' +
     'Статистика за ' + interval + ':\n' +
     'Пользователи\n' +
@@ -36,14 +40,14 @@ function generateStatistics (interval, stats) {
     'Всего:                  ' + stats.messages.received + '```';
 }
 
-function generateDebug () {
+function generateDebug() {
   return '```\n' +
     'time: ' + new Date() + '\n' +
     'queue length: ' + botApi.bot.queue.getTotalLength + '\n' +
     '```';
 }
 
-async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
+async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, anonymous: boolean) {
   const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {approved: true});
 
   await botApi.bot.editMessageButtons(callbackQuery.message, []);
@@ -52,7 +56,7 @@ async function acceptSuggest (queryData, callbackQuery, params, anonymous) {
 
   await botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Предложение одобрено.');
 
-  const foundUser = botApi.database.User.findOne({_id: suggest.user});
+  const foundUser = await botApi.database.User.findOne({_id: suggest.user});
 
   if (sendMessage.ok && sendMessage.result) {
     return botApi.bot.sendSuggest(foundUser.user_id, sendMessage.result, {native: true});
@@ -103,7 +107,7 @@ const guminoAnswers = [
   'Кузовок с грибаме'
 ];
 
-function generateRandomAnswer (answers) {
+function generateRandomAnswer(answers: string[]) {
   if (!answers || (Array.isArray(answers) && !answers.length)) {
     return '';
   }
@@ -113,7 +117,7 @@ function generateRandomAnswer (answers) {
   return answers[random];
 }
 
-function transformAneks (aneks, user) {
+function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string}}>, user: IUser) {
   return aneks.map((anek, index) => {
     let highlightText = anek.text;
 
@@ -124,9 +128,8 @@ function transformAneks (aneks, user) {
     const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
 
     return {
-      type: 'article',
+      description: highlightText.slice(0, 100),
       id: anek.post_id.toString() + index,
-      title: dict.translate(user.language, 'anek_number', {number: anek.post_id || index}),
       input_message_content: {
         message_text: anek.text,
         parse_mode: 'HTML'
@@ -134,19 +137,20 @@ function transformAneks (aneks, user) {
       reply_markup: {
         inline_keyboard: buttons
       },
-      description: highlightText.slice(0, 100)
+      title: translate(user.language, 'anek_number', {number: anek.post_id || index}),
+      type: 'article'
     };
   });
 }
 
-async function performSuggest (command, message, user) {
+async function performSuggest(command: string[], message: Message, user: IUser) {
   if (message && message.chat && message.from && (message.chat.id !== message.from.id)) {
     return botApi.bot.sendMessage(message.chat.id, 'Комменты недоступны в группах.');
   }
 
   if (command[1]) {
     if (command[1] === 'list') {
-      const query = {
+      const query: {approved: boolean, user?: number} = {
         approved: false
       };
 
@@ -160,8 +164,8 @@ async function performSuggest (command, message, user) {
 
       return botApi.bot.sendSuggests(message.chat.id, suggests, {
         editor: user.editor || user.admin,
-        suggest: true,
-        native: (command[2] && command[2] === 'native')
+        native: (command[2] && command[2] === 'native'),
+        suggest: true
       });
     }
   }
@@ -170,7 +174,7 @@ async function performSuggest (command, message, user) {
     return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме предложки.');
   }
 
-  const suggestsLength = botApi.database.Suggest.find({user: user.id, approved: false}).count();
+  const suggestsLength = await botApi.database.Suggest.find({user: user.id, approved: false}).count();
 
   if (suggestsLength > 5) {
     throw new Error('Слишком много предложений в ожидании.');
@@ -190,10 +194,10 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  const params = {
-    parse_mode: 'Markdown',
+  const params: AllMessageParams = {
     _key: 'debug',
-    _rule: 'common'
+    _rule: 'common',
+    parse_mode: 'Markdown'
   };
 
   if (debugTimer) {
@@ -202,7 +206,7 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
 
   const sentMessage = await botApi.bot.sendMessage(message.from.id, generateDebug(), params);
 
-  let editedMessage = sentMessage.message_id;
+  const editedMessage = sentMessage.message_id;
 
   debugTimer = setInterval(async () => {
     try {
@@ -264,11 +268,11 @@ botApi.bot.onCommand('user', async (command, message, user) => {
   if (command[1] === 'count') {
     const count = await botApi.database.User.count(null);
 
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'current_user_count', {count}));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_count', {count}));
   } else if (command[1] === 'subscribed') {
     const count = await botApi.database.User.find({subscribed: true}).count();
 
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'current_subscribed_user_count', {count}));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_subscribed_user_count', {count}));
   } else if (command[1] === 'id') {
     if (command[2]) {
       const foundUser = await botApi.database.User.findOne({user_id: command[2]});
@@ -276,7 +280,7 @@ botApi.bot.onCommand('user', async (command, message, user) => {
       return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: 'Markdown'});
     }
 
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'current_user_id', {user_id: message.from.id}));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_id', {user_id: message.from.id}));
   }
 
   return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: 'Markdown'});
@@ -286,18 +290,18 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
   if (command[1] === 'count') {
     const count = await botApi.database.Anek.count(null);
 
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'total_aneks_count', {aneks_count: count}));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'total_aneks_count', {aneks_count: count}));
   } else if (command[1] && (!isNaN(Number(command[1])))) {
-    const anek = await botApi.database.Anek.findOne().skip(parseInt(command[1]) - 1).exec();
+    const foundAnek = await botApi.database.Anek.findOne().skip(Number(command[1]) - 1).exec();
 
-    return botApi.bot.sendAnek(message.chat.id, anek, {language: user.language, forceAttachments: user.force_attachments});
+    return botApi.bot.sendAnek(message.chat.id, foundAnek, {language: user.language, forceAttachments: user.force_attachments});
   }
 
   const anek = await botApi.database.Anek.random();
 
   return botApi.bot.sendAnek(message.chat.id, anek, {
-    language: user.language,
-    admin: user.admin && (message.chat.id === message.from.id)
+    admin: user.admin && (message.chat.id === message.from.id),
+    language: user.language
   });
 });
 
@@ -307,14 +311,14 @@ botApi.bot.onCommand('xax', async (command, message, user) => {
   const aneksLength = await botApi.database.Anek
     .find({ $where: `this.text.length <= ${max} && this.text.length >= ${min}` })
     .count();
-  const anek = await botApi.database.Anek
+  const anek: IAnek = await (botApi.database.Anek as IAnekModel)
     .findOne({ $where: `this.text.length <= ${max} && this.text.length >= ${min}` })
     .skip(Math.floor(Math.random() * aneksLength));
 
   return botApi.bot.sendAnek(message.chat.id, anek, {
-    language: user.language,
     admin: user.admin && (message.chat.id === message.from.id),
-    forceAttachments: user.force_attachments
+    forceAttachments: user.force_attachments,
+    language: user.language
   });
 });
 
@@ -346,7 +350,7 @@ botApi.bot.onCommand('spam', async (command, message, user) => {
   if (command.length <= 1) {
     const aneks = await botApi.database.Anek.find({spam: true});
 
-    const spamList = aneks.map(anek => {
+    const spamList = aneks.map((anek: IAnek) => {
       return anek.post_id;
     });
 
@@ -388,23 +392,23 @@ botApi.bot.onCommand('get_me', async (command, message, user) => {
 botApi.bot.onCommand('start', async (command, message, user) => {
   if (command[1] && command[1] === 'donate') {
     return botApi.bot.sendInvoice(message.from.id, {
-      title: 'Донат на развитие бота',
       description: 'А то совсем нечего кушать',
-      payload: command[1]
+      payload: command[1],
+      title: 'Донат на развитие бота'
     });
   }
 
-  if (command[1] && dict.languageExists(command[1])) {
+  if (command[1] && languageExists(command[1])) {
     user.language = command[1];
   }
 
   await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'start'));
+  return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'start'));
 });
 
 botApi.bot.onCommand('help', async (command, message, user) => {
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'start'));
+  return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'start'));
 });
 
 botApi.bot.onCommand('force_attachments', async (command, message, user) => {
@@ -423,7 +427,7 @@ botApi.bot.onCommand('keyboard', async (command, message, user) => {
 
   await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {keyboard: keyboardToggle});
 
-  const params = {};
+  const params: AllMessageParams = {};
 
   if (keyboardToggle) {
     params.keyboard = true;
@@ -438,14 +442,14 @@ botApi.bot.onCommand('english', async (command, message, user) => {
 
   await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'language_change'));
+  return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'language_change'));
 });
 botApi.bot.onCommand('russian', async (command, message, user) => {
   user.language = 'russian';
 
   await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
 
-  return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'language_change'));
+  return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'language_change'));
 });
 
 botApi.bot.onCommand('broadcast', async (command, message, user) => {
@@ -454,15 +458,15 @@ botApi.bot.onCommand('broadcast', async (command, message, user) => {
   }
 
   if (command.length <= 1) {
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'broadcast_text_missing'));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'broadcast_text_missing'));
   }
 
   command.splice(0, 1);
 
   const users = await botApi.database.User.find({subscribed: true});
 
-  await botApi.bot.fulfillAll(users.map(function (user) {
-    return this.sendMessage(user.user_id, command.join(' '));
+  await botApi.bot.fulfillAll(users.map((foundUser: IUser) => {
+    return botApi.bot.sendMessage(foundUser.user_id, command.join(' '));
   }, botApi.bot));
 
   return botApi.bot.sendMessage(message.chat.id, 'Рассылка окончена.');
@@ -475,7 +479,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 
   let startDate;
   let startTitle;
-  let now = new Date();
+  const now = new Date();
 
   switch (command[1]) {
     case 'day':
@@ -500,7 +504,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
   const results = await botApi.statistics.getOverallStatistics(
     startDate,
     now
-  );
+  ) as StatisticsData;
 
   return botApi.bot.sendMessage(message.chat.id, generateStatistics(startTitle, results), {
     disableButtons: true,
@@ -508,7 +512,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
   });
 });
 
-botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'filin')));
+botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, translate(user.language, 'filin')));
 botApi.bot.onCommand('bret', (command, message) => botApi.bot.sendMessage(message.chat.id, 'Удолил'));
 botApi.bot.onCommand('madway', (command, message) => botApi.bot.sendMessage(message.chat.id, '@Lyasya кикай'));
 botApi.bot.onCommand('do_rock', (command, message) => botApi.bot.sendMessage(message.chat.id, 'денис'));
@@ -516,7 +520,7 @@ botApi.bot.onCommand('petux', (command, message) => botApi.bot.sendMessage(messa
 botApi.bot.onCommand('pin', (command, message) => botApi.bot.sendMessage(message.chat.id, 'я не ем усы'));
 botApi.bot.onCommand('svetlana', (command, message) => botApi.bot.sendMessage(message.chat.id, 'цем в лобик'));
 botApi.bot.onCommand('bareyko', (command, message) => botApi.bot.sendSticker(message.chat.id, 'CAADAgADXAYAAq8ktwaLUk5_6-Z06gI'));
-botApi.bot.onCommand('krevet', (command, message, user) => botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'krevet')));
+botApi.bot.onCommand('krevet', (command, message, user) => botApi.bot.sendMessage(message.chat.id, translate(user.language, 'krevet')));
 botApi.bot.onCommand('shlyapa', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(shlyapaAnswers)));
 botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
 botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
@@ -557,7 +561,7 @@ botApi.bot.onCommand('comment', performSuggest);
 botApi.bot.onCommand('comment_list', (command, message, user) => performSuggest(['/command', 'list'], message, user));
 
 botApi.bot.onCommand('top_day', async (command, message, user) => {
-  const count = Math.max(Math.min(parseInt(command[1]) || 1, 20), 1);
+  const count = Math.max(Math.min(Number(command[1]) || 1, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
     .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60}})
@@ -565,12 +569,12 @@ botApi.bot.onCommand('top_day', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_day', {count}));
+  await botApi.bot.sendMessage(message.chat.id, translate(user.language, 'top_day', {count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+  return botApi.bot.fulfillAll(aneks.map((anek) => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_week', async (command, message, user) => {
-  const count = Math.max(Math.min(parseInt(command[1]) || 3, 20), 1);
+  const count = Math.max(Math.min(Number(command[1]) || 3, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
     .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 7}})
@@ -578,12 +582,12 @@ botApi.bot.onCommand('top_week', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_week', {count}));
+  await botApi.bot.sendMessage(message.chat.id, translate(user.language, 'top_week', {count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+  return botApi.bot.fulfillAll(aneks.map((anek) => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_month', async (command, message, user) => {
-  const count = Math.max(Math.min(parseInt(command[1]) || 5, 20), 1);
+  const count = Math.max(Math.min(Number(command[1]) || 5, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
     .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 30}})
@@ -591,12 +595,12 @@ botApi.bot.onCommand('top_month', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_month', {count}));
+  await botApi.bot.sendMessage(message.chat.id, translate(user.language, 'top_month', {count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+  return botApi.bot.fulfillAll(aneks.map((anek) => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_year', async (command, message, user) => {
-  const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
+  const count = Math.max(Math.min(Number(command[1]) || 10, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
     .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 * 365}})
@@ -604,34 +608,34 @@ botApi.bot.onCommand('top_year', async (command, message, user) => {
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_year', {count}));
+  await botApi.bot.sendMessage(message.chat.id, translate(user.language, 'top_year', {count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+  return botApi.bot.fulfillAll(aneks.map((anek) => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 botApi.bot.onCommand('top_ever', async (command, message, user) => {
-  const count = Math.max(Math.min(parseInt(command[1]) || 10, 20), 1);
+  const count = Math.max(Math.min(Number(command[1]) || 10, 20), 1);
   const aneks = await botApi.database.Anek
     .find({})
     .sort({likes: -1})
     .limit(count)
     .exec();
 
-  await botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'top_ever', {count: count}));
+  await botApi.bot.sendMessage(message.chat.id, translate(user.language, 'top_ever', {count}));
 
-  return botApi.bot.fulfillAll(aneks.map(anek => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
+  return botApi.bot.fulfillAll(aneks.map((anek) => botApi.bot.sendAnek(message.chat.id, anek, {forceAttachments: user.force_attachments})));
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(message.from.id, {
-  title: 'Донат на развитие бота',
   description: 'А то совсем нечего кушать',
   payload: 'lololo',
   prices: JSON.stringify([
     {label: 'Основной взнос', amount: 6000}
-  ])
+  ]),
+  title: 'Донат на развитие бота'
 }));
 
 botApi.bot.onCommand('subscribe', async (command, message) => {
-  let user;
+  let user: IUser | void;
 
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
     user = await botApi.user.updateWith(message.chat);
@@ -642,9 +646,9 @@ botApi.bot.onCommand('subscribe', async (command, message) => {
   if (user) {
     if (!user.subscribed) {
       await botApi.user.updateWith(user, {subscribed: true});
-      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_success', {first_name: user.first_name || user.title}));
+      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'subscribe_success', {first_name: user.first_name || user.title}));
     } else {
-      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'subscribe_fail'));
+      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'subscribe_fail'));
     }
   }
 });
@@ -660,9 +664,9 @@ botApi.bot.onCommand('unsubscribe', async (command, message) => {
   if (user) {
     if (user.subscribed) {
       await botApi.user.updateWith(user, {subscribed: false});
-      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'unsubscribe_success', {first_name: user.first_name}));
+      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'unsubscribe_success', {first_name: user.first_name}));
     } else {
-      return botApi.bot.sendMessage(user.user_id, dict.translate(user.language, 'unsubscribe_fail'));
+      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'unsubscribe_fail'));
     }
   }
 });
@@ -711,7 +715,7 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Введите id пользователя.');
   }
 
-  const privileges = {};
+  const privileges: {admin?: boolean, editor?: boolean} = {};
 
   if (command[2]) {
     switch (command[2]) {
@@ -728,8 +732,8 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
     }
   }
 
-  await botApi.database.User.findOneAndUpdate({user_id: parseInt(command[1])}, privileges);
-  await botApi.bot.sendMessage(parseInt(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
+  await botApi.database.User.findOneAndUpdate({user_id: Number(command[1])}, privileges);
+  await botApi.bot.sendMessage(Number(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
 
   return botApi.bot.sendMessage(message.chat.id, 'Привилегии присвоены.');
 });
@@ -768,17 +772,17 @@ botApi.bot.onCommand('find', async (command, message, user) => {
   const searchPhrase = command.join(' ');
 
   if (!searchPhrase.length) {
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_empty'));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'search_query_empty'));
   }
 
   if (searchPhrase.length < 4) {
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_short'));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'search_query_short'));
   }
 
-  const aneks = await common.performSearch(searchPhrase, 0, 1, botApi.database);
+  const aneks = await common.performSearch(searchPhrase, 0, 1);
 
   if (!aneks.length) {
-    return botApi.bot.sendMessage(message.chat.id, dict.translate(user.language, 'search_query_not_found'));
+    return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'search_query_not_found'));
   }
 
   return botApi.bot.sendAnek(message.chat.id, aneks[0], {language: user.language, forceAttachments: user.force_attachments});
@@ -787,16 +791,16 @@ botApi.bot.onCommand('find', async (command, message, user) => {
 botApi.bot.on('suggest', async (suggest, user) => {
   suggest.user = user;
 
-  const newSuggest = await botApi.database.Suggest(suggest).save();
+  const newSuggest = await new botApi.database.Suggest(suggest).save();
   const buttons = [
     [
       {
-        text: 'Подписаться',
-        callback_data: 's_da ' + newSuggest._id
+        callback_data: 's_da ' + newSuggest._id,
+        text: 'Подписаться'
       },
       {
-        text: 'Удалить',
-        callback_data: 's_d ' + newSuggest._id
+        callback_data: 's_d ' + newSuggest._id,
+        text: 'Удалить'
       }
     ]
   ];
@@ -808,10 +812,10 @@ botApi.bot.on('suggest', async (suggest, user) => {
   });
 });
 
-botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
+botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
   const {data = ''} = callbackQuery;
   const queryData = data.split(' ');
-  const params = {
+  const params: AllMessageParams = {
     reply_to_message_id: callbackQuery.message && callbackQuery.message.message_id
   };
 
@@ -819,18 +823,18 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 'comment':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
 
-      const commentsResponse = await botApi.vk.getAllComments(queryData[1]);
+      const commentsResponse = await botApi.vk.getAllComments(Number(queryData[1]));
       const comments = commentsResponse
-        .reduce((acc, anek) => acc.concat(anek.items), [])
-        .sort((a, b) => b.likes.count - a.likes.count)
+        .reduce((acc: Comment[], anek: MultipleResponse<Comment>) => acc.concat(anek.items), [])
+        .sort((a: Comment, b: Comment) => b.likes.count - a.likes.count)
         .slice(0, 3)
-        .map((comment, index) => ({...comment, text: dict.translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
+        .map((comment, index) => ({...comment, text: translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
 
       return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: 'Markdown', disable_web_page_preview: true});
     case 'attach':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
 
-      let post = await botApi.vk.getPostById(queryData[1]);
+      let post = await botApi.vk.getPostById(Number(queryData[1]));
 
       if (!post) {
         throw new Error('Post not found');
@@ -860,11 +864,11 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
     case 's_a':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено' });
 
-      return acceptSuggest(queryData, callbackQuery, params, false);
+      return acceptSuggest(queryData, callbackQuery, false);
     case 's_aa':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено анонимно' });
 
-      return acceptSuggest(queryData, callbackQuery, params, true);
+      return acceptSuggest(queryData, callbackQuery, true);
     case 's_d':
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
@@ -916,6 +920,6 @@ botApi.bot.on('reply', async (reply, message, user) => {
   }
 });
 
-botApi.bot.on('feedback', message => {
+botApi.bot.on('feedback', (message: Message) => {
   return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message.message_id, message.chat.id);
 });

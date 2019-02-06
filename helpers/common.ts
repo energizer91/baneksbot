@@ -3,12 +3,22 @@
  */
 
 import * as config from 'config';
+import {IElasticSearchResult} from "mongoosastic";
+import {Types} from 'mongoose';
 import * as botApi from '../botApi';
-import {MessageParams, TelegramError} from '../models/telegram';
-import {Anek} from '../models/vk';
-import {IAnek, IUser} from './mongo';
+import {AllMessageParams, TelegramError} from '../models/telegram';
+import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
+import {Anek as AnekModel, IAnek, IAnekModel, IUser, User, } from './mongo';
 
-const processAnek = (anek: Anek): IAnek => {
+type ElasticHit = {
+  _id: Types.ObjectId,
+  text: string,
+  post_id: number,
+  from_id: number,
+  likes: number
+};
+
+const processAnek = (anek: Anek): PreparedAnek => {
   const {id, ...rest} = anek;
 
   return {
@@ -20,12 +30,12 @@ const processAnek = (anek: Anek): IAnek => {
 };
 
 export function searchAneks(searchPhrase: string, skip: number = 0, limit: number) {
-  return botApi.database.Anek.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip).exec();
+  return AnekModel.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip).exec();
 }
 
 export function searchAneksElastic(searchPhrase: string, skip: number = 0, limit: number) {
   return new Promise((resolve, reject) => {
-    return botApi.database.Anek.esSearch({
+    return AnekModel.esSearch({
       from: skip,
       query: {
         match: {
@@ -41,13 +51,13 @@ export function searchAneksElastic(searchPhrase: string, skip: number = 0, limit
         post_tags: ['*'],
         pre_tags: ['*']
       }
-    }, (err: Error, results) => {
+    }, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
       if (err) {
         return reject(err);
       }
 
-      if (results && results.hits && results.hits.hits) {
-        return resolve(results.hits.hits);
+      if (result && result.hits && result.hits.hits) {
+        return resolve(result.hits.hits);
       }
 
       return resolve([]);
@@ -63,8 +73,8 @@ export function performSearch(searchPhrase: string, skip: number, limit: number)
   return this.searchAneks(searchPhrase, skip, limit);
 }
 
-export async function getAneksUpdate(skip: number = 0, limit: number = 100, aneks: Anek[] = []) {
-  const lastDBAnek = await botApi.database.Anek.findOne().sort({date: -1}).exec();
+export async function getAneksUpdate(skip: number = 0, limit: number = 100, aneks: Anek[] = []): Promise<Anek[]> {
+  const lastDBAnek = await AnekModel.findOne().sort({date: -1}).exec();
   const lastDBAnekDate = lastDBAnek.date;
   const vkAneks = await botApi.vk.getPosts(skip, limit);
 
@@ -74,7 +84,7 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
 
   if (!vkAneks.items.length) {
     if (aneks.length) {
-      return botApi.database.Anek.collection.insertMany(aneks)
+      return AnekModel.collection.insertMany(aneks)
         .then(() => {
           return aneks;
         });
@@ -85,10 +95,11 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
 
   for (const vkAnek of vkAneks.items) {
     if (vkAnek.date > lastDBAnekDate) {
+      // @ts-ignore
       aneks.unshift(processAnek(vkAnek));
     } else {
       if (aneks.length) {
-        return botApi.database.Anek.collection.insertMany(aneks).then(() => {
+        return AnekModel.collection.insertMany(aneks).then(() => {
           return aneks;
         });
       }
@@ -104,7 +115,7 @@ export function getLastAneks(count: number) {
   return botApi.vk.getPosts(0, count)
     .then((response) => {
       return response.items.map((anek) => {
-        return botApi.database.Anek.findOneAndUpdate({post_id: anek.post_id}, {
+        return AnekModel.findOneAndUpdate({post_id: anek.post_id}, {
           comments: anek.comments,
           likes: anek.likes.count,
           reposts: anek.reposts.count
@@ -138,17 +149,12 @@ export async function redefineDatabase(count: number) {
   const responses = await this.getAllAneks(count);
 
   const aneks = responses
-    .reduce((acc, response) => acc.concat(response.items.reverse()), [])
-    .map((anek: Anek): IAnek => {
-      anek.post_id = anek.id;
-      anek.likes = anek.likes.count;
-      anek.reposts = anek.reposts.count;
-      delete anek.id;
-      return anek;
-    });
+    .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
+    // @ts-ignore
+    .map((anek: Anek): Anek => processAnek(anek));
 
   if (aneks.length) {
-    return botApi.database.Anek.collection.insertMany(aneks)
+    return AnekModel.collection.insertMany(aneks)
       .catch((): [] => [])
       .then(() => aneks);
   }
@@ -158,8 +164,8 @@ export async function redefineDatabase(count: number) {
 
 export function updateAneks() {
   return this.getAllAneks()
-    .then((responses) => {
-      const bulk = botApi.database.Anek.collection.initializeOrderedBulkOp();
+    .then((responses: Array<MultipleResponse<Anek>>) => {
+      const bulk = AnekModel.collection.initializeOrderedBulkOp();
 
       responses.forEach((response) => {
         response.items.forEach((anek) => {
@@ -182,14 +188,14 @@ export function filterAnek(anek: Anek) {
   return !donate && !ads;
 }
 
-export async function broadcastAneks(users: IUser[], aneks: IAnek[], params: MessageParams) {
+export async function broadcastAneks(users: IUser[], aneks: Anek[], params: AllMessageParams): Promise<void> {
   const errorMessages: {[key: string]: boolean} = {};
 
   if (!users.length || !aneks.length) {
-    return [];
+    return;
   }
 
-  return Promise.all(aneks
+  Promise.all(aneks
     .filter(this.filterAnek)
     .map((anek) => botApi.bot.fulfillAll(users.map((user) => botApi.bot.sendAnek(user.user_id, anek, {...params, forceAttachments: user.force_attachments})
       .catch((error: TelegramError) => {
@@ -209,7 +215,7 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params: Mes
 
       if (usersArray.length) {
         const text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
-        const bulk = botApi.database.User.collection.initializeOrderedBulkOp();
+        const bulk = User.collection.initializeOrderedBulkOp();
 
         bulk.find({user_id: {$in: usersArray}}).update({$set: {subscribed: false, deleted_subscribe: true}});
         botApi.bot.sendMessageToAdmin(text);

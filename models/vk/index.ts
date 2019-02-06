@@ -102,6 +102,12 @@ export type Anek = {
   }
 };
 
+export type PreparedAnek = {
+  post_id: number,
+  likes: number,
+  reposts: number
+};
+
 export type Attachment = {
   type: string,
   photo?: Photo,
@@ -114,17 +120,23 @@ export type Attachment = {
   title?: string
 };
 
-type Comment = {
+export type Comment = {
   id: number,
   from_id: number,
   date: number,
   text: string,
   reply_to_user: number,
   reply_to_comment: number,
+  likes: {
+    count: number
+  },
+  comments: {
+    count: number
+  },
   attachments: Attachment[]
 };
 
-type MultipleResponse<T> = {
+export type MultipleResponse<T> = {
   count: number,
   items: T[]
 };
@@ -235,9 +247,9 @@ class Vk extends NetworkModel {
     });
   }
 
-  public getAllComments(postId: number): Promise<Comment[]> {
+  public getAllComments(postId: number): Promise<Array<MultipleResponse<Comment>>> {
     return this.getCommentsCount(postId)
-      .then((counter: number): Promise<Comment[]> => {
+      .then((counter: number) => {
         const requests = [];
         let current = counter;
         const goal = 0;

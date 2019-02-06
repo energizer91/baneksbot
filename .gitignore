@@ -4,3 +4,4 @@ node_modules
 /.idea/
 baneks-node.iml
 /bundle/
+/dist/

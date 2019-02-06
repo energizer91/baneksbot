@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node ./bin/www",
     "test": "mocha **/models/**/*.spec.js",
-    "build": "webpack -d"
+    "build:client": "webpack -d",
+    "build": "tsc",
+    "postbuild": "cp -R config/. dist/config/ && cp -R languages/. dist/languages/"
   },
   "dependencies": {
     "@types/config": "^0.0.34",

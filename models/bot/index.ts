@@ -7,6 +7,7 @@ import {translate} from '../../helpers/dictionary';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 import {Callback} from '../events';
 import Telegram, {
+  AllMessageParams,
   Attachment as TelegramAttachment,
   CallbackQuery,
   InlineKeyboardMarkup,
@@ -19,7 +20,9 @@ import Telegram, {
   User
 } from '../telegram';
 import {
+  Anek,
   Attachment as VkAttachment,
+  Comment,
   PollAnswer
 } from '../vk';
 
@@ -175,12 +178,12 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  public async sendAnek(userId: number, anek: IAnek, params: MessageParams = {}): Promise<Message | Message[] | void> {
+  public async sendAnek(userId: number, anek: IAnek | Anek, params: MessageParams = {}): Promise<Message | Message[] | void> {
     if (!anek) {
       return;
     }
 
-    const immutableAnek: IAnek = cloneDeep(anek.toObject ? anek.toObject() : anek);
+    const immutableAnek: IAnek = cloneDeep((anek as IAnek).toObject ? (anek as IAnek).toObject() : anek);
 
     const buttons: InlineKeyboardMarkup = this.getAnekButtons(immutableAnek, params);
 
@@ -223,7 +226,7 @@ class Bot extends Telegram {
       });
   }
 
-  public sendComment(userId: number, comment: IAnek, params: MessageParams) {
+  public sendComment(userId: number, comment: Comment, params: MessageParams) {
     const attachments = this.convertAttachments(comment.attachments || []);
 
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
@@ -236,7 +239,7 @@ class Bot extends Telegram {
       });
   }
 
-  public sendComments(userId: number, comments: IAnek[] = [], params: MessageParams) {
+  public sendComments(userId: number, comments: Comment[] = [], params: AllMessageParams) {
     return this.fulfillAll(comments.map((comment) => this.sendComment(userId, comment, params)));
   }
 

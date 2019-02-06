@@ -171,7 +171,11 @@ export type Update = {
 };
 
 type TelegramParams = {
-  chat_id?: number
+  chat_id?: number,
+  keyboard?: boolean,
+  remove_keyboard?: boolean,
+  disable_web_page_preview?: boolean,
+  reply_to_message_id?: number
 };
 
 export type MessageParams = {
@@ -179,6 +183,7 @@ export type MessageParams = {
   buttons?: InlineKeyboardMarkup,
   forceAttachments?: boolean,
   disableAttachments?: boolean,
+  disableButtons?: boolean,
   admin?: boolean,
   editor?: boolean,
   suggest?: boolean,
@@ -189,7 +194,7 @@ export type MessageParams = {
   language?: string
 };
 
-type AllMessageParams = TelegramParams & MessageParams & RequestParams;
+export type AllMessageParams = TelegramParams & MessageParams & RequestParams;
 
 export type TelegramError = {
   ok: false,
@@ -236,7 +241,7 @@ class Telegram extends NetworkModel {
     return this.makeRequest(axiosConfig, requestParams).then((response: any) => response ? response.result : {});
   }
 
-  public sendInline(inlineId: string, results: [], nextOffset = 0): Promise<boolean> {
+  public sendInline(inlineId: string, results: any[], nextOffset = 0): Promise<boolean> {
     return this.sendRequest('answerInlineQuery', {
       _key: inlineId,
       _rule: config.get('telegram.rules.inlineQuery'),
@@ -255,7 +260,7 @@ class Telegram extends NetworkModel {
     userId: number,
     message: string,
     params?: AllMessageParams
-  ): Promise<Message | Message[] | void> {
+  ): Promise<Message> {
     if (!message) {
       return;
     }
@@ -276,7 +281,8 @@ class Telegram extends NetworkModel {
         messageCursor += 4096;
       } while (messagePart);
 
-      return this.sendMessages(userId, messages, params);
+      return this.sendMessages(userId, messages, params)
+          .then((returnedMessages: Message[]) => returnedMessages[returnedMessages.length - 1]);
     }
 
     debug('Sending message', userId, message, params);
@@ -352,7 +358,7 @@ class Telegram extends NetworkModel {
     userId: number,
     mediaGroup: MediaGroup,
     params?: AllMessageParams & MediaGroupParams
-  ): Promise<Message[] | void> {
+  ): Promise<Message> {
     if (!mediaGroup.length) {
       return;
     }
@@ -377,7 +383,7 @@ class Telegram extends NetworkModel {
     chatAction: ChatAction,
     message: string,
     params?: AllMessageParams
-  ): Promise<Message | Message[] | void> {
+  ): Promise<Message> {
     this.sendChatAction(userId, chatAction);
 
     return this.sendMessage(userId, message, params);
@@ -387,7 +393,7 @@ class Telegram extends NetworkModel {
     userId: number,
     attachment: Attachment,
     params?: AllMessageParams
-  ): Promise<Message | Message[] | void> {
+  ): Promise<Message> {
     debug('Sending attachment', userId, attachment, params);
 
     switch (attachment.type) {
@@ -411,7 +417,7 @@ class Telegram extends NetworkModel {
     userId: number,
     attachments: Attachment[] = [],
     params?: AllMessageParams
-  ): Promise<Message[] | void> {
+  ): Promise<Message | Message[]> {
     if (!attachments.length) {
       return;
     }
@@ -433,7 +439,7 @@ class Telegram extends NetworkModel {
     );
   }
 
-  public sendSticker(userId: number, stickerId: number) {
+  public sendSticker(userId: number, stickerId: string) {
     if (!userId) {
       throw new Error('No user specified!');
     }
@@ -458,7 +464,7 @@ class Telegram extends NetworkModel {
     return this.sendRequest('getWebhookInfo');
   }
 
-  public async answerCallbackQuery(queryId: number, payload?: AnswerCallbackQuery): Promise<Message | void> {
+  public async answerCallbackQuery(queryId: string, payload?: AnswerCallbackQuery): Promise<Message | void> {
     debug('Answering callback query', queryId, payload);
 
     if (!payload) {

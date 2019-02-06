@@ -72,19 +72,19 @@ class Queue {
 
     if (!this.queue.has(queueName)) {
       this.queue.set(queueName, {
-        id: uuid(),
         cooldown: 0,
-        key: queueName,
         data: [],
+        id: uuid(),
+        key: queueName,
         rule: this.getRule(rule),
         ruleName: rule
       });
     }
 
     this.queue.get(queueName).data.push({
+      callback,
       id: uuid(),
-      request,
-      callback
+      request
     });
 
     return this.queue.get(queueName);
@@ -96,9 +96,9 @@ class Queue {
     }
 
     this.params.rules[name] = Object.assign({
-      rate: this.params.default.rate,
       limit: this.params.default.limit,
-      priority: this.params.default.priority
+      priority: this.params.default.priority,
+      rate: this.params.default.rate
     }, params);
 
     return this.params.rules[name];
@@ -176,8 +176,8 @@ class Queue {
         this.setCooldown(currentQueue);
 
         return {
-          queue: currentQueue,
-          item: currentQueue.data.shift()
+          item: currentQueue.data.shift(),
+          queue: currentQueue
         };
       });
   }

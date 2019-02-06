@@ -64,16 +64,16 @@ class NetworkModel extends EventEmitter {
       }), key, rule);
   }
 
-  public async fulfillAll<Request, Response>(requests: Array<Promise<Request>>): Promise<Response[]> {
-    const results: Response[] = [];
+  public async fulfillAll<T>(requests: Array<Promise<T>>): Promise<T[]> {
+    const results: T[] = [];
 
     if (!requests.length) {
       return [];
     }
 
-    return requests.reduce((p, request: Promise<Request | void>) => {
+    return requests.reduce((p, request: Promise<T | void>) => {
       return p
-        .then((result: Response | void) => {
+        .then((result: T | void) => {
           if (result) {
             results.push(result);
           }
@@ -86,7 +86,7 @@ class NetworkModel extends EventEmitter {
           return {};
         });
     }, Promise.resolve())
-      .then((lastResponse: Response | void) => {
+      .then((lastResponse: T | void) => {
         if (lastResponse) {
           results.push(lastResponse);
         }

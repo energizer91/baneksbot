@@ -6,12 +6,18 @@
     "removeComments": true,
     "preserveConstEnums": true,
     "sourceMap": true,
-    "target": "es2018"
+    "outDir": "dist",
+    "allowJs": true,
+    "baseUrl": ".",
+    "target": "es2018",
+    "typeRoots": [ "./@types", "./node_modules/@types"]
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "**/*.js"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist"
   ]
 }

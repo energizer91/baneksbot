@@ -4,10 +4,12 @@
 import * as config from 'config';
 import {CronJob} from 'cron';
 import * as debugFactory from 'debug';
+import {IAnek, IAnekModel, IUser} from "../helpers/mongo";
+import {Anek} from "../models/vk";
 import {UpdaterMessageTypes} from './types';
 
-const common = require('../helpers/common');
-const botApi = require('../botApi');
+import {database, statistics} from '../botApi';
+import common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
 const error = debugFactory('baneks-node:updater:error');
@@ -16,7 +18,7 @@ let updateInProcess = false;
 let currentUpdate = '';
 let forceDenyUpdate = false;
 
-function updateAneksTimer () {
+function updateAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and update aneks');
 
@@ -27,15 +29,15 @@ function updateAneksTimer () {
   currentUpdate = 'update aneks';
 
   return common.getAneksUpdate()
-    .then(aneks => {
+    .then((aneks: Anek[]) => {
       if (aneks.length) {
         debug(aneks.length + ' anek(s) found. Start broadcasting');
 
-        return botApi.database.User.find({subscribed: true}).exec()
-          .then(users => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
+        return database.User.find({subscribed: true}).exec()
+          .then((users: IUser[]) => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
       }
     })
-    .catch(err => {
+    .catch((err: Error) => {
       error('Update aneks error', err);
     })
     .then(() => {
@@ -43,7 +45,7 @@ function updateAneksTimer () {
     });
 }
 
-function updateLastAneksTimer () {
+function updateLastAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and update last anek');
 
@@ -54,7 +56,7 @@ function updateLastAneksTimer () {
   currentUpdate = 'update last anek';
 
   return common.getLastAneks(100)
-    .catch(err => {
+    .catch((err: Error) => {
       error('Last aneks error', err);
     })
     .then(() => {
@@ -62,7 +64,7 @@ function updateLastAneksTimer () {
     });
 }
 
-function refreshAneksTimer () {
+function refreshAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and refresh aneks');
 
@@ -73,7 +75,7 @@ function refreshAneksTimer () {
   currentUpdate = 'refresh aneks';
 
   return common.updateAneks()
-    .catch(err => {
+    .catch((err: Error) => {
       error('Aneks refresh', err);
     })
     .then(() => {
@@ -81,16 +83,16 @@ function refreshAneksTimer () {
     });
 }
 
-function synchronizeDatabase () {
+function synchronizeDatabase() {
   return synchronizeWithElastic()
-    .catch(err => {
+    .catch((err: Error) => {
       error('Database synchronize error', err);
     });
 }
 
-function calculateStatisticsTimer () {
-  return botApi.statistics.calculateStatistics()
-    .catch(err => {
+function calculateStatisticsTimer() {
+  return statistics.calculateStatistics()
+    .catch((err: Error) => {
       error('Statistics calculate error', err);
     });
 }
@@ -99,8 +101,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-
-new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // eslint-disable-line
+const calculateStetisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // tslint-disable-line no-unused-expression
 
 process.on('message', (m: UpdaterMessageTypes) => {
   debug('CHILD got message:', m);
@@ -132,7 +133,7 @@ process.on('message', (m: UpdaterMessageTypes) => {
 
         break;
       case 'anek':
-        return botApi.database.Anek.random().then(anek => {
+        return database.Anek.random().then((anek: IAnek) => {
           process.send({
             message: anek.text,
             params: {language: m.value.language},
@@ -153,23 +154,23 @@ async function synchronizeWithElastic() {
     return;
   }
 
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     let stream;
     let count = 0;
 
     try {
-      stream = botApi.database.Anek.synchronize();
+      stream = database.Anek.synchronize();
     } catch (err) {
       return reject(err);
     }
 
-    stream.on('data', function () {
+    stream.on('data', () => {
       count++;
     });
-    stream.on('close', function () {
+    stream.on('close', () => {
       return resolve(count);
     });
-    stream.on('error', function (err) {
+    stream.on('error', (err: Error) => {
       return reject(err);
     });
   });

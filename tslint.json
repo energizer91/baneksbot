@@ -16,6 +16,7 @@
     "interface-over-type-literal": false
   },
   "jsRules": {
-    "max-line-length": false
+    "max-line-length": false,
+    "quotemark": false
   }
 }

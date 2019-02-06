@@ -1,32 +1,43 @@
 /// <reference types="node" />
 
 declare module 'mongoosastic' {
-  import { Stats } from "fs";
+  import * as mongoose from "mongoose";
 
-  export interface IReadOptions {
-    filter?: RegExp | Filter;
-    dirTransform?: DirTransform;
-    fileTransform?: FileTransform;
+  export type PluginOptions = {
+    hosts?: string[],
+    hydrate?: boolean,
+    hydrateOptions?: {
+      select?: string
+    }
+  };
+
+  export type SearchQuery = {
+    from: number,
+    query: {
+      match: {
+        text: string
+      }
+    },
+    size: number
+  };
+
+  export type SearchParams = {
+    highlight: {
+      fields: {
+        text: {}
+      },
+      post_tags: string[],
+      pre_tags: string[]
+    }
+  };
+
+  export interface IElasticSearchResult<T> {
+    hits: {
+      hits: Array<T & {_highlight: string}>
+    };
   }
 
-  export type Filter = (file: File) => boolean;
-  export type DirTransform = (file: File, value: any) => any;
-  export type FileTransform = (file: File) => any;
+  export type SearchCallback = (err: Error, result: IElasticSearchResult<any>) => void;
 
-  export function readDirectory(dir: string, options?: IReadOptions): object;
-
-  export class File {
-    key: string;
-    readonly path: string;
-    readonly fullpath: string;
-    readonly ext: string;
-    readonly name: string;
-    readonly basename: string;
-
-    constructor(dir: string, file: string);
-
-    readonly attributes: Stats;
-    readonly isDirectory: boolean;
-    readonly isRequirable: boolean;
-  }
+  export default function Mongoosastic(schema: mongoose.Schema, pluginOpts: PluginOptions): void;
 }

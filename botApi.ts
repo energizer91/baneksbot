@@ -5,7 +5,7 @@ import * as path from 'path';
 
 import {Application, NextFunction, Request, Response} from 'express';
 import {UpdaterMessageTypes} from './daemons/types';
-import * as database from './helpers/mongo';
+import * as databaseModel from './helpers/mongo';
 import {IUser} from './helpers/mongo';
 import Bot from './models/bot';
 import Statistics from './models/statistics';
@@ -30,7 +30,7 @@ const earlyResponse = (req: IBotRequest, res: Response, next: NextFunction) => {
 
 const writeLog = (data: Update, result: any[], error?: Error) => {
   if (Array.isArray(result)) {
-    return database.Log.insertMany(result.map((log: any) => ({
+    return databaseModel.Log.insertMany(result.map((log: any) => ({
       date: new Date(),
       error,
       request: data,
@@ -38,7 +38,7 @@ const writeLog = (data: Update, result: any[], error?: Error) => {
     })));
   }
 
-  const logRecord = new database.Log({
+  const logRecord = new databaseModel.Log({
     date: new Date(),
     error,
     request: data,
@@ -62,10 +62,11 @@ const logMiddleware = (req: IBotRequest, res: Response, next: NextFunction) => {
 
 export const vk = new Vk();
 export const bot = new Bot();
-export const user = new User(database);
-export const statistics = new Statistics(database);
+export const user = new User();
+export const statistics = new Statistics();
+export const database = databaseModel;
 
-const connect = (app: Application) => {
+export const connect = (app: Application) => {
   const middlewares = [
     earlyResponse,
     user.middleware,
@@ -127,12 +128,8 @@ function sendUpdaterMessage(message: UpdaterMessageTypes) {
   dbUpdater.send(message);
 }
 
-module.exports = {
-  connect,
-  database,
-  updater: {
-    ...dbUpdater,
-    connect: startDaemon,
-    sendMessage: sendUpdaterMessage
-  }
+export const updater = {
+  ...dbUpdater,
+  connect: startDaemon,
+  sendMessage: sendUpdaterMessage
 };

@@ -1,22 +1,35 @@
-import {Database} from '../../helpers/mongo';
+import {Anek, IStatistics, Log, Statistic, User} from '../../helpers/mongo';
+
+export type StatisticsData = {
+  aneks: {
+    count: number,
+    new: number
+  },
+  date: Date;
+  messages: {
+    popularCommand: string,
+    received: number
+  },
+  users: {
+    count: number,
+    new: number,
+    newly_subscribed: number,
+    subscribed: number,
+    unsubscribed: number
+  }
+};
 
 class Statistics {
-  private database: Database;
-
-  constructor(database: Database) {
-    this.database = database;
-  }
-
   public async calculateUserStatistics(from: Date, to: Date) {
     const fromDate = new Date(from || 0);
     const toDate = new Date(to || Date.now());
 
     return {
-      count: await this.database.User.count({}),
-      new: await this.database.User.find({date: {$gte: fromDate, $lte: toDate}}).count(),
-      newly_subscribed: await this.database.Log.find({'request.message.text': '/subscribe', "date": {$gte: fromDate, $lte: toDate}}).count(),
-      subscribed: await this.database.User.find({subscribed: true}).count(),
-      unsubscribed: await this.database.Log.find({'request.message.text': '/unsubscribe', "date": {$gte: fromDate, $lte: toDate}}).count()
+      count: await User.count({}),
+      new: await User.find({date: {$gte: fromDate, $lte: toDate}}).count(),
+      newly_subscribed: await Log.find({'request.message.text': '/subscribe', "date": {$gte: fromDate, $lte: toDate}}).count(),
+      subscribed: await User.find({subscribed: true}).count(),
+      unsubscribed: await Log.find({'request.message.text': '/unsubscribe', "date": {$gte: fromDate, $lte: toDate}}).count()
     };
   }
 
@@ -25,8 +38,8 @@ class Statistics {
     const toDate = new Date(to).getTime() / 1000;
 
     return {
-      count: await this.database.Anek.count({}),
-      new: await this.database.Anek.find({date: {$gte: fromDate, $lte: toDate}}).count()
+      count: await Anek.count({}),
+      new: await Anek.find({date: {$gte: fromDate, $lte: toDate}}).count()
     };
   }
 
@@ -35,11 +48,11 @@ class Statistics {
     const toDate = new Date(to || Date.now());
 
     return {
-      received: await this.database.Log.count({date: {$gte: fromDate, $lte: toDate}})
+      received: await Log.count({date: {$gte: fromDate, $lte: toDate}})
     };
   }
 
-  public calculateStatistics(from: Date, to: Date) {
+  public calculateStatistics(from?: Date, to?: Date) {
     const result = {
       aneks: {},
       date: new Date(),
@@ -47,7 +60,7 @@ class Statistics {
       users: {}
     };
 
-    return this.database.Statistic.find({}).sort({date: -1}).limit(1).exec().then((statistics) => {
+    return Statistic.find({}).sort({date: -1}).limit(1).exec().then((statistics: IStatistics[]) => {
       if (!(statistics && statistics.length)) {
         from = new Date(0);
       } else {
@@ -70,15 +83,15 @@ class Statistics {
     }).then((messages) => {
       result.messages = messages;
 
-      return new this.database.Statistic(result).save().then(() => {
+      return new Statistic(result).save().then(() => {
         return result;
       });
     });
   }
 
   public getOverallStatistics(from: Date, to: Date) {
-    return this.database.Statistic.find({date: {$gte: from, $lte: to}})
-      .then((result) => result.reduce((p, c) => {
+    return Statistic.find({date: {$gte: from, $lte: to}})
+      .then((result: IStatistics[]) => result.reduce((p, c) => {
         p.users.count = c.users.count;
         p.users.new += c.users.new;
         p.users.subscribed = c.users.subscribed;
