@@ -85,7 +85,7 @@ async function startDaemon() {
     process.execArgv.push('--inspect=' + (40894));
   }
 
-  dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.js'));
+  dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.ts'));
 
   const text = 'Aneks update process has been started at ' + new Date().toISOString();
 

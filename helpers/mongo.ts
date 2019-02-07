@@ -4,12 +4,51 @@
 
 import * as config from 'config';
 import * as debugFactory from 'debug';
-import mongoosastic, {SearchCallback, SearchParams, SearchQuery} from 'mongoosastic';
 import * as mongoose from 'mongoose';
 import {Stream} from "stream";
 
+// There are no typings for mongoose
+// tslint:disable-next-line
+const mongoosastic = require('mongoosastic');
+
 const debug = debugFactory('baneks-node:mongo');
 const error = debugFactory('baneks-node:mongo:error');
+
+export type PluginOptions = {
+  hosts?: string[],
+  hydrate?: boolean,
+  hydrateOptions?: {
+    select?: string
+  }
+};
+
+export type SearchQuery = {
+  from: number,
+  query: {
+    match: {
+      text: string
+    }
+  },
+  size: number
+};
+
+export type SearchParams = {
+  highlight: {
+    fields: {
+      text: {}
+    },
+    post_tags: string[],
+    pre_tags: string[]
+  }
+};
+
+export interface IElasticSearchResult<T> {
+  hits: {
+    hits: Array<T & {_highlight: string}>
+  };
+}
+
+export type SearchCallback = (err: Error, result: IElasticSearchResult<any>) => void;
 
 export interface IUser extends mongoose.Document {
   username: string;

@@ -3,12 +3,11 @@
  */
 
 import * as config from 'config';
-import {IElasticSearchResult} from "mongoosastic";
 import {Types} from 'mongoose';
 import * as botApi from '../botApi';
 import {AllMessageParams, TelegramError} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
-import {Anek as AnekModel, IAnek, IAnekModel, IUser, User, } from './mongo';
+import {Anek as AnekModel, IElasticSearchResult, IUser, User} from './mongo';
 
 type ElasticHit = {
   _id: Types.ObjectId,
@@ -75,7 +74,7 @@ export function performSearch(searchPhrase: string, skip: number, limit: number)
 
 export async function getAneksUpdate(skip: number = 0, limit: number = 100, aneks: Anek[] = []): Promise<Anek[]> {
   const lastDBAnek = await AnekModel.findOne().sort({date: -1}).exec();
-  const lastDBAnekDate = lastDBAnek.date;
+  const lastDBAnekDate = lastDBAnek ? lastDBAnek.date : 0;
   const vkAneks = await botApi.vk.getPosts(skip, limit);
 
   if (vkAneks.items[0] && vkAneks.items[0].is_pinned) {
@@ -124,10 +123,10 @@ export function getLastAneks(count: number) {
     });
 }
 
-export function getAllAneks(start: number) {
+export function getAllAneks(start: number = 0) {
   return botApi.vk.getPostsCount().then((counter) => {
     const requests = [];
-    let current = counter.count - (start || 0);
+    let current = counter.count - start;
     const goal = counter.hasPinned ? 1 : 0;
     let step = 100;
 
@@ -150,8 +149,7 @@ export async function redefineDatabase(count: number) {
 
   const aneks = responses
     .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
-    // @ts-ignore
-    .map((anek: Anek): Anek => processAnek(anek));
+    .map((anek: Anek): PreparedAnek => processAnek(anek));
 
   if (aneks.length) {
     return AnekModel.collection.insertMany(aneks)
@@ -181,7 +179,7 @@ export function updateAneks() {
     });
 }
 
-export function filterAnek(anek: Anek) {
+export function filterAnek(anek: Anek): boolean {
   const donate = (anek.text || '').indexOf('#донат') >= 0;
   const ads = anek.marked_as_ads;
 

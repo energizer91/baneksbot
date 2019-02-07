@@ -10,7 +10,8 @@
     "allowJs": true,
     "baseUrl": ".",
     "target": "es2018",
-    "typeRoots": [ "./@types", "./node_modules/@types"]
+    "typeRoots": [ "./@types", "./node_modules/@types"],
+    "types": ["mocha"]
   },
   "include": [
     "**/*.ts",
