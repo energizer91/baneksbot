@@ -5,9 +5,11 @@
  */
 
 const app = require('../app');
-const debug = require('../helpers/debug')('baneks-node:server');
-const debugError = require('debug')('baneks-node:server:error');
+const debugFactory = require('../helpers/debug').default;
 const http = require('http');
+
+const debug = debugFactory('baneks-node:server');
+const debugError = debugFactory('baneks-node:server:error');
 
 /**
  * Get port from environment and store in Express.
