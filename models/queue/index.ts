@@ -2,11 +2,12 @@
  * Created by energizer on 13.06.17.
  */
 import * as config from 'config';
-import * as debugFactory from 'debug';
 import * as uuid from 'uuid/v1';
 
+import debugFactory from '../../helpers/debug';
+
 const debug = debugFactory('baneks-node:queue');
-const debugError = debugFactory('baneks-nod:error:queue');
+const debugError = debugFactory('baneks-nod:error:queue', true);
 
 type Rule = {
   rate: number,

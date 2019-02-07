@@ -3,7 +3,7 @@
  */
 import * as config from 'config';
 import {CronJob} from 'cron';
-import * as debugFactory from 'debug';
+import debugFactory from '../helpers/debug';
 import {IAnek, IUser} from "../helpers/mongo";
 import {Anek} from "../models/vk";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
@@ -12,7 +12,7 @@ import {database, statistics} from '../botApi';
 import common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
-const error = debugFactory('baneks-node:updater:error');
+const error = debugFactory('baneks-node:updater:error', true);
 
 let updateInProcess = false;
 let currentUpdate = '';

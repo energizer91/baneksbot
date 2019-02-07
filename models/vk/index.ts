@@ -1,5 +1,5 @@
 import * as config from 'config';
-import * as debugFactory from 'debug';
+import debugFactory from '../../helpers/debug';
 import NetworkModel, {Methods, RequestConfig, RequestParams} from '../network';
 
 const debug = debugFactory('baneks-node:vk');

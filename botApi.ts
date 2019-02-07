@@ -1,10 +1,10 @@
 import * as cp from 'child_process';
 import * as config from 'config';
-import * as debugFactory from 'debug';
 import * as path from 'path';
 
 import {Application, NextFunction, Request, Response} from 'express';
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './daemons/types';
+import debugFactory from './helpers/debug';
 import * as databaseModel from './helpers/mongo';
 import {IUser} from './helpers/mongo';
 import Bot from './models/bot';
@@ -85,7 +85,7 @@ async function startDaemon() {
     process.execArgv.push('--inspect=' + (40894));
   }
 
-  dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater.ts'));
+  dbUpdater = cp.fork(path.join(__dirname, 'daemons/dbUpdater'));
 
   const text = 'Aneks update process has been started at ' + new Date().toISOString();
 

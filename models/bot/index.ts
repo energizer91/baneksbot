@@ -1,8 +1,8 @@
 import * as config from 'config';
-import * as debugFactory from 'debug';
 import {NextFunction, Response} from 'express';
 import {cloneDeep} from 'lodash';
 import {IBotRequest} from '../../botApi';
+import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 import {Callback} from '../events';

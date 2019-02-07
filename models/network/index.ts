@@ -1,10 +1,10 @@
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
-import * as debugFactory from 'debug';
+import debugFactory from '../../helpers/debug';
 import EventEmitter from '../events';
 import Queue, {BackOffFunction} from '../queue';
 import {RequestParams} from './index';
 
-const debugError = debugFactory('baneks-node:network:error');
+const debugError = debugFactory('baneks-node:network:error', true);
 
 export enum Methods {
   GET = 'GET',

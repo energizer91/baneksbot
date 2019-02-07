@@ -3,16 +3,17 @@
  */
 
 import * as config from 'config';
-import * as debugFactory from 'debug';
 import * as mongoose from 'mongoose';
 import {Stream} from "stream";
+
+import debugFactory from './debug';
 
 // There are no typings for mongoose
 // tslint:disable-next-line
 const mongoosastic = require('mongoosastic');
 
 const debug = debugFactory('baneks-node:mongo');
-const error = debugFactory('baneks-node:mongo:error');
+const error = debugFactory('baneks-node:mongo:error', true);
 
 export type PluginOptions = {
   hosts?: string[],
