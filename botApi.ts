@@ -142,7 +142,7 @@ function sendUpdaterMessage(message: UpdaterMessages) {
     throw new Error('Updater is not connected');
   }
 
-  if (!message || !message.type || !message.action) {
+  if (!message || !Object.values(UpdaterMessageTypes).includes(message.type) || !Object.values(UpdaterMessageActions).includes(message.action)) {
     throw new Error('Message is not defined properly');
   }
 
