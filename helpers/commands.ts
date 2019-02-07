@@ -1,5 +1,6 @@
 import * as config from 'config';
 import * as botApi from '../botApi';
+import {UpdaterMessageActions, UpdaterMessageTypes} from "../daemons/types";
 import {StatisticsData} from "../models/statistics";
 import {AllMessageParams, CallbackQuery, Message} from "../models/telegram";
 import {Comment, MultipleResponse} from "../models/vk";
@@ -230,7 +231,7 @@ botApi.bot.onCommand('disable_update', (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: 'service', action: 'update', value: false});
+  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: false});
 
   return botApi.bot.sendMessage(message.from.id, 'Апдейтер отключен');
 });
@@ -239,7 +240,7 @@ botApi.bot.onCommand('enable_update', (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: 'service', action: 'update', value: true});
+  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: true});
 
   return botApi.bot.sendMessage(message.from.id, 'Апдейтер включен');
 });
@@ -259,7 +260,7 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: 'service', action: 'synchronize', value: true});
+  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.synchronize, value: true});
 
   return botApi.bot.sendMessage(message.from.id, 'synchronize start');
 });

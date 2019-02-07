@@ -1,32 +1,46 @@
 import {MessageParams} from "../models/telegram";
 
+export enum UpdaterMessageTypes {
+  service
+}
+
+export enum UpdaterMessageActions {
+  ready,
+  message,
+  synchronize,
+  last,
+  anek,
+  update,
+  statistics
+}
+
 interface IUpdaterMessageInterface {
-  type: string;
-  action: string;
+  type: UpdaterMessageTypes;
+  action: UpdaterMessageActions;
   value: any;
 }
 
 interface IUpdaterServiceMessage extends IUpdaterMessageInterface {
-  type: 'service';
+  type: UpdaterMessageTypes.service;
 }
 
 interface IUpdaterSendMessage extends IUpdaterServiceMessage {
-  action: 'message';
+  action: UpdaterMessageActions.message;
   value: number;
   text?: string;
   params: MessageParams;
 }
 
 interface IUpdaterServiceSynchronizeMessage extends IUpdaterServiceMessage {
-  action: 'synchronize';
+  action: UpdaterMessageActions.synchronize;
 }
 
 interface IUpdaterServiceUpdateLastMessage extends IUpdaterServiceMessage {
-  action: 'last';
+  action: UpdaterMessageActions.last;
 }
 
 interface IUpdaterServiceAnekMessage extends IUpdaterServiceMessage {
-  action: 'anek';
+  action: UpdaterMessageActions.anek;
   value: {
     language: string,
     user_id: number
@@ -34,13 +48,24 @@ interface IUpdaterServiceAnekMessage extends IUpdaterServiceMessage {
 }
 
 interface IUpdaterUpdateMessage extends IUpdaterServiceMessage {
-  action: 'update';
+  action: UpdaterMessageActions.update;
   value: boolean;
 }
 
-export type UpdaterMessageTypes =
-  IUpdaterSendMessage |
-  IUpdaterServiceSynchronizeMessage |
-  IUpdaterServiceAnekMessage |
-  IUpdaterUpdateMessage |
-  IUpdaterServiceUpdateLastMessage;
+interface IUpdaterStatisticsMessage extends IUpdaterServiceMessage {
+  action: UpdaterMessageActions.statistics;
+  value: boolean;
+}
+
+interface IUpdaterReadyMessage extends IUpdaterServiceMessage {
+  action: UpdaterMessageActions.ready;
+  value: boolean;
+}
+
+export type UpdaterMessages = IUpdaterSendMessage
+    | IUpdaterServiceSynchronizeMessage
+    | IUpdaterServiceAnekMessage
+    | IUpdaterUpdateMessage
+    | IUpdaterServiceUpdateLastMessage
+    | IUpdaterStatisticsMessage
+    | IUpdaterReadyMessage;

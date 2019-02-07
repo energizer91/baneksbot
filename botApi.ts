@@ -4,7 +4,7 @@ import * as debugFactory from 'debug';
 import * as path from 'path';
 
 import {Application, NextFunction, Request, Response} from 'express';
-import {UpdaterMessageTypes} from './daemons/types';
+import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './daemons/types';
 import * as databaseModel from './helpers/mongo';
 import {IUser} from './helpers/mongo';
 import Bot from './models/bot';
@@ -99,16 +99,37 @@ async function startDaemon() {
     await startDaemon();
   });
 
-  dbUpdater.on('message', (m: UpdaterMessageTypes) => {
+  dbUpdater.on('exited', async (code, signal) => {
+    debug('Aneks update process has been exited with code ' + code + ' and signal ' + signal);
+    await bot.sendMessageToAdmin('Aneks update process has been exited with code ' + code + ' and signal ' + signal);
+  });
+
+  dbUpdater.on('disconnect', async () => {
+    debug('Aneks update process has been disconnected');
+    await bot.sendMessageToAdmin('Aneks update process has been disconnected');
+  });
+
+  dbUpdater.on('error', async (error) => {
+    debug('Error in aneks update process', error);
+    await bot.sendMessageToAdmin('Error in aneks update process: ' + JSON.stringify(error));
+  });
+
+  dbUpdater.on('message', (m: UpdaterMessages) => {
     switch (m.type) {
-      case 'service':
+      case UpdaterMessageTypes.service:
         switch (m.action) {
-          case 'message':
+          case UpdaterMessageActions.message:
             if (!m.text) {
               return;
             }
 
             return bot.sendMessage(m.value, m.text, m.params);
+          case UpdaterMessageActions.ready:
+            debug('dbUpdater is ready', m);
+
+            return;
+          default:
+            debug('Unknown message');
         }
     }
 
@@ -116,7 +137,7 @@ async function startDaemon() {
   });
 }
 
-function sendUpdaterMessage(message: UpdaterMessageTypes) {
+function sendUpdaterMessage(message: UpdaterMessages) {
   if (!dbUpdater || !dbUpdater.connected) {
     throw new Error('Updater is not connected');
   }

@@ -4,9 +4,9 @@
 import * as config from 'config';
 import {CronJob} from 'cron';
 import * as debugFactory from 'debug';
-import {IAnek, IAnekModel, IUser} from "../helpers/mongo";
+import {IAnek, IUser} from "../helpers/mongo";
 import {Anek} from "../models/vk";
-import {UpdaterMessageTypes} from './types';
+import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
 import {database, statistics} from '../botApi';
 import common from '../helpers/common';
@@ -101,50 +101,63 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-const calculateStetisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // tslint-disable-line no-unused-expression
+const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true); // tslint-disable-line no-unused-expression
 
-process.on('message', (m: UpdaterMessageTypes) => {
+process.on('message', (m: UpdaterMessages) => {
   debug('CHILD got message:', m);
+  console.log('CHILD', m);
 
-  if (m.type === 'service') {
-    switch (m.action) {
-      case 'update':
-        debug('Switch automatic updates to', m.value);
-        forceDenyUpdate = !m.value;
+  switch (m.type) {
+    case UpdaterMessageTypes.service:
+      switch (m.action) {
+        case UpdaterMessageActions.update:
+          debug('Switch automatic updates to', m.value);
+          forceDenyUpdate = !m.value;
 
-        if (forceDenyUpdate) {
-          updateAneksCron.stop();
-          updateLastAneksCron.stop();
-          refreshAneksCron.stop();
-          synchronizeDatabaseCron.stop();
-        } else {
-          updateAneksCron.start();
-          updateLastAneksCron.start();
-          refreshAneksCron.start();
-          synchronizeDatabaseCron.start();
-        }
-        break;
-      case 'synchronize':
-        return synchronizeDatabase();
-      case 'last':
-        return updateLastAneksTimer();
-      case 'message':
-        process.send({type: 'service', action: 'message', value: m.value, text: m.text || 'Проверка'});
+          if (forceDenyUpdate) {
+            updateAneksCron.stop();
+            updateLastAneksCron.stop();
+            refreshAneksCron.stop();
+            synchronizeDatabaseCron.stop();
+          } else {
+            updateAneksCron.start();
+            updateLastAneksCron.start();
+            refreshAneksCron.start();
+            synchronizeDatabaseCron.start();
+          }
+          break;
+        case UpdaterMessageActions.synchronize:
+          return synchronizeDatabase();
+        case UpdaterMessageActions.last:
+          return updateLastAneksTimer();
+        case UpdaterMessageActions.message:
+          process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.message, value: m.value, text: m.text || 'Проверка'});
 
-        break;
-      case 'anek':
-        return database.Anek.random().then((anek: IAnek) => {
-          process.send({
-            message: anek.text,
-            params: {language: m.value.language},
-            type: 'message',
-            userId: m.value.user_id
+          break;
+        case UpdaterMessageActions.anek:
+          return database.Anek.random().then((anek: IAnek) => {
+            process.send({
+              action: UpdaterMessageActions.message,
+              message: anek.text,
+              params: {language: m.value.language},
+              type: UpdaterMessageTypes.service,
+              userId: m.value.user_id
+            });
           });
-        });
-      default:
-        debug('Unknown service command');
-        break;
-    }
+        case UpdaterMessageActions.statistics:
+          debug('Switch statistics update to', m.value);
+          forceDenyUpdate = !m.value;
+
+          if (forceDenyUpdate) {
+            calculateStatisticsCron.stop();
+          } else {
+            calculateStatisticsCron.start();
+          }
+          break;
+        default:
+          debug('Unknown service command');
+          break;
+      }
   }
 });
 
@@ -176,4 +189,4 @@ async function synchronizeWithElastic() {
   });
 }
 
-process.send({message: 'ready'});
+process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.ready});

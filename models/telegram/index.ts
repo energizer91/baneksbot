@@ -256,11 +256,7 @@ class Telegram extends NetworkModel {
     return JSON.stringify({inline_keyboard: buttons});
   }
 
-  public async sendMessage(
-    userId: number,
-    message: string,
-    params?: AllMessageParams
-  ): Promise<Message> {
+  public async sendMessage(userId: number, message: string, params?: AllMessageParams): Promise<Message> {
     if (!message) {
       return;
     }
@@ -298,12 +294,7 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
   }
 
-  public forwardMessage(
-    userId: number,
-    messageId: number,
-    fromId: number,
-    params?: AllMessageParams
-  ): Promise<Message> {
+  public forwardMessage(userId: number, messageId: number, fromId: number, params?: AllMessageParams): Promise<Message> {
     debug('Forwarding message', userId, messageId, fromId);
 
     return this.sendRequest('forwardMessage', {

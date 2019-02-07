@@ -81,17 +81,20 @@ class Bot extends Telegram {
       case 'photo':
         return {
           caption: attachment.text,
-          photo: attachment.photo.photo_2560 ||
-            attachment.photo.photo_1280 ||
-            attachment.photo.photo_604 ||
-            attachment.photo.photo_130 ||
-            attachment.photo.photo_75,
+          photo: attachment.photo.photo_2560
+              || attachment.photo.photo_1280
+              || attachment.photo.photo_604
+              || attachment.photo.photo_130
+              || attachment.photo.photo_75,
           type: 'photo'
         };
       case 'video':
         return {
           caption: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id,
-          photo: attachment.video.photo_800 || attachment.video.photo_640 || attachment.video.photo_320 || attachment.video.photo_130,
+          photo: attachment.video.photo_800
+              || attachment.video.photo_640
+              || attachment.video.photo_320
+              || attachment.video.photo_130,
           type: 'video'
         };
       case 'doc':
