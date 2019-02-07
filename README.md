@@ -5,14 +5,14 @@ Bot for getting aneks from https://vk.com/baneks
 ## Installation
 
 ```bash
-npm install
-npm start
+yarn
+yarn start
 ```
 
 ## Testing
 
 ```bash
-npm run test
+yarn test
 ```
 
 ## Available commands
