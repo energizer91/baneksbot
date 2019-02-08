@@ -181,11 +181,11 @@ class Bot extends Telegram {
         if (!anek.approved) {
           buttons.push([]);
           buttons[buttons.length - 1].push({
-            callback_data: 'a_a' + anek.post_id,
+            callback_data: 'a_a ' + anek.post_id,
             text: 'Апрув'
           });
           buttons[buttons.length - 1].push({
-            callback_data: 'a_d' + anek.post_id,
+            callback_data: 'a_d ' + anek.post_id,
             text: 'Неапрув'
           });
         }

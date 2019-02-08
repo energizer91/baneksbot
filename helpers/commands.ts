@@ -876,9 +876,9 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
     case 'a_a':
       const unapprovedAnek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
 
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Публикация сообщения...'});
-
       if (unapprovedAnek && !unapprovedAnek.approved) {
+        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Публикация сообщения...'});
+
         const users: IUser[] = await botApi.database.User.find({subscribed: true});
 
         unapprovedAnek.approved = true;
@@ -890,6 +890,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
             debugError('Update aneks error', err);
           });
       }
+
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
 
       return;
     case 'a_d':
