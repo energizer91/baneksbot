@@ -5,8 +5,11 @@ import {StatisticsData} from "../models/statistics";
 import {AllMessageParams, CallbackQuery, Message} from "../models/telegram";
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
+import debugFactory from './debug';
 import {languageExists, translate} from './dictionary';
 import {IAnek, IAnekModel, IUser} from './mongo';
+
+const debugError = debugFactory('baneks-node:commands:error', true);
 
 let debugTimer: NodeJS.Timeout;
 
@@ -126,7 +129,7 @@ function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string}}>, use
       highlightText = anek._highlight.text[0];
     }
 
-    const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
+    const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true, admin: user.admin, editor: user.editor });
 
     return {
       description: highlightText.slice(0, 100),
@@ -471,6 +474,24 @@ botApi.bot.onCommand('broadcast', async (command, message, user) => {
   }, botApi.bot));
 
   return botApi.bot.sendMessage(message.chat.id, 'Рассылка окончена.');
+});
+
+botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
+  if (!user.admin && !user.editor) {
+    throw new Error('Unauthorized access');
+  }
+
+  const anek = await botApi.database.Anek.findOne({}).sort({date: -1}).exec();
+
+  if (!anek) {
+    return;
+  }
+
+  anek.approved = false;
+
+  await anek.save();
+
+  return botApi.bot.sendAnek(user.user_id, anek, {admin: user.admin, editor: user.editor});
 });
 
 botApi.bot.onCommand('stat', async (command, message, user) => {
@@ -852,6 +873,30 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
       const attachments = botApi.bot.convertAttachments(post.attachments);
 
       return botApi.bot.sendAttachments(callbackQuery.message.chat.id, attachments, params);
+    case 'a_a':
+      const unapprovedAnek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Публикация сообщения...'});
+
+      if (unapprovedAnek && !unapprovedAnek.approved) {
+        const users: IUser[] = await botApi.database.User.find({subscribed: true});
+
+        unapprovedAnek.approved = true;
+
+        await unapprovedAnek.save();
+
+        return common.broadcastAneks(users, [unapprovedAnek], {_rule: 'individual'})
+          .catch((err: Error) => {
+            debugError('Update aneks error', err);
+          });
+      }
+
+      return;
+    case 'a_d':
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true});
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не будет опубликован'});
+
+      return;
     case 'spam':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
       await botApi.bot.answerCallbackQuery(callbackQuery.id);

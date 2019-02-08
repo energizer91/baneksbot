@@ -76,7 +76,6 @@ export interface IAnek extends mongoose.Document {
   attachments: any[];
   copy_history: any[];
   date: number;
-  create_date: mongoose.Schema.Types.Date;
   from_id: number;
   post_id: number;
   owner_id: number;
@@ -87,7 +86,8 @@ export interface IAnek extends mongoose.Document {
   reposts: number;
   spam: boolean;
   text: string;
-
+  approved: boolean;
+  approveTimeout: mongoose.Schema.Types.Date;
 }
 
 export interface ISuggest extends mongoose.Document {
@@ -192,9 +192,10 @@ db.once('open', () => {
 });
 
 const anekSchema = new mongoose.Schema({
+  approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
+  approved: {type: Boolean, default: true},
   attachments: Array,
   copy_history: Array,
-  create_date: {type: Date, default: Date.now},
   date: Number,
   from_id: Number,
   is_pinned: Boolean,

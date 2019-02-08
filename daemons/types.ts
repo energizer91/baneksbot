@@ -1,4 +1,5 @@
 import {MessageParams} from "../models/telegram";
+import {Anek} from "../models/vk";
 
 export enum UpdaterMessageTypes {
   service
@@ -41,10 +42,12 @@ interface IUpdaterServiceUpdateLastMessage extends IUpdaterServiceMessage {
 
 interface IUpdaterServiceAnekMessage extends IUpdaterServiceMessage {
   action: UpdaterMessageActions.anek;
-  value: {
-    language: string,
-    user_id: number
+  params: {
+    language: string
+    needApprove: boolean
   };
+  userId: number;
+  anek: Anek;
 }
 
 interface IUpdaterUpdateMessage extends IUpdaterServiceMessage {

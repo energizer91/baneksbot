@@ -1,17 +1,19 @@
 import {NextFunction, Request, Response} from 'express';
 import {IUser, User as UserModel} from '../../helpers/mongo';
+import {Chat, User as UserType} from '../telegram';
 
 class User {
-  public update(user: IUser) {
+  public update(user: IUser | UserType) {
     return this.updateWith(user);
   }
 
-  public async updateWith(user: IUser, params?: any): Promise<IUser | void> {
+  public async updateWith(user: UserType | Chat | IUser, params?: any): Promise<IUser | void> {
     if (!user) {
       return;
     }
 
     return UserModel.findOneAndUpdate(
+      // @ts-ignoressd
       {user_id: user.user_id || user.id},
       params || user,
       {new: true, upsert: true, setDefaultsOnInsert: true}
@@ -19,7 +21,7 @@ class User {
       .catch((error: Error) => {
         console.error(error);
 
-        return user;
+        return user as IUser;
       });
   }
 

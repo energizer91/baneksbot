@@ -73,7 +73,7 @@ export type PreCheckoutQuery = {
   order_info?: OrderInfo
 };
 
-type Chat = {
+export type Chat = {
   id: number,
   type: string,
   title?: string,
@@ -191,7 +191,8 @@ export type MessageParams = {
   forcePlaceholder?: boolean,
   reply_markup?: string,
   native?: boolean,
-  language?: string
+  language?: string,
+  needApprove?: boolean
 };
 
 export type AllMessageParams = TelegramParams & MessageParams & RequestParams;
@@ -502,18 +503,17 @@ class Telegram extends NetworkModel {
       return;
     }
 
-    message.reply_markup = this.prepareInlineKeyboard(buttons);
-
     debug('Editing message buttons', message, buttons);
 
     return this.sendRequest('editMessageReplyMarkup', {
       chat_id: message.chat && message.chat.id,
-      message
+      message_id: message.message_id,
+      reply_markup: this.prepareInlineKeyboard(buttons)
     })
       .catch((error: Error) => {
         debugError('Editing message error', error);
 
-        return message;
+        return false;
       });
   }
 

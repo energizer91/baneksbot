@@ -103,6 +103,7 @@ export type Anek = {
 };
 
 export type PreparedAnek = {
+  approved: boolean,
   post_id: number,
   likes: number,
   reposts: number

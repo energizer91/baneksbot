@@ -5,11 +5,11 @@ import {IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
-import {Callback} from '../events';
+
 import Telegram, {
   AllMessageParams,
   Attachment as TelegramAttachment,
-  CallbackQuery,
+  CallbackQuery, InlineKeyboardButton,
   InlineKeyboardMarkup,
   InlineQuery,
   Message,
@@ -42,7 +42,7 @@ type SuggestMessage = {
 const debug = debugFactory('baneks-node:bot');
 
 class Bot extends Telegram {
-  public onCommand(command: string, callback: Callback) {
+  public onCommand(command: string, callback: (command: string[], message: Message, user: IUser) => any | Promise<any>) {
     this.on('command:' + command, callback);
   }
 
@@ -131,9 +131,9 @@ class Bot extends Telegram {
   }
 
   public getAnekButtons(anek: IAnek, params: MessageParams): InlineKeyboardMarkup {
-    const buttons = [];
+    const buttons: InlineKeyboardButton[][] = [];
 
-    const {disableComments, language, forceAttachments, admin, disableAttachments} = params;
+    const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
       buttons.push([]);
@@ -163,18 +163,32 @@ class Bot extends Telegram {
     }
 
     if (anek.post_id) {
-      if (admin && anek.spam) {
-        buttons.push([]);
-        buttons[buttons.length - 1].push({
-          callback_data: 'unspam ' + anek.post_id,
-          text: 'Ne spam'
-        });
-      } else if (admin && !anek.spam) {
-        buttons.push([]);
-        buttons[buttons.length - 1].push({
-          callback_data: 'spam ' + anek.post_id,
-          text: 'Spam'
-        });
+      if (admin || editor) {
+        if (anek.spam) {
+          buttons.push([]);
+          buttons[buttons.length - 1].push({
+            callback_data: 'unspam ' + anek.post_id,
+            text: 'Ne spam'
+          });
+        } else {
+          buttons.push([]);
+          buttons[buttons.length - 1].push({
+            callback_data: 'spam ' + anek.post_id,
+            text: 'Spam'
+          });
+        }
+
+        if (!anek.approved) {
+          buttons.push([]);
+          buttons[buttons.length - 1].push({
+            callback_data: 'a_a' + anek.post_id,
+            text: 'Апрув'
+          });
+          buttons[buttons.length - 1].push({
+            callback_data: 'a_d' + anek.post_id,
+            text: 'Неапрув'
+          });
+        }
       }
     }
 

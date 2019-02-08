@@ -7,7 +7,7 @@ import {Types} from 'mongoose';
 import * as botApi from '../botApi';
 import {AllMessageParams, TelegramError} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
-import {Anek as AnekModel, IElasticSearchResult, IUser, User} from './mongo';
+import {Anek as AnekModel, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
 type ElasticHit = {
   _id: Types.ObjectId,
@@ -17,11 +17,12 @@ type ElasticHit = {
   likes: number
 };
 
-const processAnek = (anek: Anek): PreparedAnek => {
+export const processAnek = (anek: Anek, approved: boolean = true): PreparedAnek => {
   const {id, ...rest} = anek;
 
   return {
     ...rest,
+    approved,
     likes: anek.likes.count,
     post_id: anek.id,
     reposts: anek.reposts.count
@@ -83,7 +84,7 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
 
   if (!vkAneks.items.length) {
     if (aneks.length) {
-      return AnekModel.collection.insertMany(aneks)
+      return AnekModel.insertMany(aneks)
         .then(() => {
           return aneks;
         });
@@ -95,10 +96,10 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
   for (const vkAnek of vkAneks.items) {
     if (vkAnek.date > lastDBAnekDate) {
       // @ts-ignore
-      aneks.unshift(processAnek(vkAnek));
+      aneks.unshift(processAnek(vkAnek, false));
     } else {
       if (aneks.length) {
-        return AnekModel.collection.insertMany(aneks).then(() => {
+        return AnekModel.insertMany(aneks).then(() => {
           return aneks;
         });
       }
@@ -149,10 +150,10 @@ export async function redefineDatabase(count: number) {
 
   const aneks = responses
     .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
-    .map((anek: Anek): PreparedAnek => processAnek(anek));
+    .map((anek: Anek): PreparedAnek => processAnek(anek, true));
 
   if (aneks.length) {
-    return AnekModel.collection.insertMany(aneks)
+    return AnekModel.insertMany(aneks)
       .catch((): [] => [])
       .then(() => aneks);
   }
@@ -186,7 +187,7 @@ export function filterAnek(anek: Anek): boolean {
   return !donate && !ads;
 }
 
-export async function broadcastAneks(users: IUser[], aneks: Anek[], params: AllMessageParams): Promise<void> {
+export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: AllMessageParams): Promise<void> {
   const errorMessages: {[key: string]: boolean} = {};
 
   if (!users.length || !aneks.length) {

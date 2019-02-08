@@ -115,6 +115,8 @@ async function startDaemon() {
   });
 
   dbUpdater.on('message', (m: UpdaterMessages) => {
+    debug('PARENT got message:', m);
+
     switch (m.type) {
       case UpdaterMessageTypes.service:
         switch (m.action) {
@@ -128,12 +130,16 @@ async function startDaemon() {
             debug('dbUpdater is ready', m);
 
             return;
+          case UpdaterMessageActions.anek:
+            if (!m.anek || !m.userId) {
+              return;
+            }
+
+            return bot.sendAnek(m.userId, m.anek, m.params);
           default:
             debug('Unknown message');
         }
     }
-
-    debug('PARENT got message:', m);
   });
 }
 
