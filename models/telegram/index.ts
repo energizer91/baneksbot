@@ -99,7 +99,34 @@ export type InlineKeyboardButton = {
   pay?: string
 };
 
-export type InlineKeyboardMarkup = InlineKeyboardButton[][];
+export type KeyboardButton = {
+  text: string,
+  request_contact?: boolean,
+  request_location?: boolean
+};
+
+export type InlineKeyboardMarkup = {
+  inline_keyboard: InlineKeyboardButton[][]
+};
+
+export type ReplyKeyboardMarkup = {
+  keyboard: KeyboardButton[][],
+  resize_keyboard?: boolean,
+  one_time_keyboard?: boolean,
+  selective?: boolean
+};
+
+export type RemoveReplyKeyboard = {
+  remove_keyboard: true,
+  selective?: true
+};
+
+export type ForceReply = {
+  force_reply: true,
+  selective?: true
+};
+
+export type ReplyMarkup = InlineKeyboardMarkup | ReplyKeyboardMarkup | RemoveReplyKeyboard | ForceReply;
 
 export type SuccessfulPayment = {
   currency: string,
@@ -186,6 +213,7 @@ export type MessageParams = {
   disableButtons?: boolean,
   admin?: boolean,
   editor?: boolean,
+  keyboard?: boolean,
   suggest?: boolean,
   disableComments?: boolean,
   forcePlaceholder?: boolean,
@@ -253,8 +281,20 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public prepareInlineKeyboard(buttons: InlineKeyboardMarkup): string {
-    return JSON.stringify({inline_keyboard: buttons});
+  public prepareInlineKeyboard(buttons: InlineKeyboardButton[][]): InlineKeyboardMarkup {
+    return {inline_keyboard: buttons};
+  }
+
+  public prepareReplyKeyboard(buttons: KeyboardButton[][], resize: boolean = false, oneTime: boolean = false): ReplyKeyboardMarkup {
+    return {keyboard: buttons, resize_keyboard: resize, one_time_keyboard: oneTime};
+  }
+
+  public prepareRemoveKeyboard(): RemoveReplyKeyboard {
+    return {remove_keyboard: true};
+  }
+
+  public prepareReplyMarkup(...args: ReplyMarkup[]): string {
+    return JSON.stringify(args.reduce((acc: ReplyMarkup, arg: ReplyMarkup) => Object.assign(acc, arg), {}));
   }
 
   public async sendMessage(userId: number, message: string, params?: AllMessageParams): Promise<Message> {
@@ -498,7 +538,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async editMessageButtons(message: Message, buttons: InlineKeyboardMarkup = []): Promise<boolean> {
+  public async editMessageButtons(message: Message, buttons: InlineKeyboardButton[][] = []): Promise<boolean> {
     if (!message) {
       return;
     }

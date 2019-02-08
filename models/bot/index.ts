@@ -10,7 +10,6 @@ import Telegram, {
   AllMessageParams,
   Attachment as TelegramAttachment,
   CallbackQuery, InlineKeyboardButton,
-  InlineKeyboardMarkup,
   InlineQuery,
   Message,
   MessageParams,
@@ -42,8 +41,18 @@ type SuggestMessage = {
 const debug = debugFactory('baneks-node:bot');
 
 class Bot extends Telegram {
+  private buttons: string[] = [];
+
   public onCommand(command: string, callback: (command: string[], message: Message, user: IUser) => any | Promise<any>) {
-    this.on('command:' + command, callback);
+    return this.on('command:' + command, callback);
+  }
+
+  public onButton(button: string, callback: (message: Message, user: IUser) => any | Promise<any>) {
+    if (this.buttons.indexOf(button) <= 0) {
+      this.buttons.push(button);
+    }
+
+    return this.on('button:' + button, callback);
   }
 
   public getUserInfo(user: IUser): string {
@@ -130,7 +139,7 @@ class Bot extends Telegram {
       .map((attachment: VkAttachment) => this.convertAttachment(attachment));
   }
 
-  public getAnekButtons(anek: IAnek, params: MessageParams): InlineKeyboardMarkup {
+  public getAnekButtons(anek: IAnek, params: MessageParams): InlineKeyboardButton[][] {
     const buttons: InlineKeyboardButton[][] = [];
 
     const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
@@ -199,7 +208,7 @@ class Bot extends Telegram {
 
     const immutableAnek: IAnek = cloneDeep((anek as IAnek).toObject ? (anek as IAnek).toObject() : anek);
 
-    const buttons: InlineKeyboardMarkup = this.getAnekButtons(immutableAnek, params);
+    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(immutableAnek, params);
 
     if (immutableAnek.copy_history && immutableAnek.copy_history.length && immutableAnek.post_id) {
       const insideMessage = immutableAnek.copy_history[0];
@@ -219,7 +228,7 @@ class Bot extends Telegram {
       return this.sendAnek(userId, insideMessage, params);
     }
 
-    const replyMarkup = this.prepareInlineKeyboard(buttons);
+    const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
 
     return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
       reply_markup: replyMarkup,
@@ -258,7 +267,7 @@ class Bot extends Telegram {
   }
 
   public sendSuggest(userId: number, suggest: ISuggest, params: MessageParams) {
-    const buttons: InlineKeyboardMarkup = [];
+    const buttons: InlineKeyboardButton[][] = [];
 
     const sendMessage: SuggestMessage = {
       caption: suggest.caption,
@@ -279,6 +288,7 @@ class Bot extends Telegram {
 
     if (params.suggest) {
       buttons.push([]);
+
       if (params.editor) {
         if (suggest.public) {
           buttons[buttons.length - 1].push({
@@ -303,7 +313,7 @@ class Bot extends Telegram {
     }
 
     if (buttons.length) {
-      sendMessage.reply_markup = this.prepareInlineKeyboard(buttons);
+      sendMessage.reply_markup = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
     }
 
     if (suggest.audio && suggest.audio.file_id) {
@@ -394,6 +404,11 @@ class Bot extends Telegram {
     return this.emit('feedback', message, user);
   }
 
+  public performButton(button: string, message: Message, user: IUser) {
+    debug('Performing button ' + button + ' from ' + this.getUserInfo(user));
+    return this.emit('button:' + button, message, user);
+  }
+
   public performUpdate(update: Update, user: IUser) {
     if (!update) {
       throw new Error('No webhook data specified');
@@ -435,6 +450,14 @@ class Bot extends Telegram {
             if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
               return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
             }
+          }
+        }
+
+        if (message.text.length > 0) {
+          const button = message.text.slice(0, 2);
+
+          if (this.buttons.indexOf(button) >= 0) {
+            return this.performButton(button, message, user);
           }
         }
 

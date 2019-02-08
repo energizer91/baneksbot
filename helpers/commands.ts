@@ -122,7 +122,7 @@ function generateRandomAnswer(answers: string[]) {
   return answers[random];
 }
 
-function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string}}>, user: IUser) {
+function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string[]}}>, user: IUser) {
   return aneks.map((anek, index) => {
     let highlightText = anek.text;
 
@@ -130,7 +130,7 @@ function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string}}>, use
       highlightText = anek._highlight.text[0];
     }
 
-    const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true, admin: user.admin, editor: user.editor });
+    const buttons = botApi.bot.getAnekButtons(anek, { disableComments: true, disableAttachments: true });
 
     return {
       description: highlightText.slice(0, 100),
@@ -187,7 +187,7 @@ async function performSuggest(command: string[], message: Message, user: IUser) 
 
   user.suggest_mode = true;
 
-  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, 'Режим предложки включен. Вы можете писать сюда' +
     ' любой текст (кроме команд) или присылать любой контент одним сообщением и он будет ' +
@@ -430,14 +430,21 @@ botApi.bot.onCommand('keyboard', async (command, message, user) => {
 
   const keyboardToggle = !user.keyboard;
 
-  await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {keyboard: keyboardToggle});
+  user.keyboard = keyboardToggle;
+
+  await user.save();
 
   const params: AllMessageParams = {};
 
   if (keyboardToggle) {
-    params.keyboard = true;
+    params.reply_markup = botApi.bot.prepareReplyMarkup(botApi.bot.prepareReplyKeyboard([
+        [
+          {text: '😃'},
+          {text: '❌'}
+        ]
+    ]));
   } else {
-    params.remove_keyboard = true;
+    params.reply_markup = botApi.bot.prepareReplyMarkup(botApi.bot.prepareRemoveKeyboard());
   }
 
   return botApi.bot.sendMessage(message.chat.id, 'Клавиатура ' + (keyboardToggle ? 'включена' : 'отключена' + '.'), params);
@@ -832,7 +839,7 @@ botApi.bot.on('suggest', async (suggest, user) => {
   await botApi.user.updateWith(user, {suggest_mode: false});
 
   return botApi.bot.sendMessage(user.user_id, 'Предложка успешно добавлена.', {
-    reply_markup: botApi.bot.prepareInlineKeyboard(buttons)
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
   });
 });
 
@@ -973,3 +980,6 @@ botApi.bot.on('reply', async (reply, message, user) => {
 botApi.bot.on('feedback', (message: Message) => {
   return botApi.bot.forwardMessage(config.get('telegram.adminChat'), message.message_id, message.chat.id);
 });
+
+botApi.bot.onButton('😃', (message, user) => botApi.bot.performCommand(['/anek'], message, user));
+botApi.bot.onButton('❌', (message, user) => botApi.bot.performCommand(['/keyboard'], message, user));

@@ -143,7 +143,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-const approveAneksCron = new CronJob('30 */3 * * * *', approveAneksTimer, null, true);
+const approveAneksCron = new CronJob('25 */1 * * * *', approveAneksTimer, null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
 process.on('message', (m: UpdaterMessages) => {
