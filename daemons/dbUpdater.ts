@@ -73,7 +73,7 @@ function updateAneksTimer() {
           .then((users: IUser[]) => users.map((user: IUser) => aneks.map((anek: Anek) => process.send({
             action: UpdaterMessageActions.anek,
             anek,
-            params: {needApprove: true, language: user.language, admin: user.admin, editor: user.editor},
+            params: {language: user.language, admin: user.admin, editor: user.editor},
             type: UpdaterMessageTypes.service,
             userId: user.user_id
           }))));
@@ -143,7 +143,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-const approveAneksCron = new CronJob('0 */3 * * * *', approveAneksTimer, null, true);
+const approveAneksCron = new CronJob('30 */3 * * * *', approveAneksTimer, null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
 process.on('message', (m: UpdaterMessages) => {
@@ -176,10 +176,10 @@ process.on('message', (m: UpdaterMessages) => {
           return updateLastAneksTimer();
         case UpdaterMessageActions.message:
           process.send({
-            type: UpdaterMessageTypes.service,
             action: UpdaterMessageActions.message,
-            value: m.value,
-            text: m.text || 'Проверка'
+            text: m.text || 'Проверка',
+            type: UpdaterMessageTypes.service,
+            value: m.value
           });
 
           break;

@@ -22,6 +22,7 @@ function generateUserInfo(user: IUser) {
     'Подписка:   ' + (user.subscribed ? 'Подписан' : 'Не подписан') + '\n' +
     'Фидбэк:     ' + (user.feedback_mode ? 'Включен' : 'Выключен') + '\n' +
     'Админ:      ' + (user.admin ? 'Присвоен' : 'Не присвоен') + '\n' +
+    'Редактор:   ' + (user.editor ? 'Присвоен' : 'Не присвоен') + '\n' +
     'Бан:        ' + (user.banned ? 'Забанен' : 'Не забанен') + '\n' +
     'Язык:       ' + (user.language || 'Не выбран') + '\n' +
     'Клавиатура: ' + (user.keyboard ? 'Включена' : 'Выключена') + '\n' +
@@ -491,7 +492,8 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
 
   await anek.save();
 
-  return botApi.bot.sendAnek(user.user_id, anek, {admin: user.admin, editor: user.editor});
+  return botApi.database.User.find({$or: [{editor: true}, {admin: true}]})
+    .then((users: IUser[]) => users.map((editor: IUser) => botApi.bot.sendAnek(editor.user_id, anek, {admin: editor.admin, editor: editor.editor})));
 });
 
 botApi.bot.onCommand('stat', async (command, message, user) => {
