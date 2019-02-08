@@ -164,29 +164,26 @@ class Bot extends Telegram {
 
     if (anek.post_id) {
       if (admin || editor) {
-        if (anek.spam) {
-          buttons.push([]);
-          buttons[buttons.length - 1].push({
-            callback_data: 'unspam ' + anek.post_id,
-            text: 'Ne spam'
-          });
-        } else {
-          buttons.push([]);
-          buttons[buttons.length - 1].push({
-            callback_data: 'spam ' + anek.post_id,
-            text: 'Spam'
-          });
-        }
+        buttons.push([]);
 
         if (!anek.approved) {
-          buttons.push([]);
           buttons[buttons.length - 1].push({
             callback_data: 'a_a ' + anek.post_id,
-            text: 'Апрув'
+            text: '👍'
           });
           buttons[buttons.length - 1].push({
             callback_data: 'a_d ' + anek.post_id,
-            text: 'Неапрув'
+            text: '👎'
+          });
+        } else if (anek.spam) {
+          buttons[buttons.length - 1].push({
+            callback_data: 'unspam ' + anek.post_id,
+            text: '✅'
+          });
+        } else {
+          buttons[buttons.length - 1].push({
+            callback_data: 'spam ' + anek.post_id,
+            text: '🚫'
           });
         }
       }

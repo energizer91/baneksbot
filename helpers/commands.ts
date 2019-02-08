@@ -757,7 +757,7 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
   }
 
   await botApi.database.User.findOneAndUpdate({user_id: Number(command[1])}, privileges);
-  await botApi.bot.sendMessage(Number(command[1]), 'Вам были выданы привилегии администратора пользователем ' + user.first_name + '(' + user.username + ')');
+  await botApi.bot.sendMessage(Number(command[1]), 'Вам были выданы привилегии администратора пользователем ' + botApi.bot.getUserInfo(user));
 
   return botApi.bot.sendMessage(message.chat.id, 'Привилегии присвоены.');
 });
@@ -897,12 +897,12 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
 
       return;
     case 'a_d':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true, spam: true});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не будет опубликован'});
 
       return;
     case 'spam':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true});
       await botApi.bot.answerCallbackQuery(callbackQuery.id);
 
       return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как спам.');
