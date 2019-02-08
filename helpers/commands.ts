@@ -442,7 +442,7 @@ botApi.bot.onCommand('keyboard', async (command, message, user) => {
           {text: '😃'},
           {text: '❌'}
         ]
-    ]));
+    ], true));
   } else {
     params.reply_markup = botApi.bot.prepareReplyMarkup(botApi.bot.prepareRemoveKeyboard());
   }
