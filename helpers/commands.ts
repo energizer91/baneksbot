@@ -401,8 +401,13 @@ botApi.bot.onCommand('get_me', async (command, message, user) => {
 botApi.bot.onCommand('start', async (command, message, user) => {
   if (command[1] && command[1] === 'donate') {
     return botApi.bot.sendInvoice(message.from.id, {
+      currency: 'RUB',
       description: 'А то совсем нечего кушать',
       payload: command[1],
+      prices: JSON.stringify([
+        {label: 'Основной взнос', amount: 6000}
+      ]),
+      start_parameter: 'ololo',
       title: 'Донат на развитие бота'
     });
   }
@@ -668,11 +673,13 @@ botApi.bot.onCommand('top_ever', async (command, message, user) => {
 });
 
 botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(message.from.id, {
+  currency: 'RUB',
   description: 'А то совсем нечего кушать',
   payload: 'lololo',
   prices: JSON.stringify([
     {label: 'Основной взнос', amount: 6000}
   ]),
+  start_parameter: 'donate',
   title: 'Донат на развитие бота'
 }));
 
@@ -970,6 +977,10 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   const results = transformAneks(aneks, user);
 
   return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
+});
+
+botApi.bot.on('preCheckoutQuery', (preCheckoutQuery) => {
+  return botApi.bot.answerPreCheckoutQuery(preCheckoutQuery.id);
 });
 
 botApi.bot.on('reply', async (reply, message, user) => {

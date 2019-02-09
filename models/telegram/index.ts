@@ -468,6 +468,9 @@ type InputMessageContent = {
 type Invoice = {
   title: string,
   description?: string,
+  start_parameter: string,
+  currency: string,
+  total_amount: string,
   payload: string,
   prices?: string
 };
@@ -517,6 +520,35 @@ export type OtherParams = {
   forceAttachments?: boolean,
   disableAttachments?: boolean,
   disableButtons?: boolean,
+};
+
+type InvoiceParams = {
+  title: string,
+  description: string,
+  payload: string,
+  start_parameter: string,
+  currency: string,
+  prices: string,
+  provider_data?: string,
+  photo_url?: string,
+  photo_size?: number,
+  photo_width?: number,
+  photo_height?: number,
+  need_name?: boolean,
+  need_phone_number?: boolean,
+  need_email?: boolean,
+  need_shipping_address?: boolean,
+  send_phone_number_to_provider?: boolean,
+  send_email_to_provider?: boolean,
+  is_flexible?: boolean,
+  disable_notification?: boolean,
+  reply_to_message_id?: number,
+  reply_markup?: string
+};
+
+type LabeledPrice = {
+  label: string,
+  amount: string
 };
 
 export type AllMessageParams = TelegramParams & MessageParams & RequestParams & OtherParams;
@@ -591,9 +623,9 @@ class Telegram extends NetworkModel {
     return JSON.stringify(args.reduce((acc: ReplyMarkup, arg: ReplyMarkup) => Object.assign(acc, arg), {}));
   }
 
-  public async sendMessage(userId: number, message: string, params?: AllMessageParams): Promise<Message> {
+  public async sendMessage(userId: number , message: string, params?: AllMessageParams): Promise<Message> {
     if (!message) {
-      return;
+      throw new Error('Message is not defined');
     }
 
     if (message.length > 4096) {
@@ -680,11 +712,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendMediaGroup(userId: number, mediaGroup: MediaGroup, params?: AllMessageParams): Promise<Message> {
-    if (!mediaGroup.length) {
-      return;
-    }
-
+  public async sendMediaGroup(userId: number, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
     if (params.forcePlaceholder) {
       await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
     }
@@ -757,6 +785,18 @@ class Telegram extends NetworkModel {
       });
   }
 
+  public async answerPreCheckoutQuery(preCheckoutQueryId: string, ok: boolean = true, error?: string) {
+    if (!preCheckoutQueryId) {
+      throw new Error('PreCheckoutQuery id is missing');
+    }
+
+    return this.sendRequest('answerPreCheckoutQuery', {
+      error_message: error,
+      ok,
+      pre_checkout_query_id: preCheckoutQueryId
+    });
+  }
+
   public async editMessageText(chatId: number, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
     debug('Editing message text', chatId, messageId, text, params);
 
@@ -807,14 +847,12 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendInvoice(userId: number, invoice: Invoice): Promise<Message> {
+  public sendInvoice(userId: number, invoice: InvoiceParams): Promise<Message> {
     debug('Sending invoice', userId, invoice);
 
     return this.sendRequest('sendInvoice', {
       chat_id: userId,
-      currency: 'RUB',
       provider_token: config.get('telegram.paymentToken'),
-      start_parameter: 'donate',
       ...invoice
     });
   }
