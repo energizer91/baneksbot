@@ -1,4 +1,7 @@
+import axios from 'axios';
 import * as config from 'config';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as botApi from '../botApi';
 import {UpdaterMessageActions, UpdaterMessageTypes} from "../daemons/types";
 import {StatisticsData} from "../models/statistics";
@@ -76,7 +79,7 @@ const getDonatePrices = (): LabeledPrice[] => ([
 async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, anonymous: boolean) {
   const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {approved: true});
 
-  await botApi.bot.editMessageButtons(callbackQuery.message, []);
+  await botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
 
   const sendMessage = await botApi.bot.forwardMessageToChannel(suggest, {native: !anonymous});
 
@@ -798,10 +801,7 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
   return botApi.bot.sendMessage(message.chat.id, 'Привилегии присвоены.');
 });
 
-botApi.bot.onCommand('birthday', (command, message) => botApi.bot.sendRequest('sendPhoto', {
-  chat_id: message.chat.id,
-  photo: 'AgADAgADMagxGy3cYUribqypKXY_gAXZDw4ABKi3xzmLAAHaqMQjAQABAg'
-}));
+botApi.bot.onCommand('birthday', (command, message) => botApi.bot.sendPhoto(message.chat.id, 'AgADAgADMagxGy3cYUribqypKXY_gAXZDw4ABKi3xzmLAAHaqMQjAQABAg'));
 
 botApi.bot.onCommand('ban', async (command, message: Message, user) => {
   if (command[1] && user.admin) {
@@ -868,6 +868,13 @@ botApi.bot.on('suggest', async (suggest, user) => {
   return botApi.bot.sendMessage(user.user_id, 'Предложка успешно добавлена.', {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
   });
+});
+
+botApi.bot.onCommand('photo', async (command, message) => {
+  const photo = await axios({method: 'get', url: 'https://picsum.photos/200/300?random', responseType: 'stream'})
+     .then((response) => response.data);
+
+  return botApi.bot.sendPhoto(message.chat.id, photo);
 });
 
 botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
@@ -959,12 +966,12 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
 
-      return botApi.bot.editMessageButtons(callbackQuery.message, []);
+      return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
     case 's_da':
       await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.' });
 
-      return botApi.bot.editMessageButtons(callbackQuery.message, []);
+      return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
   }
 
   throw new Error('Unknown callback query ' + queryData);
@@ -987,7 +994,7 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
 
   const results = transformAneks(aneks, user);
 
-  return botApi.bot.sendInline(inlineQuery.id, results, skip + limit);
+  return botApi.bot.answerInlineQuery(inlineQuery.id, results, skip + limit);
 });
 
 botApi.bot.on('preCheckoutQuery', (preCheckoutQuery) => {

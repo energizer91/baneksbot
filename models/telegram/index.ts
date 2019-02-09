@@ -383,8 +383,6 @@ type EncryptedCredentials = {
   secret: string
 };
 
-
-
 export type MediaGroup = InputMediaPhoto[] | InputMediaVideo[];
 
 export type PreCheckoutQuery = {
@@ -492,18 +490,15 @@ export type Update = {
   pre_checkout_query?: PreCheckoutQuery
 };
 
-type TelegramParams = {
+export type MessageParams = {
   caption?: string,
   chat_id?: number,
-  keyboard?: boolean,
   remove_keyboard?: boolean,
-  disable_web_page_preview?: boolean,
-  reply_to_message_id?: number
-};
-
-export type MessageParams = {
+  reply_to_message_id?: number,
+  disable_notification?: boolean
   parse_mode?: ParseMode,
   reply_markup?: string,
+  disable_web_page_preview?: boolean
 };
 
 export type OtherParams = {
@@ -551,7 +546,7 @@ export type LabeledPrice = {
   amount: number
 };
 
-export type AllMessageParams = TelegramParams & MessageParams & RequestParams & OtherParams;
+export type AllMessageParams =  MessageParams & RequestParams & OtherParams;
 
 export type TelegramError = {
   ok: false,
@@ -575,52 +570,8 @@ class Telegram extends NetworkModel {
   public individualRule: string = config.get('telegram.rules.individualMessage');
   public groupRule: string = config.get('telegram.rules.groupMessage');
 
-  public sendRequest(request: string, params: AllMessageParams | {} = {}, method: Methods = Methods.POST) {
-    const axiosConfig: RequestConfig = {
-      method,
-      url: `${this.endpoint}/${request}`
-    };
-
-    const requestParams: AllMessageParams = Object.assign({
-      _getBackoff: (error: AxiosError): number => error.response.data.parameters.retry_after
-    }, params);
-
-    if (!requestParams._key) {
-      requestParams._key = String(requestParams.chat_id);
-    }
-
-    if (!requestParams._rule) {
-      requestParams._rule = Number(requestParams._key) > 0 ? this.individualRule : this.groupRule;
-    }
-
-    return this.makeRequest(axiosConfig, requestParams).then((response: any) => response ? response.result : {});
-  }
-
-  public sendInline(inlineId: string, results: any[], nextOffset = 0): Promise<boolean> {
-    return this.sendRequest('answerInlineQuery', {
-      _key: inlineId,
-      _rule: config.get('telegram.rules.inlineQuery'),
-      cache_time: 0,
-      inline_query_id: inlineId,
-      next_offset: String(nextOffset),
-      results: JSON.stringify(results)
-    });
-  }
-
-  public prepareInlineKeyboard(buttons: InlineKeyboardButton[][]): InlineKeyboardMarkup {
-    return {inline_keyboard: buttons};
-  }
-
-  public prepareReplyKeyboard(buttons: KeyboardButton[][], resize: boolean = false, oneTime: boolean = false): ReplyKeyboardMarkup {
-    return {keyboard: buttons, resize_keyboard: resize, one_time_keyboard: oneTime};
-  }
-
-  public prepareRemoveKeyboard(): ReplyKeyboardRemove {
-    return {remove_keyboard: true};
-  }
-
-  public prepareReplyMarkup(...args: ReplyMarkup[]): string {
-    return JSON.stringify(args.reduce((acc: ReplyMarkup, arg: ReplyMarkup) => Object.assign(acc, arg), {}));
+  public getMe(): Promise<Message> {
+    return this.sendRequest('getMe');
   }
 
   public async sendMessage(userId: number , message: string, params?: AllMessageParams): Promise<Message> {
@@ -657,10 +608,6 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendMessages(userId: number, messages: string[] = [], params?: AllMessageParams): Promise<Message[]> {
-    return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
-  }
-
   public forwardMessage(userId: number, messageId: number, fromId: number, params?: AllMessageParams): Promise<Message> {
     debug('Forwarding message', userId, messageId, fromId);
 
@@ -672,10 +619,11 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendPhoto(userId: number, photo: string, params?: AllMessageParams): Promise<Message> {
+  public async sendPhoto(userId: number, photo: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadPhoto);
 
     return this.sendRequest('sendPhoto', {
+      _stream: typeof photo !== 'string',
       chat_id: userId,
       photo,
       ...params
@@ -692,6 +640,17 @@ class Telegram extends NetworkModel {
     });
   }
 
+  public async sendDocument(userId: number, document: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
+    this.sendChatAction(userId, ChatAction.uploadDocument);
+
+    return this.sendRequest('sendDocument', {
+      _stream: typeof document !== 'string',
+      chat_id: userId,
+      document,
+      ...params
+    });
+  }
+
   public async sendVideo(userId: number, video: string, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadVideo);
 
@@ -702,14 +661,125 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendDocument(userId: number, document: string, params?: AllMessageParams): Promise<Message> {
-    this.sendChatAction(userId, ChatAction.uploadDocument);
+  public sendChatAction(userId: number, action: ChatAction): Promise<boolean> {
+    debug('Sending chat action', userId, action);
 
-    return this.sendRequest('sendDocument', {
-      chat_id: userId,
-      document,
+    return this.sendRequest('sendChatAction', {
+      action,
+      chat_id: userId
+    });
+  }
+
+  public async editMessageText(chatId: number, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
+    debug('Editing message text', chatId, messageId, text, params);
+
+    return this.sendRequest('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
       ...params
     });
+  }
+
+  public async editMessageReplyMarkup(chatId: number, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
+    debug('Editing message markup', chatId, messageId, markup);
+
+    return this.sendRequest('editMessageReplyMarkup', {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: this.prepareReplyMarkup.apply(this, markup)
+    })
+        .catch((error: Error) => {
+          debugError('Editing message markup error', error);
+
+          return false;
+        });
+  }
+
+  public deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+    if (!chatId) {
+      throw new Error('Chat id is not specified');
+    }
+
+    if (!messageId) {
+      throw new Error('Message id is not specified');
+    }
+
+    return this.sendRequest('deleteMessage', {
+      chat_id: chatId,
+      message_id: messageId
+    });
+  }
+
+  public sendSticker(userId: number, stickerId: string, params?: AllMessageParams): Promise<Message> {
+    if (!userId) {
+      throw new Error('No user specified!');
+    }
+
+    if (!stickerId) {
+      throw new Error('No sticker specified!');
+    }
+
+    debug('Sending sticker', userId, stickerId);
+
+    return this.sendRequest('sendSticker', {
+      chat_id: userId,
+      sticker: stickerId,
+      ...params
+    });
+  }
+
+  public answerInlineQuery(inlineId: string, results: any[], nextOffset = 0): Promise<boolean> {
+    return this.sendRequest('answerInlineQuery', {
+      _key: inlineId,
+      _rule: config.get('telegram.rules.inlineQuery'),
+      cache_time: 0,
+      inline_query_id: inlineId,
+      next_offset: String(nextOffset),
+      results: JSON.stringify(results)
+    });
+  }
+
+  public sendInvoice(userId: number, invoice: InvoiceParams): Promise<Message> {
+    debug('Sending invoice', userId, invoice);
+
+    return this.sendRequest('sendInvoice', {
+      chat_id: userId,
+      provider_token: config.get('telegram.paymentToken'),
+      ...invoice
+    });
+  }
+
+  public async answerPreCheckoutQuery(preCheckoutQueryId: string, ok: boolean = true, error?: string) {
+    if (!preCheckoutQueryId) {
+      throw new Error('PreCheckoutQuery id is missing');
+    }
+
+    return this.sendRequest('answerPreCheckoutQuery', {
+      error_message: error,
+      ok,
+      pre_checkout_query_id: preCheckoutQueryId
+    });
+  }
+
+  public prepareInlineKeyboard(buttons: InlineKeyboardButton[][]): InlineKeyboardMarkup {
+    return {inline_keyboard: buttons};
+  }
+
+  public prepareReplyKeyboard(buttons: KeyboardButton[][], resize: boolean = false, oneTime: boolean = false): ReplyKeyboardMarkup {
+    return {keyboard: buttons, resize_keyboard: resize, one_time_keyboard: oneTime};
+  }
+
+  public prepareRemoveKeyboard(): ReplyKeyboardRemove {
+    return {remove_keyboard: true};
+  }
+
+  public prepareReplyMarkup(...args: ReplyMarkup[]): string {
+    return JSON.stringify(args.reduce((acc: ReplyMarkup, arg: ReplyMarkup) => Object.assign(acc, arg), {}));
+  }
+
+  public sendMessages(userId: number, messages: string[] = [], params?: AllMessageParams): Promise<Message[]> {
+    return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
   }
 
   public async sendMediaGroup(userId: number, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
@@ -739,28 +809,6 @@ class Telegram extends NetworkModel {
     return this.sendMessage(userId, message, params);
   }
 
-  public sendSticker(userId: number, stickerId: string, params?: AllMessageParams): Promise<Message> {
-    if (!userId) {
-      throw new Error('No user specified!');
-    }
-
-    if (!stickerId) {
-      throw new Error('No sticker specified!');
-    }
-
-    debug('Sending sticker', userId, stickerId);
-
-    return this.sendRequest('sendSticker', {
-      chat_id: userId,
-      sticker: stickerId,
-      ...params
-    });
-  }
-
-  public getMe(): Promise<Message> {
-    return this.sendRequest('getMe');
-  }
-
   public getWebhookInfo(): Promise<Message> {
     return this.sendRequest('getWebhookInfo');
   }
@@ -785,76 +833,25 @@ class Telegram extends NetworkModel {
       });
   }
 
-  public async answerPreCheckoutQuery(preCheckoutQueryId: string, ok: boolean = true, error?: string) {
-    if (!preCheckoutQueryId) {
-      throw new Error('PreCheckoutQuery id is missing');
+  protected sendRequest(request: string, params: AllMessageParams | {} = {}, method: Methods = Methods.POST) {
+    const axiosConfig: RequestConfig = {
+      method,
+      url: `${this.endpoint}/${request}`
+    };
+
+    const requestParams: AllMessageParams = Object.assign({
+      _getBackoff: (error: AxiosError): number => error.response.data.parameters.retry_after
+    }, params);
+
+    if (!requestParams._key) {
+      requestParams._key = String(requestParams.chat_id);
     }
 
-    return this.sendRequest('answerPreCheckoutQuery', {
-      error_message: error,
-      ok,
-      pre_checkout_query_id: preCheckoutQueryId
-    });
-  }
-
-  public async editMessageText(chatId: number, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
-    debug('Editing message text', chatId, messageId, text, params);
-
-    return this.sendRequest('editMessageText', {
-      chat_id: chatId,
-      message_id: messageId,
-      text,
-      ...params
-    });
-  }
-
-  public async editMessageButtons(message: Message, buttons: InlineKeyboardButton[][] = []): Promise<boolean> {
-    debug('Editing message buttons', message, buttons);
-
-    return this.sendRequest('editMessageReplyMarkup', {
-      chat_id: message.chat && message.chat.id,
-      message_id: message.message_id,
-      reply_markup: this.prepareInlineKeyboard(buttons)
-    })
-      .catch((error: Error) => {
-        debugError('Editing message error', error);
-
-        return false;
-      });
-  }
-
-  public deleteMessage(chatId: number, messageId: number): Promise<boolean> {
-    if (!chatId) {
-      throw new Error('Chat id is not specified');
+    if (!requestParams._rule) {
+      requestParams._rule = Number(requestParams._key) > 0 ? this.individualRule : this.groupRule;
     }
 
-    if (!messageId) {
-      throw new Error('Message id is not specified');
-    }
-
-    return this.sendRequest('deleteMessage', {
-      chat_id: chatId,
-      message_id: messageId
-    });
-  }
-
-  public sendChatAction(userId: number, action: ChatAction): Promise<boolean> {
-    debug('Sending chat action', userId, action);
-
-    return this.sendRequest('sendChatAction', {
-      action,
-      chat_id: userId
-    });
-  }
-
-  public sendInvoice(userId: number, invoice: InvoiceParams): Promise<Message> {
-    debug('Sending invoice', userId, invoice);
-
-    return this.sendRequest('sendInvoice', {
-      chat_id: userId,
-      provider_token: config.get('telegram.paymentToken'),
-      ...invoice
-    });
+    return this.makeRequest(axiosConfig, requestParams).then((response: any) => response ? response.result : {});
   }
 }
 

@@ -1,4 +1,5 @@
 import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
+import * as FormData from 'form-data';
 import debugFactory from '../../helpers/debug';
 import EventEmitter from '../events';
 import Queue, {BackOffFunction} from '../queue';
@@ -19,7 +20,8 @@ export type RequestConfig = {
 export type RequestParams = {
     _key?: string,
     _rule?: string,
-    _getBackoff?: (error: AxiosError) => number
+    _getBackoff?: (error: AxiosError) => number,
+    _stream?: boolean,
 };
 
 const queue = new Queue();
@@ -33,10 +35,17 @@ class NetworkModel extends EventEmitter {
     }
 
     let data: AxiosRequestConfig;
-    const {_key: key, _rule: rule, _getBackoff, ...httpParams} = params;
+    const {_key: key, _rule: rule, _getBackoff, _stream, ...httpParams} = params;
 
     if (config.method === Methods.GET) {
       data = {...config, params: httpParams};
+    } else if (_stream) {
+      const formData = new FormData();
+
+      // @ts-ignore
+      Object.keys(httpParams).forEach((param) => formData.append(param, httpParams[param]));
+
+      data = {...config, data: formData, headers: formData.getHeaders()};
     } else {
       data = {...config, data: httpParams};
     }
