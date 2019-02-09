@@ -689,7 +689,7 @@ botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(mess
   currency: 'RUB',
   description: 'А то совсем нечего кушать',
   payload: 'lololo',
-  prices: JSON.stringify(JSON.stringify(getDonatePrices())),
+  prices: JSON.stringify(getDonatePrices()),
   start_parameter: 'donate',
   title: 'Донат на развитие бота'
 }));
