@@ -8,22 +8,18 @@ import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 
 import Telegram, {
   AllMessageParams,
-  Attachment as TelegramAttachment,
-  CallbackQuery, InlineKeyboardButton,
-  InlineQuery,
+  CallbackQuery,
+  ChatAction,
+  InlineKeyboardButton,
+  InlineQuery, InputMediaPhoto, MediaGroup,
   Message,
-  MessageParams,
+  MessageParams, OtherParams,
   PreCheckoutQuery,
   SuccessfulPayment,
   Update,
   User
 } from '../telegram';
-import {
-  Anek,
-  Attachment as VkAttachment,
-  Comment,
-  PollAnswer
-} from '../vk';
+import {Anek, Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
 
 type SuggestMessage = {
   caption: string,
@@ -85,61 +81,66 @@ class Bot extends Telegram {
     return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
   }
 
-  public convertAttachment(attachment: VkAttachment): TelegramAttachment {
+  public async sendAttachment(userId: number, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
     switch (attachment.type) {
       case 'photo':
-        return {
-          caption: attachment.text,
-          photo: attachment.photo.photo_2560
+        const photo = attachment.photo.photo_2560
+            || attachment.photo.photo_1280
+            || attachment.photo.photo_604
+            || attachment.photo.photo_130
+            || attachment.photo.photo_75;
+
+        return this.sendPhoto(userId, photo, {caption: attachment.text, ...params});
+      case 'video':
+        const caption = (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
+        const video = attachment.video.photo_800
+            || attachment.video.photo_640
+            || attachment.video.photo_320
+            || attachment.video.photo_130;
+
+        return this.sendPhoto(userId, video, {caption, ...params});
+      case 'doc':
+        const document = attachment.doc.url;
+
+        return this.sendDocument(userId, document, {caption: attachment.doc.title, ...params});
+      case 'audio':
+        const audio = attachment.audio.url;
+
+        return this.sendAudio(userId, audio, {title: attachment.audio.title, performer: attachment.audio.artist, ...params});
+      case 'poll':
+        const poll = 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || [])
+            .map((answer: PollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
+            .join('\n');
+
+        return this.sendMessageWithChatAction(userId, ChatAction.typing, poll, params);
+      case 'link':
+        const link = attachment.link.title + '\n' + attachment.link.url;
+
+        return this.sendMessageWithChatAction(userId, ChatAction.typing, link, params);
+    }
+  }
+
+  public async sendAttachments(userId: number, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
+    const mediaGroup: MediaGroup = attachments
+        .filter((attachment: VkAttachment) => attachment.type === 'photo')
+        .map((attachment: VkAttachment): InputMediaPhoto => ({
+          media: attachment.photo.photo_2560
               || attachment.photo.photo_1280
               || attachment.photo.photo_604
               || attachment.photo.photo_130
               || attachment.photo.photo_75,
           type: 'photo'
-        };
-      case 'video':
-        return {
-          caption: (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id,
-          photo: attachment.video.photo_800
-              || attachment.video.photo_640
-              || attachment.video.photo_320
-              || attachment.video.photo_130,
-          type: 'video'
-        };
-      case 'doc':
-        return {
-          caption: attachment.doc.title,
-          document: attachment.doc.url,
-          type: 'document'
-        };
-      case 'audio':
-        return {
-          audio: attachment.audio.url,
-          title: attachment.audio.artist + ' - ' + attachment.audio.title,
-          type: 'audio'
-        };
-      case 'poll':
-        return {
-          text: 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || [])
-            .map((answer: PollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
-            .join('\n'),
-          type: 'poll'
-        };
-      case 'link':
-        return {
-          text: attachment.link.title + '\n' + attachment.link.url,
-          type: 'link'
-        };
+        }));
+
+    if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
+      return this.sendMediaGroup(userId, mediaGroup, params);
     }
+    return this.fulfillAll(attachments
+        .filter(Boolean)
+        .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
   }
 
-  public convertAttachments(attachments: VkAttachment[] = []): TelegramAttachment[] {
-    return attachments
-      .filter((attachment: VkAttachment | void) => attachment)
-      .map((attachment: VkAttachment) => this.convertAttachment(attachment));
-  }
-
-  public getAnekButtons(anek: IAnek, params: MessageParams): InlineKeyboardButton[][] {
+  public getAnekButtons(anek: IAnek, params: OtherParams): InlineKeyboardButton[][] {
     const buttons: InlineKeyboardButton[][] = [];
 
     const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
@@ -201,28 +202,26 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  public async sendAnek(userId: number, anek: IAnek | Anek, params: MessageParams = {}): Promise<Message | Message[] | void> {
+  public async sendAnek(userId: number, anek: IAnek | Anek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
     if (!anek) {
       return;
     }
 
-    const immutableAnek: IAnek = cloneDeep((anek as IAnek).toObject ? (anek as IAnek).toObject() : anek);
+    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(anek as IAnek, params);
 
-    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(immutableAnek, params);
+    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
+      const insideMessage = cloneDeep(anek.copy_history[0]);
 
-    if (immutableAnek.copy_history && immutableAnek.copy_history.length && immutableAnek.post_id) {
-      const insideMessage = immutableAnek.copy_history[0];
+      insideMessage.post_id = anek.post_id;
+      insideMessage.from_id = anek.from_id;
+      insideMessage.text = anek.text + (anek.text.length ? '\n' : '') + insideMessage.text;
 
-      insideMessage.post_id = immutableAnek.post_id;
-      insideMessage.from_id = immutableAnek.from_id;
-      insideMessage.text = immutableAnek.text + (immutableAnek.text.length ? '\n' : '') + insideMessage.text;
-
-      if (immutableAnek.attachments && immutableAnek.attachments.length) {
+      if (anek.attachments && anek.attachments.length) {
         if (!insideMessage.attachments || !insideMessage.attachments.length) {
           insideMessage.attachments = [];
         }
 
-        insideMessage.attachments = insideMessage.attachments.concat(immutableAnek.attachments);
+        insideMessage.attachments = insideMessage.attachments.concat(anek.attachments);
       }
 
       return this.sendAnek(userId, insideMessage, params);
@@ -230,16 +229,14 @@ class Bot extends Telegram {
 
     const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
 
-    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
+    return this.sendMessage(userId, this.convertTextLinks(anek.text), {
       reply_markup: replyMarkup,
       ...params
     })
       .then((message: any) => {
-        if (immutableAnek.attachments && params.forceAttachments) {
-          const attachments = this.convertAttachments(immutableAnek.attachments);
-
-          return this.sendAttachments(userId, attachments, {
-            forcePlaceholder: !immutableAnek.text,
+        if (anek.attachments && params.forceAttachments) {
+          return this.sendAttachments(userId, anek.attachments, {
+            forcePlaceholder: !anek.text,
             reply_markup: replyMarkup,
             ...params
           });
@@ -250,12 +247,10 @@ class Bot extends Telegram {
   }
 
   public sendComment(userId: number, comment: Comment, params: MessageParams) {
-    const attachments = this.convertAttachments(comment.attachments || []);
-
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then((message: any) => {
-        if (attachments.length) {
-          return this.sendAttachments(userId, attachments, {forceAttachments: true});
+        if (comment.attachments && comment.attachments.length) {
+          return this.sendAttachments(userId, comment.attachments, {forceAttachments: true});
         }
 
         return message;
@@ -266,7 +261,7 @@ class Bot extends Telegram {
     return this.fulfillAll(comments.map((comment) => this.sendComment(userId, comment, params)));
   }
 
-  public sendSuggest(userId: number, suggest: ISuggest, params: MessageParams) {
+  public sendSuggest(userId: number, suggest: ISuggest, params: AllMessageParams) {
     const buttons: InlineKeyboardButton[][] = [];
 
     const sendMessage: SuggestMessage = {
@@ -339,11 +334,11 @@ class Bot extends Telegram {
     return this.sendRequest(commandType, sendMessage);
   }
 
-  public sendSuggests(userId: number, suggests: ISuggest[], params: MessageParams) {
+  public sendSuggests(userId: number, suggests: ISuggest[], params: AllMessageParams) {
     return this.fulfillAll(suggests.map((suggest: ISuggest) => this.sendSuggest(userId, suggest, params)));
   }
 
-  public forwardMessageToChannel(message: ISuggest, params: MessageParams) {
+  public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {
     if (!config.get('telegram.baneksChannel')) {
       return;
     }
@@ -384,8 +379,8 @@ class Bot extends Telegram {
     return this.emit('successfulPayment', successfulPayment, user);
   }
 
-  public performNewChatMember(member: User, user: IUser) {
-    return this.emit('newChatMember', member, user);
+  public performNewChatMembers(members: User[], user: IUser) {
+    return this.emit('newChatMembers', members, user);
   }
 
   public performLeftChatMember(member: User, user: IUser) {
@@ -421,8 +416,8 @@ class Bot extends Telegram {
         return this.performSuccessfulPayment(message.successful_payment, user);
       }
 
-      if (message.new_chat_member) {
-        return this.performNewChatMember(message.new_chat_member, user);
+      if (message.new_chat_members) {
+        return this.performNewChatMembers(message.new_chat_members, user);
       }
 
       if (message.left_chat_member) {

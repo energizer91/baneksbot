@@ -87,7 +87,7 @@ export interface IAnek extends mongoose.Document {
   spam: boolean;
   text: string;
   approved: boolean;
-  approveTimeout: mongoose.Schema.Types.Date;
+  approveTimeout: Date;
 }
 
 export interface ISuggest extends mongoose.Document {

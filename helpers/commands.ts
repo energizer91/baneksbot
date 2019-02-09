@@ -452,14 +452,14 @@ botApi.bot.onCommand('keyboard', async (command, message, user) => {
 botApi.bot.onCommand('english', async (command, message, user) => {
   user.language = 'english';
 
-  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'language_change'));
 });
 botApi.bot.onCommand('russian', async (command, message, user) => {
   user.language = 'russian';
 
-  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'language_change'));
 });
@@ -489,13 +489,20 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  const anek = await botApi.database.Anek.findOne({}).sort({date: -1}).exec();
+  let anek: IAnek;
+
+  if (command[1]) {
+    anek = await botApi.database.Anek.findOne({post_id: command[1]}).sort({date: -1}).exec();
+  } else {
+    anek = await botApi.database.Anek.findOne({}).sort({date: -1}).exec();
+  }
 
   if (!anek) {
     return;
   }
 
   anek.approved = false;
+  anek.approveTimeout = new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000);
 
   await anek.save();
 
@@ -723,7 +730,7 @@ botApi.bot.onCommand('unfeedback', async (command, message, user) => {
   if (command[1] && user.admin) {
     command.splice(0, 1);
 
-    const userId = command.splice(0, 1)[0];
+    const userId = command[1];
 
     await botApi.database.User.findOneAndUpdate({user_id: userId}, {feedback_mode: false});
 
@@ -778,7 +785,7 @@ botApi.bot.onCommand('ban', async (command, message, user) => {
   if (command[1] && user.admin) {
     command.splice(0, 1);
 
-    const userId = command.splice(0, 1)[0];
+    const userId = command[1];
 
     await botApi.database.User.findOneAndUpdate({user_id: userId}, {banned: true});
 
@@ -789,7 +796,7 @@ botApi.bot.onCommand('unban', async (command, message, user) => {
   if (command[1] && user.admin) {
     command.splice(0, 1);
 
-    const userId = command.splice(0, 1)[0];
+    const userId = command[1];
 
     await botApi.database.User.findOneAndUpdate({user_id: userId}, {banned: false});
 
@@ -879,9 +886,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
         post = post.copy_history[0];
       }
 
-      const attachments = botApi.bot.convertAttachments(post.attachments);
-
-      return botApi.bot.sendAttachments(callbackQuery.message.chat.id, attachments, params);
+      return botApi.bot.sendAttachments(callbackQuery.message.chat.id, post.attachments, params);
     case 'a_a':
       const unapprovedAnek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
 
@@ -894,6 +899,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
 
         await unapprovedAnek.save();
 
+        await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
+
         return common.broadcastAneks(users, [unapprovedAnek], {_rule: 'individual'})
           .catch((err: Error) => {
             debugError('Update aneks error', err);
@@ -905,6 +912,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
       return;
     case 'a_d':
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true, spam: true});
+      await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не будет опубликован'});
 
       return;

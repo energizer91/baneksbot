@@ -6,53 +6,6 @@ import NetworkModel, {Methods, RequestConfig, RequestParams} from '../network';
 const debug = debugFactory('baneks-node:telegram');
 const debugError = debugFactory('baneks-node:telegram:error', true);
 
-type Photo = {
-  type: 'photo',
-  photo: string,
-  caption: string,
-  parse_mode?: 'markdown' | 'html'
-};
-
-type Video = {
-  type: 'video',
-  photo: string,
-  caption: string
-};
-
-type Document = {
-  type: 'document',
-  document: string,
-  caption?: string
-};
-
-type Poll = {
-  type: 'poll',
-  text: string
-};
-
-type Link = {
-  type: 'link',
-  text: string
-};
-
-type Audio = {
-  type: 'audio',
-  title: string,
-  audio: string
-};
-
-type InputMediaPhoto = {
-  type: 'photo',
-  media: string,
-  caption: string
-};
-
-type MediaGroup = InputMediaPhoto[];
-
-type MediaGroupParams = {
-  forcePlaceholder?: boolean
-};
-
 export type User = {
   id: number,
   is_bot: boolean,
@@ -61,16 +14,6 @@ export type User = {
   username?: string,
   language_code?: string,
   title?: string
-};
-
-export type PreCheckoutQuery = {
-  id: string,
-  from: User,
-  currency: string,
-  total_amount: number,
-  invoice_payload: string,
-  shipping_option_id?: string,
-  order_info?: OrderInfo
 };
 
 export type Chat = {
@@ -84,29 +27,151 @@ export type Chat = {
   language_code?: string
 };
 
-type OrderInfo = {
-  name?: string,
-  phone_number?: string,
-  email?: string
+// describes incoming Telegram message
+export type Message = {
+  message_id: number,
+  from?: User,
+  chat: Chat,
+  forward_from?: User,
+  forward_from_chat?: Chat,
+  forward_from_message_id?: number,
+  forward_signature?: string,
+  forward_date?: number,
+  reply_to_message?: Message,
+  editt_date?: number,
+  media_group_id?: string,
+  author_signature?: string,
+  text?: string,
+  entities?: MessageEntity[],
+  caption_entries?: MessageEntity[],
+  audio?: Audio,
+  document?: Document,
+  animation?: Animation,
+  game?: Game,
+  photo?: PhotoSize[],
+  sticker?: Sticker,
+  video?: Video,
+  voice?: Voice,
+  video_note?: VideoNote,
+  caption?: string,
+  contact?: Contact,
+  location?: Location,
+  venue?: Venue,
+  new_chat_members?: User[],
+  left_chat_member?: User,
+  new_chat_title?: string,
+  new_chat_photo: PhotoSize[],
+  delete_chat_photo?: true,
+  group_chat_created?: true,
+  supergroup_chat_created?: true,
+  channel_chat_created?: true,
+  migrate_to_chat_id?: number,
+  pinned_message?: Message,
+  invoice?: Invoice,
+  successful_payment?: SuccessfulPayment,
+  connected_website?: string,
+  passport_data?: PassportData
 };
 
-export type InlineKeyboardButton = {
-  text: string,
+type MessageEntity = {
+  type: string,
+  offset: number,
+  length: number,
   url?: string,
-  callback_data?: string,
-  switch_inline_query?: string,
-  switch_inline_query_current_chat?: string,
-  pay?: string
+  user?: User
 };
 
-export type KeyboardButton = {
-  text: string,
-  request_contact?: boolean,
-  request_location?: boolean
+type PhotoSize = {
+  file_id: string,
+  width: number,
+  height: number,
+  file_size?: number
 };
 
-export type InlineKeyboardMarkup = {
-  inline_keyboard: InlineKeyboardButton[][]
+type Audio = {
+  file_id: string,
+  duration: number,
+  performer?: string,
+  title?: string,
+  mime_type?: string,
+  file_size?: number,
+  thumb?: PhotoSize
+};
+
+type Document = {
+  file_id: string,
+  thumb?: PhotoSize,
+  file_name?: string,
+  mime_type?: string,
+  file_size?: number
+};
+
+type Video = {
+  file_id: string,
+  width: number,
+  height: number,
+  duration: number,
+  thumb?: PhotoSize,
+  mime_type?: string,
+  file_size?: number
+};
+
+type Animation = {
+  file_id: string,
+  width: number,
+  height: number,
+  duration: number,
+  thumb?: PhotoSize,
+  file_name?: string,
+  mime_type?: string,
+  file_size?: number
+};
+
+type Voice = {
+  file_id: string,
+  duration: number,
+  mime_type?: string,
+  file_size?: number
+};
+
+type VideoNote = {
+  file_id: string,
+  length: number,
+  duration: number,
+  thumb?: PhotoSize,
+  file_size?: number
+};
+
+type Contact = {
+  phone_number: string,
+  first_name: string,
+  last_name?: string,
+  user_id?: number,
+  vcard?: string
+};
+
+type Location = {
+  longitude: number,
+  latitude: number
+};
+
+type Venue = {
+  location: Location,
+  title: string,
+  address: string,
+  foursquare_id?: string,
+  foursquare_type?: string
+};
+
+type UserProfilePhotos = {
+  total_count: string,
+  photos: PhotoSize[][]
+};
+
+type File = {
+  file_id: string,
+  file_size?: number,
+  file_path?: string
 };
 
 export type ReplyKeyboardMarkup = {
@@ -116,9 +181,39 @@ export type ReplyKeyboardMarkup = {
   selective?: boolean
 };
 
-export type RemoveReplyKeyboard = {
+export type KeyboardButton = {
+  text: string,
+  request_contact?: boolean,
+  request_location?: boolean
+};
+
+export type ReplyKeyboardRemove = {
   remove_keyboard: true,
   selective?: true
+};
+
+export type InlineKeyboardMarkup = {
+  inline_keyboard: InlineKeyboardButton[][]
+};
+
+export type InlineKeyboardButton = {
+  text: string,
+  url?: string,
+  callback_data?: string,
+  switch_inline_query?: string,
+  switch_inline_query_current_chat?: string,
+  callback_game?: CallbackGame,
+  pay?: boolean
+};
+
+export type CallbackQuery = {
+  id: string,
+  from: User,
+  message?: Message,
+  inline_message_id?: string,
+  chat_instance: string,
+  data?: string,
+  game_short_name?: string
 };
 
 export type ForceReply = {
@@ -126,7 +221,197 @@ export type ForceReply = {
   selective?: true
 };
 
-export type ReplyMarkup = InlineKeyboardMarkup | ReplyKeyboardMarkup | RemoveReplyKeyboard | ForceReply;
+type ChatPhoto = {
+  small_file_id: string,
+  big_file_id: string
+};
+
+type ChatMember = {
+  user: User,
+  status: 'creator' | 'administrator' | 'member' | 'restricted' | 'left' | 'kicked',
+  until_date?: number,
+  can_be_edited?: boolean,
+  can_change_info?: boolean,
+  can_post_messages?: boolean,
+  can_edit_messages?: boolean,
+  can_delete_messages?: boolean,
+  can_invite_users?: boolean,
+  can_restrict_members?: boolean,
+  can_pin_messages?: boolean,
+  can_promote_members?: boolean,
+  can_send_messages?: boolean,
+  can_send_media_messages?: boolean,
+  can_send_other_messages?: boolean,
+  can_add_web_page_previews?: boolean
+};
+
+type ResponseParameters = {
+  migrate_to_chat_id?: number,
+  retry_after?: number
+};
+
+interface InputMedia {
+  type: string;
+  media: string;
+  caption?: string;
+  parse_mode?: 'markdown' | 'html';
+}
+
+export interface InputMediaPhoto extends InputMedia {
+  type: 'photo';
+}
+
+interface InputMediaVideo extends InputMedia {
+  type: 'video';
+  thumb?: InputFile | string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  supports_streaming?: boolean;
+}
+
+interface InputMediaAnimation extends InputMedia {
+  type: 'animation';
+  thumb?: InputFile | string;
+  width?: number;
+  height?: number;
+  duration?: number;
+}
+
+interface InputMediaAudio extends InputMedia {
+  type: 'audio';
+  thumb?: InputFile | string;
+  duration?: number;
+  performer?: string;
+  title?: string;
+}
+
+interface InputMediaDocument extends InputMedia {
+  type: 'document';
+  thumb?: InputFile | string;
+}
+
+type InputFile = ReadableStream;
+
+type TextAttachment = {
+  type: 'text',
+  text: string
+};
+
+type Game = {
+  title: string,
+  description: string,
+  photo: PhotoSize[],
+  text?: string,
+  text_entities?: MessageEntity[],
+  animation?: Animation
+};
+
+type CallbackGame = void;
+
+type Sticker = {
+  file_id: string,
+  width: number,
+  height: number,
+  thumb?: PhotoSize,
+  emoji?: string,
+  set_name?: string,
+  mask_position?: MaskPosition,
+  file_size?: number
+};
+
+type StickerSet = {
+  name: string,
+  title: string,
+  contains_masks: boolean,
+  stickers: Sticker[]
+};
+
+type MaskPosition = {
+  point: 'forehead' | 'eyes' | 'mouth' | 'chin',
+  x_shift: number,
+  y_shift: number,
+  scale: number
+};
+
+type PassportData = {
+  data: EncryptedPassportElement[],
+  credentials: EncryptedCredentials
+};
+
+type PassportFile = {
+  file_id: string,
+  file_size: number,
+  file_date: number
+};
+
+type EncryptedPassportElement = {
+  type: 'personal_details'
+      | 'passport'
+      | 'driving_licence'
+      | 'identity_card'
+      | 'internal_passport'
+      | 'address'
+      | 'utility_bill'
+      | 'bank_statement'
+      | 'rental_agreement'
+      | 'passport_registration'
+      | 'temporary_registration'
+      | 'phone_number'
+      | 'email',
+  data?: string,
+  phone_number?: string,
+  email?: string,
+  files?: PassportFile[],
+  front_side?: PassportFile,
+  reverse_side?: PassportFile,
+  selfie?: PassportFile,
+  translation?: PassportFile[],
+  hash?: string
+};
+
+type EncryptedCredentials = {
+  data: string,
+  hash: string,
+  secret: string
+};
+
+type Photo = {
+  type: 'photo',
+  photo: string,
+  caption: string,
+  parse_mode?: 'markdown' | 'html'
+};
+
+type Poll = {
+  type: 'poll',
+  text: string
+};
+
+type Link = {
+  type: 'link',
+  text: string
+};
+
+export type MediaGroup = InputMediaPhoto[] | InputMediaVideo[];
+
+export type PreCheckoutQuery = {
+  id: string,
+  from: User,
+  currency: string,
+  total_amount: number,
+  invoice_payload: string,
+  shipping_option_id?: string,
+  order_info?: OrderInfo
+};
+
+type OrderInfo = {
+  name?: string,
+  phone_number?: string,
+  email?: string
+};
+
+export type ReplyMarkup = InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply;
 
 export type SuccessfulPayment = {
   currency: string,
@@ -137,40 +422,11 @@ export type SuccessfulPayment = {
   provider_payment_charge_id: string
 };
 
-// describes incoming Telegram message
-export type Message = {
-  caption?: string,
-  message_id?: number,
-  from?: User,
-  chat?: Chat,
-  forward_from?: User,
-  forward_from_char?: Chat,
-  reply_to_message?: Message,
-  successful_payment?: SuccessfulPayment,
-  new_chat_member?: User,
-  left_chat_member?: User,
-  reply_markup?: string,
-  chat_id?: number,
-  text?: string,
-  audio?: Audio,
-  photo?: Photo,
-  video?: Video
-};
-
 export type InlineQuery = {
   id: string,
   from: User,
   query: string,
   offset: string
-};
-
-export type CallbackQuery = {
-  id: string,
-  from: User,
-  message?: Message,
-  inline_message_id?: string,
-  chat_instance: string,
-  data: string
 };
 
 type Invoice = {
@@ -198,6 +454,7 @@ export type Update = {
 };
 
 type TelegramParams = {
+  caption?: string,
   chat_id?: number,
   keyboard?: boolean,
   remove_keyboard?: boolean,
@@ -207,23 +464,26 @@ type TelegramParams = {
 
 export type MessageParams = {
   parse_mode?: 'Markdown' | 'HTML',
-  buttons?: InlineKeyboardMarkup,
-  forceAttachments?: boolean,
-  disableAttachments?: boolean,
-  disableButtons?: boolean,
+  reply_markup?: string,
+};
+
+export type OtherParams = {
+  disableComments?: boolean,
+  forcePlaceholder?: boolean,
+  native?: boolean,
+  language?: string,
+  needApprove?: boolean,
   admin?: boolean,
   editor?: boolean,
   keyboard?: boolean,
   suggest?: boolean,
-  disableComments?: boolean,
-  forcePlaceholder?: boolean,
-  reply_markup?: string,
-  native?: boolean,
-  language?: string,
-  needApprove?: boolean
+  buttons?: InlineKeyboardMarkup,
+  forceAttachments?: boolean,
+  disableAttachments?: boolean,
+  disableButtons?: boolean,
 };
 
-export type AllMessageParams = TelegramParams & MessageParams & RequestParams;
+export type AllMessageParams = TelegramParams & MessageParams & RequestParams & OtherParams;
 
 export type TelegramError = {
   ok: false,
@@ -234,7 +494,7 @@ export type TelegramError = {
   }
 };
 
-enum ChatAction {
+export enum ChatAction {
   typing = 'typing',
   uploadPhoto = 'upload_photo',
   uploadVideo = 'upload_video',
@@ -242,7 +502,7 @@ enum ChatAction {
   uploadDocument = 'upload_document'
 }
 
-export type Attachment = Photo | Audio | Video | Poll | Link | Document;
+export type Attachment = InputMediaPhoto | InputMediaAudio | InputMediaVideo | InputMediaDocument | TextAttachment;
 
 class Telegram extends NetworkModel {
   public endpoint: string = `${config.get('telegram.url')}${config.get('telegram.token')}`;
@@ -289,7 +549,7 @@ class Telegram extends NetworkModel {
     return {keyboard: buttons, resize_keyboard: resize, one_time_keyboard: oneTime};
   }
 
-  public prepareRemoveKeyboard(): RemoveReplyKeyboard {
+  public prepareRemoveKeyboard(): ReplyKeyboardRemove {
     return {remove_keyboard: true};
   }
 
@@ -346,51 +606,47 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendPhoto(userId: number, photo: Photo, params?: AllMessageParams): Promise<Message> {
+  public async sendPhoto(userId: number, photo: string, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadPhoto);
 
     return this.sendRequest('sendPhoto', {
       chat_id: userId,
-      ...photo,
+      photo,
       ...params
     });
   }
 
-  public async sendAudio(userId: number, audio: Audio, params?: AllMessageParams): Promise<Message> {
+  public async sendAudio(userId: number, audio: string, params?: AllMessageParams & {title?: string, performer?: string}): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadAudio);
 
     return this.sendRequest('sendAudio', {
+      audio,
       chat_id: userId,
-      ...audio,
       ...params
     });
   }
 
-  public async sendVideo(userId: number, video: Video, params?: AllMessageParams): Promise<Message> {
+  public async sendVideo(userId: number, video: string, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadVideo);
 
-    return this.sendRequest('sendPhoto', {
+    return this.sendRequest('sendVideo', {
       chat_id: userId,
-      ...video,
+      video,
       ...params
     });
   }
 
-  public async sendDocument(userId: number, document: Document, params?: AllMessageParams): Promise<Message> {
+  public async sendDocument(userId: number, document: string, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadDocument);
 
     return this.sendRequest('sendDocument', {
       chat_id: userId,
-      ...document,
+      document,
       ...params
     });
   }
 
-  public async sendMediaGroup(
-    userId: number,
-    mediaGroup: MediaGroup,
-    params?: AllMessageParams & MediaGroupParams
-  ): Promise<Message> {
+  public async sendMediaGroup(userId: number, mediaGroup: MediaGroup, params?: AllMessageParams): Promise<Message> {
     if (!mediaGroup.length) {
       return;
     }
@@ -421,57 +677,7 @@ class Telegram extends NetworkModel {
     return this.sendMessage(userId, message, params);
   }
 
-  public async sendAttachment(
-    userId: number,
-    attachment: Attachment,
-    params?: AllMessageParams
-  ): Promise<Message> {
-    debug('Sending attachment', userId, attachment, params);
-
-    switch (attachment.type) {
-      case 'photo':
-        return this.sendPhoto(userId, attachment, params);
-      case 'audio':
-        return this.sendAudio(userId, attachment, params);
-      case 'video':
-        return this.sendVideo(userId, attachment, params);
-      case 'document':
-        return this.sendDocument(userId, attachment, params);
-      case 'poll':
-      case 'link':
-        return this.sendMessageWithChatAction(userId, ChatAction.typing, attachment.text, params);
-      default:
-        debug('Unknown attachment', attachment);
-    }
-  }
-
-  public async sendAttachments(
-    userId: number,
-    attachments: Attachment[] = [],
-    params?: AllMessageParams
-  ): Promise<Message | Message[]> {
-    if (!attachments.length) {
-      return;
-    }
-
-    const mediaGroup: MediaGroup = attachments
-      .filter((attachment: Attachment) => attachment.type === 'photo')
-      .map((attachment: Photo): InputMediaPhoto => ({
-        caption: attachment.caption,
-        media: attachment.photo,
-        type: attachment.type
-      }));
-
-    if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
-      return this.sendMediaGroup(userId, mediaGroup, params);
-    }
-
-    return this.fulfillAll(attachments.map((attachment: Attachment) =>
-      this.sendAttachment(userId, attachment, params))
-    );
-  }
-
-  public sendSticker(userId: number, stickerId: string) {
+  public sendSticker(userId: number, stickerId: string, params?: AllMessageParams): Promise<Message> {
     if (!userId) {
       throw new Error('No user specified!');
     }
@@ -484,32 +690,31 @@ class Telegram extends NetworkModel {
 
     return this.sendRequest('sendSticker', {
       chat_id: userId,
-      sticker: stickerId
+      sticker: stickerId,
+      ...params
     });
   }
 
-  public getMe() {
+  public getMe(): Promise<Message> {
     return this.sendRequest('getMe');
   }
 
-  public getWebhookInfo() {
+  public getWebhookInfo(): Promise<Message> {
     return this.sendRequest('getWebhookInfo');
   }
 
-  public async answerCallbackQuery(queryId: string, payload?: AnswerCallbackQuery): Promise<Message | void> {
+  public async answerCallbackQuery(queryId: string, payload?: AnswerCallbackQuery): Promise<Message> {
     debug('Answering callback query', queryId, payload);
 
-    if (!payload) {
-      return;
+    if (!queryId) {
+      throw new Error('Callback query id is not specified');
     }
 
     return this.sendRequest('answerCallbackQuery', {
       _key: Number(queryId),
       _rule: config.get('telegram.rules.callbackQuery'),
       callback_query_id: queryId,
-      show_alert: payload.show_alert,
-      text: payload.text,
-      url: payload.url
+      ...payload
     })
       .catch((error: Error) => {
         debugError(error);
@@ -518,16 +723,7 @@ class Telegram extends NetworkModel {
       });
   }
 
-  public async editMessageText(
-    chatId: number,
-    messageId: number,
-    text: string,
-    params?: AllMessageParams
-  ): Promise<Message | void> {
-    if (!text || !messageId) {
-      return;
-    }
-
+  public async editMessageText(chatId: number, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
     debug('Editing message text', chatId, messageId, text, params);
 
     return this.sendRequest('editMessageText', {
@@ -539,10 +735,6 @@ class Telegram extends NetworkModel {
   }
 
   public async editMessageButtons(message: Message, buttons: InlineKeyboardButton[][] = []): Promise<boolean> {
-    if (!message) {
-      return;
-    }
-
     debug('Editing message buttons', message, buttons);
 
     return this.sendRequest('editMessageReplyMarkup', {
@@ -555,6 +747,21 @@ class Telegram extends NetworkModel {
 
         return false;
       });
+  }
+
+  public deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+    if (!chatId) {
+      throw new Error('Chat id is not specified');
+    }
+
+    if (!messageId) {
+      throw new Error('Message id is not specified');
+    }
+
+    return this.sendRequest('deleteMessage', {
+      chat_id: chatId,
+      message_id: messageId
+    });
   }
 
   public sendChatAction(userId: number, action: ChatAction): Promise<boolean> {
