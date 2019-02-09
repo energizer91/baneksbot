@@ -36,6 +36,19 @@ type SuggestMessage = {
 
 const debug = debugFactory('baneks-node:bot');
 
+interface Bot extends Telegram {
+  on(event: string, callback: (...params: any) => void | Promise<void>): void | Promise<void>;
+  on(event: 'message' | 'feedback', callback: (message: Message, user: IUser) => void): void | Promise<void>;
+  on(event: 'callbackQuery', callback: (callbackQuery: CallbackQuery, user: IUser) => void): void | Promise<void>;
+  on(event: 'inlineQuery', callback: (inlineQuery: InlineQuery, user: IUser) => void): void | Promise<void>;
+  on(event: 'preCheckoutQuery', callback: (preCheckoutQuery: PreCheckoutQuery, user: IUser) => void): void | Promise<void>;
+  on(event: 'successfulPayment', callback: (successfulPayment: SuccessfulPayment, user: IUser) => void): void | Promise<void>;
+  on(event: 'newChatMembers', callback: (members: User[], message: Message, user: IUser) => void): void | Promise<void>;
+  on(event: 'leftChatMember', callback: (member: User, message: Message, user: IUser) => void): void | Promise<void>;
+  on(event: 'suggest', callback: (suggest: Message, user: IUser) => void): void | Promise<void>;
+  on(event: 'reply', callback: (reply: Message, message: Message, user: IUser) => void): void | Promise<void>;
+}
+
 class Bot extends Telegram {
   private buttons: string[] = [];
 
@@ -124,6 +137,7 @@ class Bot extends Telegram {
     const mediaGroup: MediaGroup = attachments
         .filter((attachment: VkAttachment) => attachment.type === 'photo')
         .map((attachment: VkAttachment): InputMediaPhoto => ({
+          caption: attachment.text,
           media: attachment.photo.photo_2560
               || attachment.photo.photo_1280
               || attachment.photo.photo_604
@@ -135,6 +149,7 @@ class Bot extends Telegram {
     if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
       return this.sendMediaGroup(userId, mediaGroup, params);
     }
+
     return this.fulfillAll(attachments
         .filter(Boolean)
         .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
@@ -379,12 +394,12 @@ class Bot extends Telegram {
     return this.emit('successfulPayment', successfulPayment, user);
   }
 
-  public performNewChatMembers(members: User[], user: IUser) {
-    return this.emit('newChatMembers', members, user);
+  public performNewChatMembers(members: User[], message: Message, user: IUser) {
+    return this.emit('newChatMembers', members, message, user);
   }
 
-  public performLeftChatMember(member: User, user: IUser) {
-    return this.emit('leftChatMember', member, user);
+  public performLeftChatMember(member: User, message: Message, user: IUser) {
+    return this.emit('leftChatMember', member, message, user);
   }
 
   public performSuggest(suggest: Message, user: IUser) {
@@ -417,11 +432,11 @@ class Bot extends Telegram {
       }
 
       if (message.new_chat_members) {
-        return this.performNewChatMembers(message.new_chat_members, user);
+        return this.performNewChatMembers(message.new_chat_members, message, user);
       }
 
       if (message.left_chat_member) {
-        return this.performLeftChatMember(message.left_chat_member, user);
+        return this.performLeftChatMember(message.left_chat_member, message, user);
       }
 
       if (user.suggest_mode && !user.banned) {

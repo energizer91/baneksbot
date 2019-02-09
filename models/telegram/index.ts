@@ -6,6 +6,11 @@ import NetworkModel, {Methods, RequestConfig, RequestParams} from '../network';
 const debug = debugFactory('baneks-node:telegram');
 const debugError = debugFactory('baneks-node:telegram:error', true);
 
+export enum ParseMode {
+  Markdown = 'Markdown',
+  HTML = 'HTML'
+}
+
 export type User = {
   id: number,
   is_bot: boolean,
@@ -27,7 +32,9 @@ export type Chat = {
   language_code?: string
 };
 
-// describes incoming Telegram message
+/**
+ * Describes incoming Telegram message
+ */
 export type Message = {
   message_id: number,
   from?: User,
@@ -254,7 +261,7 @@ interface InputMedia {
   type: string;
   media: string;
   caption?: string;
-  parse_mode?: 'markdown' | 'html';
+  parse_mode?: ParseMode;
 }
 
 export interface InputMediaPhoto extends InputMedia {
@@ -376,22 +383,7 @@ type EncryptedCredentials = {
   secret: string
 };
 
-type Photo = {
-  type: 'photo',
-  photo: string,
-  caption: string,
-  parse_mode?: 'markdown' | 'html'
-};
 
-type Poll = {
-  type: 'poll',
-  text: string
-};
-
-type Link = {
-  type: 'link',
-  text: string
-};
 
 export type MediaGroup = InputMediaPhoto[] | InputMediaVideo[];
 
@@ -425,8 +417,52 @@ export type SuccessfulPayment = {
 export type InlineQuery = {
   id: string,
   from: User,
+  location?: Location,
   query: string,
-  offset: string
+  offset?: string
+};
+
+interface InlineQueryResult {
+  type: string;
+  id: string;
+  input_message_content: InputMessageContent;
+  title?: string;
+  caption?: string;
+  parse_mode?: ParseMode;
+  reply_markup?: ReplyMarkup;
+}
+
+export interface InlineQueryResultArticle extends InlineQueryResult {
+  type: 'article';
+  url?: string;
+  hide_url?: string;
+  description?: string;
+  thumb_url?: string;
+  thumb_width?: number;
+  thumb_height?: number;
+}
+
+interface InlineQueryResultPhoto extends InlineQueryResult {
+  type: 'photo';
+  description?: string;
+  photo_url: string;
+  thumb_url: string;
+  photo_width?: number;
+  photo_height?: number;
+}
+
+interface InlineQueryResultGif extends InlineQueryResult {
+  gif_url: string;
+  gif_width?: number;
+  gif_height?: number;
+  gif_duration?: number;
+  thumb_url: string;
+}
+
+type InputMessageContent = {
+  message_text: string,
+  parse_mode?: ParseMode,
+  disable_web_page_preview?: boolean
 };
 
 type Invoice = {
@@ -463,7 +499,7 @@ type TelegramParams = {
 };
 
 export type MessageParams = {
-  parse_mode?: 'Markdown' | 'HTML',
+  parse_mode?: ParseMode,
   reply_markup?: string,
 };
 
@@ -501,8 +537,6 @@ export enum ChatAction {
   uploadAudio = 'upload_audio',
   uploadDocument = 'upload_document'
 }
-
-export type Attachment = InputMediaPhoto | InputMediaAudio | InputMediaVideo | InputMediaDocument | TextAttachment;
 
 class Telegram extends NetworkModel {
   public endpoint: string = `${config.get('telegram.url')}${config.get('telegram.token')}`;

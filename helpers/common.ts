@@ -96,12 +96,10 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
   for (const vkAnek of vkAneks.items) {
     if (vkAnek.date > lastDBAnekDate) {
       // @ts-ignore
-      aneks.unshift(processAnek(vkAnek, false));
+      aneks.unshift(processAnek(vkAnek, !this.filterAnek(vkAnek)));
     } else {
       if (aneks.length) {
-        return AnekModel.insertMany(aneks).then(() => {
-          return aneks;
-        });
+        return AnekModel.insertMany(aneks).then(() => aneks.filter(this.filterAnek));
       }
 
       return aneks;
@@ -195,7 +193,6 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: Al
   }
 
   Promise.all(aneks
-    .filter(this.filterAnek)
     .map((anek) => botApi.bot.fulfillAll(users.map((user) => botApi.bot.sendAnek(user.user_id, anek, {...params, forceAttachments: user.force_attachments})
       .catch((error: TelegramError) => {
         if ((!error.ok && (error.error_code === 403)) || (

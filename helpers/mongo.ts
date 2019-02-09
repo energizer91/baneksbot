@@ -88,6 +88,7 @@ export interface IAnek extends mongoose.Document {
   text: string;
   approved: boolean;
   approveTimeout: Date;
+  approver: IUser;
 }
 
 export interface ISuggest extends mongoose.Document {
@@ -191,9 +192,30 @@ db.once('open', () => {
   debug('MongoDB connection successful');
 });
 
+const userSchema = new mongoose.Schema({
+  admin: {type: Boolean, default: false},
+  banned: {type: Boolean, default: false},
+  client: {type: String, default: 'web'},
+  date: {type: Date, default: Date.now},
+  deleted_subscribe: {type: Boolean, default: false},
+  editor: {type: Boolean, default: false},
+  feedback_mode: {type: Boolean, default: false},
+  first_name: String,
+  force_attachments: {type: Boolean, default: false},
+  keyboard: {type: Boolean, default: false},
+  language: {type: String, default: 'russian'},
+  last_name: String,
+  pin: {type: String, select: false},
+  subscribed: {type: Boolean, default: false},
+  suggest_mode: {type: Boolean, default: false},
+  title: String,
+  user_id: Number,
+  username: String
+});
 const anekSchema = new mongoose.Schema({
   approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
   approved: {type: Boolean, default: true},
+  approver: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
   attachments: Array,
   copy_history: Array,
   date: Number,
@@ -214,26 +236,6 @@ const commentSchema = new mongoose.Schema({
   from_id: Number,
   likes: Number,
   text: String
-});
-const userSchema = new mongoose.Schema({
-  admin: {type: Boolean, default: false},
-  banned: {type: Boolean, default: false},
-  client: {type: String, default: 'web'},
-  date: {type: Date, default: Date.now},
-  deleted_subscribe: {type: Boolean, default: false},
-  editor: {type: Boolean, default: false},
-  feedback_mode: {type: Boolean, default: false},
-  first_name: String,
-  force_attachments: {type: Boolean, default: false},
-  keyboard: {type: Boolean, default: false},
-  language: {type: String, default: 'russian'},
-  last_name: String,
-  pin: {type: String, select: false},
-  subscribed: {type: Boolean, default: false},
-  suggest_mode: {type: Boolean, default: false},
-  title: String,
-  user_id: Number,
-  username: String
 });
 const suggestSchema = new mongoose.Schema({
   approved: {type: Boolean, default: false},

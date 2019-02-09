@@ -2,7 +2,13 @@ import * as config from 'config';
 import * as botApi from '../botApi';
 import {UpdaterMessageActions, UpdaterMessageTypes} from "../daemons/types";
 import {StatisticsData} from "../models/statistics";
-import {AllMessageParams, CallbackQuery, Message} from "../models/telegram";
+import {
+  AllMessageParams,
+  CallbackQuery,
+  InlineQueryResultArticle,
+  Message,
+  ParseMode
+} from "../models/telegram";
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
 import debugFactory from './debug';
@@ -122,8 +128,8 @@ function generateRandomAnswer(answers: string[]) {
   return answers[random];
 }
 
-function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string[]}}>, user: IUser) {
-  return aneks.map((anek, index) => {
+function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string[]}}>, user: IUser): InlineQueryResultArticle[] {
+  return aneks.map((anek, index): InlineQueryResultArticle => {
     let highlightText = anek.text;
 
     if (anek._highlight && anek._highlight.text && anek._highlight.text.length) {
@@ -137,11 +143,9 @@ function transformAneks(aneks: Array<IAnek & {_highlight?: {text: string[]}}>, u
       id: anek.post_id.toString() + index,
       input_message_content: {
         message_text: anek.text,
-        parse_mode: 'HTML'
+        parse_mode: ParseMode.HTML
       },
-      reply_markup: {
-        inline_keyboard: buttons
-      },
+      reply_markup: botApi.bot.prepareInlineKeyboard(buttons),
       title: translate(user.language, 'anek_number', {number: anek.post_id || index}),
       type: 'article'
     };
@@ -202,7 +206,7 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
   const params: AllMessageParams = {
     _key: 'debug',
     _rule: 'common',
-    parse_mode: 'Markdown'
+    parse_mode: ParseMode.Markdown
   };
 
   if (debugTimer) {
@@ -282,13 +286,13 @@ botApi.bot.onCommand('user', async (command, message, user) => {
     if (command[2]) {
       const foundUser = await botApi.database.User.findOne({user_id: command[2]});
 
-      return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: 'Markdown'});
+      return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: ParseMode.Markdown});
     }
 
     return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_id', {user_id: message.from.id}));
   }
 
-  return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: 'Markdown'});
+  return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: ParseMode.Markdown});
 });
 
 botApi.bot.onCommand('anek', async (command, message, user) => {
@@ -546,7 +550,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
 
   return botApi.bot.sendMessage(message.chat.id, generateStatistics(startTitle, results), {
     disableButtons: true,
-    parse_mode: 'Markdown'
+    parse_mode: ParseMode.Markdown
   });
 });
 
@@ -561,7 +565,7 @@ botApi.bot.onCommand('bareyko', (command, message) => botApi.bot.sendSticker(mes
 botApi.bot.onCommand('krevet', (command, message, user) => botApi.bot.sendMessage(message.chat.id, translate(user.language, 'krevet')));
 botApi.bot.onCommand('shlyapa', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(shlyapaAnswers)));
 botApi.bot.onCommand('gumino', (command, message) => botApi.bot.sendMessage(message.chat.id, generateRandomAnswer(guminoAnswers)));
-botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: 'Markdown'}));
+botApi.bot.onCommand('detcom', (command, message) => botApi.bot.sendMessage(message.chat.id, 'ПОШЁЛ _НА ХУЙ_ *ХОХОЛ*', {parse_mode: ParseMode.Markdown}));
 botApi.bot.onCommand('forward', (command, message) => botApi.bot.forwardMessage(message.chat.id, message.message_id, message.chat.id));
 
 botApi.bot.onCommand('attach', async (command, message, user) => {
@@ -580,7 +584,7 @@ botApi.bot.onCommand('find_user', async (command, message) => {
   const foundUser = await botApi.database.User.findOne({username: command[1]});
 
   return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {
-    parse_mode: 'Markdown'
+    parse_mode: ParseMode.Markdown
   });
 });
 
@@ -781,7 +785,7 @@ botApi.bot.onCommand('birthday', (command, message) => botApi.bot.sendRequest('s
   photo: 'AgADAgADMagxGy3cYUribqypKXY_gAXZDw4ABKi3xzmLAAHaqMQjAQABAg'
 }));
 
-botApi.bot.onCommand('ban', async (command, message, user) => {
+botApi.bot.onCommand('ban', async (command, message: Message, user) => {
   if (command[1] && user.admin) {
     command.splice(0, 1);
 
@@ -827,9 +831,7 @@ botApi.bot.onCommand('find', async (command, message, user) => {
 });
 
 botApi.bot.on('suggest', async (suggest, user) => {
-  suggest.user = user;
-
-  const newSuggest = await new botApi.database.Suggest(suggest).save();
+  const newSuggest = await new botApi.database.Suggest({...suggest, user}).save();
   const buttons = [
     [
       {
@@ -850,7 +852,7 @@ botApi.bot.on('suggest', async (suggest, user) => {
   });
 });
 
-botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
+botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
   const {data = ''} = callbackQuery;
   const queryData = data.split(' ');
   const params: AllMessageParams = {
@@ -868,7 +870,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
         .slice(0, 3)
         .map((comment, index) => ({...comment, text: translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
 
-      return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: 'Markdown', disable_web_page_preview: true});
+      return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: ParseMode.Markdown, disable_web_page_preview: true});
     case 'attach':
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
 
@@ -896,6 +898,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
         const users: IUser[] = await botApi.database.User.find({subscribed: true});
 
         unapprovedAnek.approved = true;
+        unapprovedAnek.approver = user;
 
         await unapprovedAnek.save();
 
@@ -911,18 +914,18 @@ botApi.bot.on('callbackQuery', async (callbackQuery: CallbackQuery, user) => {
 
       return;
     case 'a_d':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true, spam: true});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true, spam: true, approver: user});
       await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не будет опубликован'});
 
       return;
     case 'spam':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true, approver: user});
       await botApi.bot.answerCallbackQuery(callbackQuery.id);
 
       return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как спам.');
     case 'unspam':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false, approver: user});
       await botApi.bot.answerCallbackQuery(callbackQuery.id);
 
       return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как нормальный.');

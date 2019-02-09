@@ -70,13 +70,15 @@ function updateAneksTimer() {
         debug(aneks.length + ' anek(s) found. Start broadcasting for editors');
 
         return database.User.find({$or: [{editor: true}, {admin: true}]}).exec()
-          .then((users: IUser[]) => users.map((user: IUser) => aneks.map((anek: Anek) => process.send({
-            action: UpdaterMessageActions.anek,
-            anek,
-            params: {language: user.language, admin: user.admin, editor: user.editor},
-            type: UpdaterMessageTypes.service,
-            userId: user.user_id
-          }))));
+          .then((users: IUser[]) => users
+              .map((user: IUser) => aneks
+                .map((anek: Anek) => process.send({
+                  action: UpdaterMessageActions.anek,
+                  anek,
+                  params: {language: user.language, admin: user.admin, editor: user.editor},
+                  type: UpdaterMessageTypes.service,
+                  userId: user.user_id
+                }))));
       }
     })
     .catch((err: Error) => {
