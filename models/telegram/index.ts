@@ -546,9 +546,9 @@ type InvoiceParams = {
   reply_markup?: string
 };
 
-type LabeledPrice = {
+export type LabeledPrice = {
   label: string,
-  amount: string
+  amount: number
 };
 
 export type AllMessageParams = TelegramParams & MessageParams & RequestParams & OtherParams;

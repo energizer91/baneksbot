@@ -5,7 +5,7 @@ import {StatisticsData} from "../models/statistics";
 import {
   AllMessageParams,
   CallbackQuery,
-  InlineQueryResultArticle,
+  InlineQueryResultArticle, LabeledPrice,
   Message,
   ParseMode
 } from "../models/telegram";
@@ -57,6 +57,21 @@ function generateDebug() {
     'queue length: ' + botApi.bot.queue.getTotalLength + '\n' +
     '```';
 }
+
+const getDonatePrices = (): LabeledPrice[] => ([
+  {
+    amount: 6000,
+    label: 'Основной взнос'
+  },
+  {
+    amount: 15000,
+    label: 'Чтоб покушать вкутна'
+  },
+  {
+    amount: 30000,
+    label: 'kayf хафка'
+  }
+]);
 
 async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, anonymous: boolean) {
   const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {approved: true});
@@ -404,9 +419,7 @@ botApi.bot.onCommand('start', async (command, message, user) => {
       currency: 'RUB',
       description: 'А то совсем нечего кушать',
       payload: command[1],
-      prices: JSON.stringify([
-        {label: 'Основной взнос', amount: 6000}
-      ]),
+      prices: JSON.stringify(getDonatePrices()),
       start_parameter: 'ololo',
       title: 'Донат на развитие бота'
     });
@@ -676,9 +689,7 @@ botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(mess
   currency: 'RUB',
   description: 'А то совсем нечего кушать',
   payload: 'lololo',
-  prices: JSON.stringify([
-    {label: 'Основной взнос', amount: 6000}
-  ]),
+  prices: JSON.stringify(JSON.stringify(getDonatePrices())),
   start_parameter: 'donate',
   title: 'Донат на развитие бота'
 }));
