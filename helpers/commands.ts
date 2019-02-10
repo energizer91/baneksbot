@@ -924,7 +924,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       if (anek && !anek.approved) {
         const alreadyPros = anek.pros.id(user.id);
-        const alreadyCons = anek.pros.id(user.id);
+        const alreadyCons = anek.cons.id(user.id);
 
         if (alreadyCons) {
           await alreadyCons.remove();
@@ -959,7 +959,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       if (unapprovedAnek && !unapprovedAnek.approved) {
         const alreadyPros = unapprovedAnek.pros.id(user._id);
-        const alreadyCons = unapprovedAnek.pros.id(user._id);
+        const alreadyCons = unapprovedAnek.cons.id(user._id);
 
         if (alreadyPros) {
           await alreadyPros.remove();
