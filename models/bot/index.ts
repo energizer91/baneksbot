@@ -158,8 +158,8 @@ class Bot extends Telegram {
   public createApproveButtons(postId: number, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
     return [
       this.createButton('👍 ' + pros, 'a_a ' + postId),
-      this.createButton('👎 ' + cons, 'spam ' + postId),
-      this.createButton('🚫 Спам', 'a_d ' + postId)
+      this.createButton('👎 ' + cons, 'a_d ' + postId),
+      this.createButton('🚫 Спам', 'spam ' + postId)
     ];
   }
 
