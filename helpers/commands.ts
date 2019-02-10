@@ -313,16 +313,6 @@ botApi.bot.onCommand('user', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_id', {user_id: message.from.id}));
   }
 
-  if (message.reply_to_message) {
-    const foundUser = await botApi.database.User.findOne({user_id: message.reply_to_message.forward_from.id});
-
-    if (!foundUser) {
-      return botApi.bot.sendMessage(message.chat.id, 'Пользователь не найден');
-    }
-
-    return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: ParseMode.Markdown});
-  }
-
   return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: ParseMode.Markdown});
 });
 
@@ -1103,6 +1093,10 @@ botApi.bot.on('reply', async (reply, message, user) => {
 
     if (!replyUser) {
       throw new Error('Reply user not found');
+    }
+
+    if (message.text === '/user') {
+      return botApi.bot.sendMessage(message.chat.id, generateUserInfo(replyUser), {parse_mode: ParseMode.Markdown});
     }
 
     if (!replyUser.feedback_mode) {
