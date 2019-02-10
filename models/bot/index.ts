@@ -94,7 +94,7 @@ class Bot extends Telegram {
     return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
   }
 
-  public async sendAttachment(userId: number, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
+  public async sendAttachment(userId: number | string, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
     switch (attachment.type) {
       case 'photo':
         const photo = attachment.photo.photo_2560
@@ -133,7 +133,7 @@ class Bot extends Telegram {
     }
   }
 
-  public async sendAttachments(userId: number, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
+  public async sendAttachments(userId: number | string, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
     const mediaGroup: MediaGroup = attachments
         .filter((attachment: VkAttachment) => attachment.type === 'photo')
         .map((attachment: VkAttachment): InputMediaPhoto => ({
@@ -153,6 +153,14 @@ class Bot extends Telegram {
     return this.fulfillAll(attachments
         .filter(Boolean)
         .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
+  }
+
+  public createApproveButtons(postId: number, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
+    return [
+      this.createButton('👍 ' + pros, 'a_a ' + postId),
+      this.createButton('👎 ' + cons, 'spam ' + postId),
+      this.createButton('🚫 Спам', 'a_d ' + postId)
+    ];
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams): InlineKeyboardButton[][] {
@@ -178,10 +186,7 @@ class Bot extends Telegram {
     if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
       if (!disableAttachments) {
         buttons.push([]);
-        buttons[buttons.length - 1].push({
-          callback_data: 'attach ' + anek.post_id,
-          text: translate(language, 'attachments')
-        });
+        buttons[buttons.length - 1].push(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
 
         anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
       }
@@ -191,25 +196,10 @@ class Bot extends Telegram {
       if (admin || editor) {
         buttons.push([]);
 
-        if (!anek.approved) {
-          buttons[buttons.length - 1].push({
-            callback_data: 'a_a ' + anek.post_id,
-            text: '👍'
-          });
-          buttons[buttons.length - 1].push({
-            callback_data: 'a_d ' + anek.post_id,
-            text: '👎'
-          });
-        } else if (anek.spam) {
-          buttons[buttons.length - 1].push({
-            callback_data: 'unspam ' + anek.post_id,
-            text: '✅'
-          });
+        if (anek.spam) {
+          buttons[buttons.length - 1].push(this.createButton('✅', 'unspam ' + anek.post_id));
         } else {
-          buttons[buttons.length - 1].push({
-            callback_data: 'spam ' + anek.post_id,
-            text: '🚫'
-          });
+          buttons[buttons.length - 1].push(this.createButton('🚫', 'spam ' + anek.post_id));
         }
       }
     }
@@ -217,7 +207,7 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  public async sendAnek(userId: number, anek: IAnek | Anek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
+  public async sendAnek(userId: number | string, anek: IAnek | Anek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
     if (!anek) {
       return;
     }

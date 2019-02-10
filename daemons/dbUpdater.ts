@@ -8,7 +8,7 @@ import {IAnek, IUser} from "../helpers/mongo";
 import {Anek} from "../models/vk";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
-import {database, statistics} from '../botApi';
+import {bot, database, statistics} from '../botApi';
 import common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
@@ -35,15 +35,20 @@ function approveAneksTimer() {
   }).exec()
     .then((aneks) => {
       if (aneks.length) {
-        debug(aneks.length + ' anek(s) approve time expired. Start broadcasting');
+        const readyAneks = aneks.filter((anek) => anek.pros.length >= anek.cons.length);
+
+        if (readyAneks.length) {
+          debug(aneks.length + ' anek(s) approve time expired. ' + readyAneks.length + ' of them approved. Start broadcasting');
+        }
 
         return database.Anek.update({
           approveTimeout: {$lte: new Date()},
           approved: false,
           spam: false
         }, {$set: {approved: true}}, {multi: true})
+          .exec()
           .then(() => database.User.find({subscribed: true}).exec())
-          .then((users: IUser[]) => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
+          .then((users: IUser[]) => common.broadcastAneks(users, readyAneks, {_rule: 'individual'}));
       }
     })
     .catch((err: Error) => {
@@ -69,16 +74,18 @@ function updateAneksTimer() {
       if (aneks.length) {
         debug(aneks.length + ' anek(s) found. Start broadcasting for editors');
 
-        return database.User.find({$or: [{editor: true}, {admin: true}]}).exec()
-          .then((users: IUser[]) => users
-              .map((user: IUser) => aneks
-                .map((anek: Anek) => process.send({
-                  action: UpdaterMessageActions.anek,
-                  anek,
-                  params: {language: user.language, admin: user.admin, editor: user.editor},
-                  type: UpdaterMessageTypes.service,
-                  userId: user.user_id
-                }))));
+        return aneks
+          .map((anek: Anek) => process.send({
+            action: UpdaterMessageActions.anek,
+            anek,
+            params: {
+              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard([
+                bot.createApproveButtons(anek.post_id, 0, 0)
+              ]))
+            },
+            type: UpdaterMessageTypes.service,
+            userId: config.get('telegram.editorialChannel')
+          }));
       }
     })
     .catch((err: Error) => {
@@ -145,7 +152,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-const approveAneksCron = new CronJob('25 */1 * * * *', approveAneksTimer, null, true);
+const approveAneksCron = new CronJob('25 * * * * *', approveAneksTimer, null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
 process.on('message', (m: UpdaterMessages) => {

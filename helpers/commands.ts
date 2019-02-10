@@ -1,7 +1,5 @@
 import axios from 'axios';
 import * as config from 'config';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as botApi from '../botApi';
 import {UpdaterMessageActions, UpdaterMessageTypes} from "../daemons/types";
 import {StatisticsData} from "../models/statistics";
@@ -531,8 +529,11 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
 
   await anek.save();
 
-  return botApi.database.User.find({$or: [{editor: true}, {admin: true}]})
-    .then((users: IUser[]) => users.map((editor: IUser) => botApi.bot.sendAnek(editor.user_id, anek, {admin: editor.admin, editor: editor.editor})));
+  return botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([
+      botApi.bot.createApproveButtons(anek.post_id, 0, 0)
+    ]))
+  });
 });
 
 botApi.bot.onCommand('stat', async (command, message, user) => {
@@ -890,7 +891,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       const commentsResponse = await botApi.vk.getAllComments(Number(queryData[1]));
       const comments = commentsResponse
-        .reduce((acc: Comment[], anek: MultipleResponse<Comment>) => acc.concat(anek.items), [])
+        .reduce((acc: Comment[], comment: MultipleResponse<Comment>) => acc.concat(comment.items), [])
         .sort((a: Comment, b: Comment) => b.likes.count - a.likes.count)
         .slice(0, 3)
         .map((comment, index) => ({...comment, text: translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
@@ -915,41 +916,89 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       return botApi.bot.sendAttachments(callbackQuery.message.chat.id, post.attachments, params);
     case 'a_a':
+      if (!user.admin && !user.editor) {
+        return;
+      }
+
+      const anek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+
+      if (anek && !anek.approved) {
+        const alreadyPros = anek.pros.id(user.id);
+        const alreadyCons = anek.pros.id(user.id);
+
+        if (alreadyCons) {
+          await alreadyCons.remove();
+
+          anek.pros.push(user);
+        } else if (alreadyPros) {
+          await alreadyPros.remove();
+        } else {
+          anek.pros.push(user);
+        }
+
+        await anek.save();
+
+        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
+
+        await botApi.bot.editMessageReplyMarkup(
+          callbackQuery.message.chat.id,
+          callbackQuery.message.message_id,
+          botApi.bot.prepareInlineKeyboard([
+            botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
+          ])
+        );
+      }
+
+      return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
+    case 'a_d':
+      if (!user.admin && !user.editor) {
+        return;
+      }
+
       const unapprovedAnek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
 
       if (unapprovedAnek && !unapprovedAnek.approved) {
-        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Публикация сообщения...'});
+        const alreadyPros = unapprovedAnek.pros.id(user._id);
+        const alreadyCons = unapprovedAnek.pros.id(user._id);
 
-        const users: IUser[] = await botApi.database.User.find({subscribed: true});
+        if (alreadyPros) {
+          await alreadyPros.remove();
 
-        unapprovedAnek.approved = true;
-        unapprovedAnek.approver = user;
+          unapprovedAnek.cons.push(user);
+        } else if (alreadyCons) {
+          await alreadyCons.remove();
+        } else {
+          unapprovedAnek.cons.push(user);
+        }
 
         await unapprovedAnek.save();
 
-        await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
+        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
 
-        return common.broadcastAneks(users, [unapprovedAnek], {_rule: 'individual'})
-          .catch((err: Error) => {
-            debugError('Update aneks error', err);
-          });
+        await botApi.bot.editMessageReplyMarkup(
+          callbackQuery.message.chat.id,
+          callbackQuery.message.message_id,
+          botApi.bot.prepareInlineKeyboard([
+            botApi.bot.createApproveButtons(unapprovedAnek.post_id, unapprovedAnek.pros.length, unapprovedAnek.cons.length)
+          ])
+        );
       }
 
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
-
-      return;
-    case 'a_d':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {approved: true, spam: true, approver: user});
-      await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не будет опубликован'});
-
-      return;
+      return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
     case 'spam':
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true, approver: user});
-      await botApi.bot.answerCallbackQuery(callbackQuery.id);
+      if (!user.admin && !user.editor) {
+        return;
+      }
 
-      return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как спам.');
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true, approver: user});
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
+
+      return botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
     case 'unspam':
+      if (!user.admin && !user.editor) {
+        return;
+      }
+
       await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false, approver: user});
       await botApi.bot.answerCallbackQuery(callbackQuery.id);
 

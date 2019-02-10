@@ -89,6 +89,8 @@ export interface IAnek extends mongoose.Document {
   approved: boolean;
   approveTimeout: Date;
   approver: IUser;
+  pros: mongoose.Types.DocumentArray<IUser>;
+  cons: mongoose.Types.DocumentArray<IUser>;
 }
 
 export interface ISuggest extends mongoose.Document {
@@ -217,6 +219,7 @@ const anekSchema = new mongoose.Schema({
   approved: {type: Boolean, default: true},
   approver: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
   attachments: Array,
+  cons: [userSchema],
   copy_history: Array,
   date: Number,
   from_id: Number,
@@ -225,6 +228,7 @@ const anekSchema = new mongoose.Schema({
   owner_id: Number,
   post_id: Number,
   post_type: String,
+  pros: [userSchema],
   reposts: Number,
   signer_id: Number,
   spam: {type: Boolean, default: false},
