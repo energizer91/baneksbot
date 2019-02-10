@@ -565,6 +565,17 @@ export enum ChatAction {
   uploadDocument = 'upload_document'
 }
 
+export type AdminRights = {
+  can_change_info?: boolean,
+  can_post_messages?: boolean,
+  can_edit_messages?: boolean,
+  can_delete_messages?: boolean,
+  can_invite_users?: boolean,
+  can_restrict_members?: boolean,
+  can_pin_messages?: boolean,
+  can_promote_members?: boolean
+};
+
 class Telegram extends NetworkModel {
   public endpoint: string = `${config.get('telegram.url')}${config.get('telegram.token')}`;
   public individualRule: string = config.get('telegram.rules.individualMessage');
@@ -696,7 +707,7 @@ class Telegram extends NetworkModel {
         });
   }
 
-  public deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+  public deleteMessage(chatId: number | string, messageId: number): Promise<boolean> {
     if (!chatId) {
       throw new Error('Chat id is not specified');
     }
@@ -759,6 +770,15 @@ class Telegram extends NetworkModel {
       error_message: error,
       ok,
       pre_checkout_query_id: preCheckoutQueryId
+    });
+  }
+
+  public promoteChatMember(chatId: number | string, userId: number, rights: AdminRights, params?: AllMessageParams) {
+    return this.sendRequest('promoteChatMember', {
+      chat_id: chatId,
+      user_id: userId,
+      ...rights,
+      ...params
     });
   }
 

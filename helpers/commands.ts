@@ -6,7 +6,8 @@ import {StatisticsData} from "../models/statistics";
 import {
   AllMessageParams,
   CallbackQuery,
-  InlineQueryResultArticle, LabeledPrice,
+  InlineQueryResultArticle,
+  LabeledPrice,
   Message,
   ParseMode
 } from "../models/telegram";
@@ -294,11 +295,15 @@ botApi.bot.onCommand('user', async (command, message, user) => {
     const count = await botApi.database.User.count(null);
 
     return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_count', {count}));
-  } else if (command[1] === 'subscribed') {
+  }
+
+  if (command[1] === 'subscribed') {
     const count = await botApi.database.User.find({subscribed: true}).count();
 
     return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_subscribed_user_count', {count}));
-  } else if (command[1] === 'id') {
+  }
+
+  if (command[1] === 'id') {
     if (command[2]) {
       const foundUser = await botApi.database.User.findOne({user_id: command[2]});
 
@@ -306,6 +311,16 @@ botApi.bot.onCommand('user', async (command, message, user) => {
     }
 
     return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'current_user_id', {user_id: message.from.id}));
+  }
+
+  if (message.reply_to_message) {
+    const foundUser = await botApi.database.User.findOne({user_id: message.reply_to_message.forward_from.id});
+
+    if (!foundUser) {
+      return botApi.bot.sendMessage(message.chat.id, 'Пользователь не найден');
+    }
+
+    return botApi.bot.sendMessage(message.chat.id, generateUserInfo(foundUser), {parse_mode: ParseMode.Markdown});
   }
 
   return botApi.bot.sendMessage(message.chat.id, generateUserInfo(user), {parse_mode: ParseMode.Markdown});
@@ -746,7 +761,9 @@ botApi.bot.onCommand('feedback', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме обратной связи.');
   }
 
-  await botApi.user.updateWith(user, {feedback_mode: true});
+  user.feedback_mode = true;
+
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи включен. Вы можете писать сюда' +
     ' любой текст (кроме команд) и он будет автоматически переведен в команду поддержки. Для остановки' +
@@ -765,7 +782,9 @@ botApi.bot.onCommand('unfeedback', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи и так отключен.');
   }
 
-  await botApi.user.updateWith(user, {feedback_mode: false});
+  user.feedback_mode = false;
+
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи отключен.');
 });
@@ -779,21 +798,49 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Введите id пользователя.');
   }
 
+  if (message.from.username === config.get('telegram.editorialChannel')) {
+    const newAdmin = await botApi.database.User.findOne({user_id: command[1]}).exec();
+
+    if (!newAdmin) {
+      throw new Error('User not found');
+    }
+
+    const newStatus = !newAdmin.editor;
+
+    newAdmin.editor = newStatus;
+
+    await newAdmin.save();
+
+    await botApi.bot.promoteChatMember(config.get('telegram.editorialChannel'), newAdmin.user_id, {
+      can_delete_messages: newStatus,
+      can_edit_messages: newStatus,
+      can_invite_users: newStatus,
+      can_pin_messages: newStatus,
+      can_post_messages: newStatus
+    });
+
+    await botApi.bot.deleteMessage(config.get('telegram.editorialChannel'), message.message_id);
+
+    if (!newStatus) {
+      return botApi.bot.sendMessage(message.from.id, `Привилегии пользователя ${botApi.bot.getUserInfo(newAdmin)} отозваны.`);
+    }
+
+    return botApi.bot.sendMessage(message.from.id, `Привилегии пользователю ${botApi.bot.getUserInfo(newAdmin)} присвоены.`);
+  }
+
   const privileges: {admin?: boolean, editor?: boolean} = {};
 
-  if (command[2]) {
-    switch (command[2]) {
-      case 'admin':
-        privileges.admin = true;
-        break;
-      case 'editor':
-        privileges.editor = true;
-        break;
-      default:
-        privileges.admin = false;
-        privileges.editor = false;
-        break;
-    }
+  switch (command[2]) {
+    case 'admin':
+      privileges.admin = true;
+      break;
+    case 'editor':
+      privileges.editor = true;
+      break;
+    default:
+      privileges.admin = false;
+      privileges.editor = false;
+      break;
   }
 
   await botApi.database.User.findOneAndUpdate({user_id: Number(command[1])}, privileges);
