@@ -938,8 +938,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
         await anek.save();
 
-        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
-
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
@@ -947,6 +945,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
             botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
           ])
         );
+
+        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
       }
 
       return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
@@ -973,8 +973,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
         await unapprovedAnek.save();
 
-        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
-
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
@@ -982,6 +980,8 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
             botApi.bot.createApproveButtons(unapprovedAnek.post_id, unapprovedAnek.pros.length, unapprovedAnek.cons.length)
           ])
         );
+
+        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
       }
 
       return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
