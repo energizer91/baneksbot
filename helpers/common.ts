@@ -82,30 +82,28 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
     vkAneks.items.splice(0, 1);
   }
 
+  // if there is no more new aneks
   if (!vkAneks.items.length) {
+    // if recursion results are not empty
     if (aneks.length) {
-      return AnekModel.insertMany(aneks)
-        .then(() => {
-          return aneks;
-        });
-    }
-
-    return aneks;
-  }
-
-  for (const vkAnek of vkAneks.items) {
-    if (vkAnek.date > lastDBAnekDate) {
-      // @ts-ignore
-      aneks.unshift(processAnek(vkAnek, !this.filterAnek(vkAnek)));
-    } else {
-      if (aneks.length) {
-        return AnekModel.insertMany(aneks).then(() => aneks.filter(this.filterAnek));
-      }
-
+      // insert recursion result and return them
       return aneks;
     }
   }
 
+  // we have new aneks in response
+  for (const vkAnek of vkAneks.items) {
+    // check that we have newer than we have in db
+    if (vkAnek.date > lastDBAnekDate) {
+      // if we have, add it to bulk
+      aneks.unshift(vkAnek);
+    } else {
+      // we found one which is older than db anek. so start adding it to db
+      return aneks;
+    }
+  }
+
+  // return recursion if all aneks in response are new
   return getAneksUpdate(skip + limit, limit, aneks);
 }
 
@@ -178,7 +176,7 @@ export function updateAneks() {
     });
 }
 
-export function filterAnek(anek: Anek): boolean {
+export function filterAnek(anek: Anek | IAnek): boolean {
   const donate = (anek.text || '').indexOf('#донат') >= 0;
   const ads = anek.marked_as_ads;
 
@@ -228,6 +226,7 @@ export default {
   getAneksUpdate,
   getLastAneks,
   performSearch,
+  processAnek,
   redefineDatabase,
   searchAneks,
   searchAneksElastic,

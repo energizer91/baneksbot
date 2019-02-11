@@ -174,7 +174,6 @@ class Vk extends NetworkModel {
     const requestParams = Object.assign({
       _getBackoff: () => 300,
       _rule: 'vk',
-      _skipQueue: true,
       access_token: config.get('vk.access_token'),
       v: config.get('vk.api_version')
     }, params);
@@ -192,7 +191,7 @@ class Vk extends NetworkModel {
   public getPostById(postId: number): Promise<Anek | void> {
     debug('Making VK request wall.getById', postId);
 
-    return this.executeCommand<Anek[]>('wall.getById', {
+    return this.executeCommand('wall.getById', {
       _key: String(this.groupId),
       posts: this.groupId + '_' + postId
     })
@@ -238,7 +237,7 @@ class Vk extends NetworkModel {
 
     debug('Making VK request wall.getComments', postId, offset, count);
 
-    return this.executeCommand<MultipleResponse<Comment>>('wall.getComments', {
+    return this.executeCommand('wall.getComments', {
       _key: String(this.groupId),
       count,
       need_likes: 1,

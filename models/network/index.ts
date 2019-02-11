@@ -80,21 +80,19 @@ class NetworkModel extends EventEmitter {
       return [];
     }
 
-    return requests.reduce((p, request: Promise<T | void>) => {
-      return p
-        .then((result: T | void) => {
-          if (result) {
-            results.push(result);
-          }
+    return requests.reduce((acc, request: Promise<T | void>) => acc
+      .then((result: T | void) => {
+        if (result) {
+          results.push(result);
+        }
 
-          return request;
-        })
-        .catch((error: Error) => {
-          debugError('single fulfillment error', error);
+        return request;
+      })
+      .catch((error: Error) => {
+        debugError('single fulfillment error', error);
 
-          return {};
-        });
-    }, Promise.resolve())
+        return {};
+      }), Promise.resolve())
       .then((lastResponse: T | void) => {
         if (lastResponse) {
           results.push(lastResponse);

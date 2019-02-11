@@ -78,6 +78,7 @@
     "group_id": 0,
     "api_version": "5.60",
     "access_token": "",
+    "needApprove": true,
     "approveTimeout": 300
   }
 }

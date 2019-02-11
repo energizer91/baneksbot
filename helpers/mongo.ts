@@ -82,6 +82,7 @@ export interface IAnek extends mongoose.Document {
   signer_id: number;
   is_pinned: boolean;
   likes: number;
+  marked_as_ads: boolean,
   post_type: string;
   reposts: number;
   spam: boolean;
@@ -225,6 +226,7 @@ const anekSchema = new mongoose.Schema({
   from_id: Number,
   is_pinned: Boolean,
   likes: Number,
+  marked_as_ads: Boolean,
   owner_id: Number,
   post_id: Number,
   post_type: String,

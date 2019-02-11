@@ -343,6 +343,16 @@ class Bot extends Telegram {
     return this.fulfillAll(suggests.map((suggest: ISuggest) => this.sendSuggest(userId, suggest, params)));
   }
 
+  public async sendMediaGroup(userId: number | string, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
+    if (params.forcePlaceholder) {
+      await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
+    }
+
+    this.sendChatAction(userId, ChatAction.uploadPhoto);
+
+    return super.sendMediaGroup(userId, mediaGroup, params);
+  }
+
   public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {
     if (!config.get('telegram.baneksChannel')) {
       return;

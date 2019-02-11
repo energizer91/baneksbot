@@ -803,12 +803,6 @@ class Telegram extends NetworkModel {
   }
 
   public async sendMediaGroup(userId: number | string, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
-    if (params.forcePlaceholder) {
-      await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
-    }
-
-    this.sendChatAction(userId, ChatAction.uploadPhoto);
-
     debug('Sending media group', userId, mediaGroup, params);
 
     return this.sendRequest('sendMediaGroup', {

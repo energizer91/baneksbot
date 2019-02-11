@@ -13,7 +13,7 @@ class User {
     }
 
     return UserModel.findOneAndUpdate(
-      // @ts-ignoressd
+      // @ts-ignore
       {user_id: user.user_id || user.id},
       params || user,
       {new: true, upsert: true, setDefaultsOnInsert: true}

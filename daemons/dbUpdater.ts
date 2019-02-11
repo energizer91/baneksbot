@@ -5,7 +5,6 @@ import * as config from 'config';
 import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
 import {IAnek, IUser} from "../helpers/mongo";
-import {Anek} from "../models/vk";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
 import {bot, database, statistics} from '../botApi';
@@ -69,24 +68,38 @@ function updateAneksTimer() {
   updateInProcess = true;
   currentUpdate = 'update aneks';
 
-  return common.getAneksUpdate()
-    .then((aneks: Anek[]) => {
-      if (aneks.length) {
-        debug(aneks.length + ' anek(s) found. Start broadcasting for editors');
+  const needApprove: boolean = config.get('vk.needApprove');
 
-        return aneks
-          .map((anek: Anek) => process.send({
+  return common.getAneksUpdate()
+    .then((aneks) => aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek))))
+    .then((aneks) => database.Anek.insertMany(aneks))
+    .then((aneks) => aneks.filter((anek) => common.filterAnek(anek)))
+    .then((aneks: IAnek[]) => {
+      if (!aneks.length) {
+        return;
+      }
+
+      if (needApprove) {
+        aneks
+          .map((anek: IAnek) => process.send({
             action: UpdaterMessageActions.anek,
             anek,
             params: {
               reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard([
-                bot.createApproveButtons(anek.post_id, 0, 0)
+                bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
               ]))
             },
             type: UpdaterMessageTypes.service,
             userId: config.get('telegram.editorialChannel')
           }));
+
+        return;
       }
+
+      debug(aneks.length + ' anek(s) found. Start broadcasting.');
+
+      return database.User.find({subscribed: true}).exec()
+        .then((users: IUser[]) => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
     })
     .catch((err: Error) => {
       error('Update aneks error', err);
