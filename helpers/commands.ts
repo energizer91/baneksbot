@@ -435,7 +435,7 @@ botApi.bot.onCommand('start', async (command, message, user) => {
     user.language = command[1];
   }
 
-  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, user);
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, translate(user.language, 'start'));
 });
@@ -447,7 +447,9 @@ botApi.bot.onCommand('help', async (command, message, user) => {
 botApi.bot.onCommand('force_attachments', async (command, message, user) => {
   const forceAttachments = !user.force_attachments;
 
-  await botApi.database.User.findOneAndUpdate({user_id: message.from.id}, {force_attachments: forceAttachments});
+  user.force_attachments = forceAttachments;
+
+  await user.save();
 
   return botApi.bot.sendMessage(message.chat.id, 'Автовложения ' + (forceAttachments ? 'включены' : 'отключены' + '.'));
 });
@@ -627,7 +629,7 @@ botApi.bot.onCommand('chat', (command, message) => {
 
 botApi.bot.onCommand('suggest', performSuggest);
 botApi.bot.onCommand('comment', performSuggest);
-botApi.bot.onCommand('comment_list', (command, message, user) => performSuggest(['/command', 'list'], message, user));
+botApi.bot.onCommand('comment_list', (command, message, user) => performSuggest(['/comment', 'list'], message, user));
 
 botApi.bot.onCommand('top_day', async (command, message, user) => {
   const count = Math.max(Math.min(Number(command[1]) || 1, 20), 1);
