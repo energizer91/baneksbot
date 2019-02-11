@@ -291,24 +291,13 @@ class Bot extends Telegram {
 
       if (params.editor) {
         if (suggest.public) {
-          buttons[buttons.length - 1].push({
-            callback_data: 's_a ' + suggest._id,
-            text: '+'
-          });
+          buttons[buttons.length - 1].push(this.createButton('+', 's_a ' + suggest._id));
         }
-        buttons[buttons.length - 1].push({
-          callback_data: 's_aa ' + suggest._id,
-          text: 'Анон'
-        });
-        buttons[buttons.length - 1].push({
-          callback_data: 's_d ' + suggest._id,
-          text: '-'
-        });
+
+        buttons[buttons.length - 1].push(this.createButton('Анон', 's_aa ' + suggest._id));
+        buttons[buttons.length - 1].push(this.createButton('-', 's_d ' + suggest._id));
       } else {
-        buttons[buttons.length - 1].push({
-          callback_data: 's_d ' + suggest._id,
-          text: 'Удалить'
-        });
+        buttons[buttons.length - 1].push(this.createButton('Удалить', 's_d ' + suggest._id));
       }
     }
 
