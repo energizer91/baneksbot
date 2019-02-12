@@ -49,33 +49,96 @@ type Params = {
   } & Rule,
   overall: Rule,
   backOffTime: number,
-  backOffTimeout: number,
   ignoreOverallOverheat: boolean
 };
 
 type QueueMap = Map<string, QueueItem>;
 
+// tslint:disable object-literal-sort-keys
+const defaultParams: Params = {
+  default: {
+    rule: 'common',
+    key: 'common',
+    rate: 30,
+    limit: 1,
+    priority: 3
+  },
+  rules: {
+    common: {
+      rate: 30,
+      limit: 1,
+      priority: 3
+    }
+  },
+  overall: {
+    rate: 30,
+    limit: 1,
+    priority: 1
+  },
+  backOffTime: 300,
+  ignoreOverallOverheat: true
+};
+// tslint:enable object-literal-sort-keys
+
 class Queue {
-  public params: Params | null = null;
+  public params: Params;
   public queue: QueueMap = new Map();
   public overheat = 0;
   public pending = false;
   public heatPart = 0;
 
-  constructor() {
-    this.params = Object.assign(config.get('queue') as Params);
+  constructor(params?: Params) {
+    this.params = Object.assign(defaultParams, config.get('queue') as Params, params);
 
     this.heatPart = this.params.overall.limit * 1000 / this.params.overall.rate;
   }
 
-  public createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: string): QueueItem {
-    debug('Creating queue', queueName, rule);
+  public add(request: QueueRequest, callback: Callback, key: string = this.params.default.key, rule: string = this.params.default.rule): void {
+    const queue = this.createQueue(key, request, callback, rule);
+
+    debug('Adding request to the queue', queue.id);
+
+    if (!this.pending) {
+      this.execute(queue);
+    }
+  }
+
+  public request(fn: QueueRequest, key = 'common', rule = 'common'): Promise<any> {
+    debug('Adding queue request', key, rule);
+
+    return new Promise((resolve, reject) => {
+      this.add(fn, (error, data) => {
+        if (error) {
+          debugError('Request resolving error', key, rule, error);
+
+          return reject(error);
+        }
+
+        debug('Resolving queue request', key, rule);
+
+        return resolve(data);
+      }, key, rule);
+    });
+  }
+
+  public get isOverheated(): boolean {
+    return this.overheat > 0;
+  }
+
+  public get totalLength(): number {
+    return Object.values(this.queue).reduce((acc: number, queue: QueueItem) => acc + queue.data.length, 0);
+  }
+
+  private createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: string): QueueItem {
+    const id = uuid();
+
+    debug('Creating queue', id, queueName, rule);
 
     if (!this.queue.has(queueName)) {
       this.queue.set(queueName, {
         cooldown: 0,
         data: [],
-        id: uuid(),
+        id,
         key: queueName,
         rule: this.getRule(rule),
         ruleName: rule
@@ -84,14 +147,14 @@ class Queue {
 
     this.queue.get(queueName).data.push({
       callback,
-      id: uuid(),
+      id,
       request
     });
 
     return this.queue.get(queueName);
   }
 
-  public getRule(name: string, params = {}): Rule {
+  private getRule(name: string, params = {}): Rule {
     if (this.params.rules[name]) {
       return this.params.rules[name];
     }
@@ -105,8 +168,8 @@ class Queue {
     return this.params.rules[name];
   }
 
-  public addBackoff(item: ShiftItemStructure, delay: number): void {
-    debug('Adding backoff', item, delay);
+  private addBackoff(item: ShiftItemStructure, delay: number): void {
+    debug('Adding backoff', item.queue.id, delay);
 
     this.delay(delay * 1000)
       .then(() => {
@@ -114,18 +177,10 @@ class Queue {
       });
   }
 
-  public add(request: QueueRequest, callback: Callback, key: string = this.params.default.key, rule: string = this.params.default.rule): void {
-    debug('Adding request to the queue', key, rule);
-
-    const queue = this.createQueue(key, request, callback, rule);
-
-    if (!this.pending) {
-      this.execute(queue);
+  private execute(queue?: QueueItem): void {
+    if (queue) {
+      debug('Executing queue', queue.id);
     }
-  }
-
-  public execute(queue?: QueueItem): void {
-    debug('Executing queue', queue);
 
     this.pending = true;
 
@@ -144,18 +199,20 @@ class Queue {
 
         this.heat();
 
-        debug('Executing queue item', nextItem);
+        debug('Executing queue item', nextItem.item.id);
 
-        return nextItem.item.request(backoffFn)
+        nextItem.item.request(backoffFn)
           .then((data) => {
             if (backoffState) {
               this.addBackoff(nextItem, backoffTimer);
-            } else {
-              if (data) {
-                debug('Queue item executed successfully', nextItem);
 
-                nextItem.item.callback(null, data);
-              }
+              return;
+            }
+
+            if (data) {
+              debug('Queue item executed successfully', nextItem.item.id);
+
+              nextItem.item.callback(null, data);
             }
           })
           .catch((error) => {
@@ -167,7 +224,7 @@ class Queue {
       });
   }
 
-  public shift(queue: QueueItem): Promise<ShiftItemStructure | void> {
+  private shift(queue?: QueueItem): Promise<ShiftItemStructure | void> {
     return this.findMostImportant(queue)
       .then((currentQueue?: QueueItem) => {
         if (!currentQueue || !currentQueue.data.length) {
@@ -183,27 +240,25 @@ class Queue {
       });
   }
 
-  public heat(): void {
+  private heat(): void {
     if (this.params.ignoreOverallOverheat) {
       return;
     }
 
     this.overheat += this.heatPart;
 
-    debug('Heating queue', this.overheat);
+    debug('Heating overall queue', this.overheat);
 
     setTimeout(() => {
       this.overheat = Math.max(this.overheat - this.heatPart, 0);
 
-      debug('Cooling down heat', this.overheat);
+      debug('Cooling down overall heat', this.overheat);
     }, this.heatPart);
   }
 
-  public async findMostImportant(bestQueue?: QueueItem): Promise<QueueItem | void> {
-    debug('Finding most important queue');
-
+  private async findMostImportant(bestQueue?: QueueItem): Promise<QueueItem | void> {
     if (bestQueue) {
-      debug('Providing best queue', bestQueue.rule, bestQueue.key);
+      debug('Providing best queue', bestQueue.id);
 
       return bestQueue;
     }
@@ -237,7 +292,7 @@ class Queue {
         .then(() => this.findMostImportant());
     }
 
-    if (!selectedQueue && this.getTotalLength === 0) {
+    if (!selectedQueue && this.totalLength === 0) {
       debug('No queues available. Stopping queue');
 
       this.pending = false;
@@ -245,23 +300,23 @@ class Queue {
       return;
     }
 
-    debug('Finding best queue', selectedQueue);
+    debug('Finding best queue', selectedQueue && selectedQueue.id);
 
     return selectedQueue;
   }
 
-  public setCooldown(queue: QueueItem): void {
+  private setCooldown(queue: QueueItem): void {
     const ruleData = this.params.rules[queue.ruleName];
     const cooldown = ruleData.limit * 1000 / ruleData.rate;
 
     queue.cooldown = cooldown;
 
-    debug('Setting cooldown', ruleData, cooldown);
+    debug('Setting cooldown', queue.id, cooldown);
 
     setTimeout(() => {
       queue.cooldown = Math.max(queue.cooldown - cooldown, 0);
 
-      debug('Removing cooldown', ruleData, cooldown);
+      debug('Removing cooldown', queue.id, cooldown);
 
       if (!queue.data.length) {
         this.remove(queue.key);
@@ -269,42 +324,18 @@ class Queue {
     }, cooldown);
   }
 
-  public delay(time = 0): Promise<void> {
+  private delay(time = 0): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, time));
   }
 
-  public isCool(queue: QueueItem): boolean {
+  private isCool(queue: QueueItem): boolean {
     const cooldown = queue.rule.limit * 1000 / queue.rule.rate;
 
     return queue.cooldown < cooldown;
   }
 
-  public remove(key: string) {
+  private remove(key: string) {
     this.queue.delete(key);
-  }
-
-  public request<T>(fn: QueueRequest, key = 'common', rule = 'common'): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.add(fn, (error, data) => {
-        if (error) {
-          debugError('Queue fulfilling error', error);
-
-          return reject(error);
-        }
-
-        debug('Resolving queue request', key, rule);
-
-        return resolve(data);
-      }, key, rule);
-    });
-  }
-
-  get isOverheated(): boolean {
-    return this.overheat > 0;
-  }
-
-  get getTotalLength(): number {
-    return Object.values(this.queue).reduce((acc: number, queue: QueueItem) => acc + queue.data.length, 0);
   }
 }
 
