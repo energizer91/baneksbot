@@ -40,11 +40,7 @@ function approveAneksTimer() {
           debug(aneks.length + ' anek(s) approve time expired. ' + readyAneks.length + ' of them approved. Start broadcasting');
         }
 
-        return database.Anek.update({
-          approveTimeout: {$lte: new Date()},
-          approved: false,
-          spam: false
-        }, {$set: {approved: true}}, {multi: true})
+        return database.Anek.updateMany(aneks, {$set: {approved: true}})
           .exec()
           .then(() => database.User.find({subscribed: true}).exec())
           .then((users: IUser[]) => common.broadcastAneks(users, readyAneks, {_rule: 'individual'}));
@@ -81,6 +77,7 @@ function updateAneksTimer() {
 
       if (needApprove) {
         aneks
+          // .map((anek: IAnek) => common.sendAnekForApproval(anek))
           .map((anek: IAnek) => process.send({
             action: UpdaterMessageActions.anek,
             anek,

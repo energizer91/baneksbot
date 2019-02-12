@@ -5,7 +5,7 @@
 import * as config from 'config';
 import {Types} from 'mongoose';
 import * as botApi from '../botApi';
-import {AllMessageParams, TelegramError} from '../models/telegram';
+import {AllMessageParams, Message, TelegramError} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
 import {Anek as AnekModel, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
@@ -107,6 +107,29 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
   return getAneksUpdate(skip + limit, limit, aneks);
 }
 
+// EXPERIMENTAL: Use timers instead cron for approving and broadcasting aneks
+// POTENTIAL ISSUE: instead dbUpdater queue application queue will be used. Potential message sending delays
+// Need to be tested before going to production
+export async function sendAnekForApproval(anek: IAnek): Promise<void> {
+  botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([
+      botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
+    ]))
+  })
+    .then((message: Message) => setTimeout(async () => {
+      await botApi.bot.deleteMessage(message.chat.id, message.message_id);
+      const anekResults = await botApi.database.Anek.findOne(anek);
+
+      if (anekResults.pros.length < anekResults.cons.length) {
+        return;
+      }
+
+      const subscribed = await botApi.database.User.find({subscribed: true}).exec();
+
+      return broadcastAneks(subscribed, [anekResults], {_rule: 'individual'});
+    }, config.get('vk.approveTimeout')));
+}
+
 export function getLastAneks(count: number) {
   return botApi.vk.getPosts(0, count)
     .then((response) => {
@@ -164,11 +187,13 @@ export function updateAneks() {
 
       responses.forEach((response) => {
         response.items.forEach((anek) => {
-          bulk.find({post_id: anek.post_id}).update({$set: {
-            comments: anek.comments,
-            likes: anek.likes.count,
-            reposts: anek.reposts.count
-          }});
+          bulk.find({post_id: anek.post_id}).update({
+            $set: {
+              comments: anek.comments,
+              likes: anek.likes.count,
+              reposts: anek.reposts.count
+            }
+          });
         });
       });
 
@@ -184,20 +209,23 @@ export function filterAnek(anek: Anek | IAnek): boolean {
 }
 
 export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: AllMessageParams): Promise<void> {
-  const errorMessages: {[key: string]: boolean} = {};
+  const errorMessages: Set<number> = new Set();
 
   if (!users.length || !aneks.length) {
     return;
   }
 
   Promise.all(aneks
-    .map((anek) => botApi.bot.fulfillAll(users.map((user) => botApi.bot.sendAnek(user.user_id, anek, {...params, forceAttachments: user.force_attachments})
+    .map((anek) => botApi.bot.fulfillAll(users.map((user) => botApi.bot.sendAnek(user.user_id, anek, {
+      ...params,
+      forceAttachments: user.force_attachments
+    })
       .catch((error: TelegramError) => {
         if ((!error.ok && (error.error_code === 403)) || (
           error.description === 'Bad Request: chat not found' ||
           error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
           error.description === 'Bad Request: chat_id is empty')) {
-          errorMessages[user.user_id] = true;
+          errorMessages.add(Number(user.user_id));
 
           return {};
         }
@@ -205,7 +233,7 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: Al
         return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
       })))))
     .then(() => {
-      const usersArray = Object.keys(errorMessages).map(Number);
+      const usersArray: number[] = Array.from(errorMessages);
 
       if (usersArray.length) {
         const text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
@@ -230,5 +258,6 @@ export default {
   redefineDatabase,
   searchAneks,
   searchAneksElastic,
+  sendAnekForApproval,
   updateAneks
 };
