@@ -56,7 +56,7 @@ function generateStatistics(interval: string, stats: StatisticsData) {
 function generateDebug() {
   return '```\n' +
     'time: ' + new Date() + '\n' +
-    'queue length: ' + botApi.bot.queue.getTotalLength + '\n' +
+    'queue length: ' + botApi.bot.queue.totalLength + '\n' +
     '```';
 }
 
@@ -753,7 +753,9 @@ botApi.bot.onCommand('feedback', async (command, message, user) => {
     const userId = command.splice(0, 1)[0];
 
     return botApi.bot.sendMessage(Number(userId), 'Сообщение от службы поддержки: ' + command.join(' '));
-  } else if (user.feedback_mode) {
+  }
+
+  if (user.feedback_mode) {
     return botApi.bot.sendMessage(message.chat.id, 'Вы и так уже в режиме обратной связи.');
   }
 
@@ -767,14 +769,14 @@ botApi.bot.onCommand('feedback', async (command, message, user) => {
 });
 botApi.bot.onCommand('unfeedback', async (command, message, user) => {
   if (command[1] && user.admin) {
-    command.splice(0, 1);
-
     const userId = command[1];
 
     await botApi.database.User.findOneAndUpdate({user_id: userId}, {feedback_mode: false});
 
     return botApi.bot.sendMessage(message.chat.id, 'Режим службы поддержки для пользователя ' + userId + ' отключен.');
-  } else if (!user.feedback_mode) {
+  }
+
+  if (!user.feedback_mode) {
     return botApi.bot.sendMessage(message.chat.id, 'Режим обратной связи и так отключен.');
   }
 
