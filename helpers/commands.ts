@@ -794,7 +794,7 @@ botApi.bot.onCommand('grant', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Введите id пользователя.');
   }
 
-  if (message.from.username === config.get('telegram.editorialChannel')) {
+  if (message.from.id === config.get('telegram.editorialChannel')) {
     const newAdmin = await botApi.database.User.findOne({user_id: command[1]}).exec();
 
     if (!newAdmin) {
