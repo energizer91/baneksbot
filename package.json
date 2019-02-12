@@ -6,7 +6,8 @@
     "start": "node ./dist/bin/www",
     "start-dev": "node -r ts-node/register ./bin/www",
     "test": "mocha **/models/**/*.spec.js",
-    "build:client": "webpack -d",
+    "deploy": "pm2 start ecosystem.config.json",
+    "deploy-prod": "pm2 start ecosystem.config.json --env=production",
     "build": "tsc"
   },
   "dependencies": {
