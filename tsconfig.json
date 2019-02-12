@@ -4,6 +4,7 @@
     "moduleResolution": "node",
     "noImplicitAny": true,
     "removeComments": true,
+    "resolveJsonModule": true,
     "preserveConstEnums": true,
     "sourceMap": true,
     "outDir": "dist",
@@ -15,10 +16,13 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.js"
+    "**/*.js",
+    "config/*.json",
+    "languages/*.json"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "ecosystem.config.js"
   ]
 }

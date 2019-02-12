@@ -79,5 +79,8 @@
     "access_token": "",
     "needApprove": true,
     "approveTimeout": 300
+  },
+  "application": {
+    "port": 3050
   }
 }
