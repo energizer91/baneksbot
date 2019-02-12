@@ -1,7 +1,8 @@
 {
   "name": "baneks-node",
   "version": "0.0.3",
-  "private": false,
+  "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "start": "node ./dist/bin/www",
     "start-dev": "node -r ts-node/register ./bin/www",
