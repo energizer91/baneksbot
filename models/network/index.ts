@@ -54,7 +54,7 @@ class NetworkModel extends EventEmitter {
       .then((response: AxiosResponse<R>) => response.data)
       .catch((error: AxiosError) => {
         if (!error || !error.response) {
-          throw error;
+          throw new Error('Unknown error');
         }
 
         if (typeof backoff === 'function' && error.response.status === 429) {
