@@ -1,7 +1,5 @@
 node_modules
-/config/*.json
-!/config/default.json
-/.idea/
-baneks-node.iml
-/bundle/
-/dist/
+config/*.json
+!config/default.json
+.idea/
+dist/
