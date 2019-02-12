@@ -620,6 +620,10 @@ botApi.bot.onCommand('find_user', async (command, message) => {
 botApi.bot.onCommand('chat', (command, message) => {
   const baneksLink = config.get('telegram.baneksLink');
 
+  if (command[1] === 'chat') {
+    return botApi.bot.sendMessage(message.chat.id, 'id текущего чата: ' + message.chat.id);
+  }
+
   if (!baneksLink) {
     return botApi.bot.sendMessage(message.chat.id, 'денис дурак');
   }
