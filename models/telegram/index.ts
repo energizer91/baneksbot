@@ -607,7 +607,7 @@ class Telegram extends NetworkModel {
       } while (messagePart);
 
       return this.sendMessages(userId, messages, params)
-          .then((returnedMessages: Message[]) => returnedMessages[returnedMessages.length - 1]);
+          .then((returnedMessages: Message[]) => returnedMessages[0]);
     }
 
     debug('Sending message', userId, message, params);
