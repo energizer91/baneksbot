@@ -1060,10 +1060,10 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
 
-      return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
+      return botApi.bot.deleteMessage(callbackQuery.from.id, callbackQuery.message.message_id);
     case 's_da':
       await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.' });
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.', show_alert: true });
 
       return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
   }
