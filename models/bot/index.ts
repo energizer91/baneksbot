@@ -353,6 +353,10 @@ class Bot extends Telegram {
     return this.sendMessage(config.get('telegram.adminChat'), text);
   }
 
+  public isSameChat(message: Message): boolean {
+    return message && message.chat && message.from && message.chat.id === message.from.id;
+  }
+
   public performInlineQuery(inlineQuery: InlineQuery, user: IUser) {
     debug('Performing inline query from ' + this.getUserInfo(user));
     return this.emit('inlineQuery', inlineQuery, user);
@@ -460,7 +464,7 @@ class Bot extends Telegram {
           }
         }
 
-        if (user.feedback_mode && !user.banned) {
+        if (user.feedback_mode && !user.banned && this.isSameChat(message)) {
           return this.performFeedback(message, user);
         }
 
