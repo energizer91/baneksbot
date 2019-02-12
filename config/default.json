@@ -70,7 +70,6 @@
       "priority": 3
     },
     "backOffTime": 300,
-    "backOffTimeout": 900,
     "ignoreOverallOverheat": false
   },
   "vk": {
