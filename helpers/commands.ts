@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as config from 'config';
 import * as botApi from '../botApi';
 import {UpdaterMessageActions, UpdaterMessageTypes} from "../daemons/types";
+import inspect from '../helpers/inspections';
 import {StatisticsData} from "../models/statistics";
 import {
   AllMessageParams,
@@ -352,6 +353,30 @@ botApi.bot.onCommand('xax', async (command, message, user) => {
   });
 });
 
+botApi.bot.onCommand('inspect', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  if (!command[1]) {
+    return botApi.bot.sendMessage(message.chat.id, 'Укажите post_id анека');
+  }
+
+  const anek = await botApi.database.Anek.findOne({post_id: command[1]});
+
+  if (!anek) {
+    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден');
+  }
+
+  const results = await inspect(anek);
+
+  if (results.ok) {
+    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявило подозрительных моментов.');
+  }
+
+  return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {parse_mode: ParseMode.Markdown});
+});
+
 botApi.bot.onCommand('webhook_info', async (command, message, user) => {
   if (!user.admin) {
     throw new Error('Unauthorized access');
@@ -537,9 +562,9 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
   await anek.save();
 
   return botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
-    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek).concat([
       botApi.bot.createApproveButtons(anek.post_id, 0, 0)
-    ]))
+    ])))
   });
 });
 

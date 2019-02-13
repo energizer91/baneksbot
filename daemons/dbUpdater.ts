@@ -82,9 +82,9 @@ function updateAneksTimer() {
             action: UpdaterMessageActions.anek,
             anek,
             params: {
-              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard([
+              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard(bot.getAnekButtons(anek).concat([
                 bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
-              ]))
+              ])))
             },
             type: UpdaterMessageTypes.service,
             userId: config.get('telegram.editorialChannel')

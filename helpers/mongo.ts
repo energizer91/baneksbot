@@ -24,28 +24,38 @@ export type PluginOptions = {
 };
 
 export type SearchQuery = {
-  from: number,
+  from?: number,
   query: {
     match: {
       text: string
     }
   },
-  size: number
+  size?: number
 };
 
 export type SearchParams = {
-  highlight: {
+  highlight?: {
     fields: {
       text: {}
     },
     post_tags: string[],
     pre_tags: string[]
-  }
+  },
+  hydrate?: boolean,
+  hydrateWithESResults?: boolean
+};
+
+export type ElasticHit = {
+  _id: mongoose.Types.ObjectId,
+  text: string,
+  post_id: number,
+  from_id: number,
+  likes: number
 };
 
 export interface IElasticSearchResult<T> {
   hits: {
-    hits: Array<T & {_highlight: string}>
+    hits: Array<T & {_highlight: string, _esResult: {_score: number}}>
   };
 }
 
@@ -82,7 +92,7 @@ export interface IAnek extends mongoose.Document {
   signer_id: number;
   is_pinned: boolean;
   likes: number;
-  marked_as_ads: boolean,
+  marked_as_ads: boolean;
   post_type: string;
   reposts: number;
   spam: boolean;

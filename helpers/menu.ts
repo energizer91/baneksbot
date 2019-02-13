@@ -1,17 +1,14 @@
 /* tslint:disable max-classes-per-file */
 
-type Button = {
-  text: string,
-  callback_data?: string
-};
+import {InlineKeyboardButton} from '../models/telegram';
 
-export const createButton = (text: string, callbackData?: string): Button => ({
+export const createButton = (text: string, callbackData?: string): InlineKeyboardButton => ({
   callback_data: callbackData,
   text
 });
 
-class Row extends Array {
-  public addButton(button: Button): Row {
+export class Row extends Array {
+  public addButton(button: InlineKeyboardButton): Row {
     this.push(button);
 
     return this;

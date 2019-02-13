@@ -4,6 +4,7 @@ import {cloneDeep} from 'lodash';
 import {IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
+import Menu, {Row} from '../../helpers/menu';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 
 import Telegram, {
@@ -156,27 +157,27 @@ class Bot extends Telegram {
   }
 
   public createApproveButtons(postId: number, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
-    return [
-      this.createButton('👍 ' + pros, 'a_a ' + postId),
-      this.createButton('👎 ' + cons, 'a_d ' + postId),
-      this.createButton('🚫 Спам', 'spam ' + postId)
-    ];
+    return new Row()
+      .addButton(this.createButton('👍 ' + pros, 'a_a ' + postId))
+      .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId))
+      .addButton(this.createButton('🚫 Спам', 'spam ' + postId));
   }
 
-  public getAnekButtons(anek: IAnek, params: OtherParams): InlineKeyboardButton[][] {
-    const buttons: InlineKeyboardButton[][] = [];
+  public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
+    const buttons: Menu = new Menu();
 
     const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
-      buttons.push([]);
-      buttons[buttons.length - 1].push({
+      const commentsRow = buttons.addRow();
+
+      commentsRow.addButton({
         text: translate(language, 'go_to_anek'),
         url: 'https://vk.com/wall' + anek.from_id + '_' + anek.post_id
       });
 
       if (!disableComments) {
-        buttons[buttons.length - 1].push({
+        commentsRow.addButton({
           callback_data: 'comment ' + anek.post_id,
           text: translate(language, 'comments')
         });
@@ -185,8 +186,8 @@ class Bot extends Telegram {
 
     if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
       if (!disableAttachments) {
-        buttons.push([]);
-        buttons[buttons.length - 1].push(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
+        buttons.addRow()
+          .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
 
         anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
       }
@@ -194,12 +195,12 @@ class Bot extends Telegram {
 
     if (anek.post_id) {
       if (admin || editor) {
-        buttons.push([]);
+        const adminButtons = buttons.addRow();
 
         if (anek.spam) {
-          buttons[buttons.length - 1].push(this.createButton('✅', 'unspam ' + anek.post_id));
+          adminButtons.addButton(this.createButton('✅', 'unspam ' + anek.post_id));
         } else {
-          buttons[buttons.length - 1].push(this.createButton('🚫', 'spam ' + anek.post_id));
+          adminButtons.addButton(this.createButton('🚫', 'spam ' + anek.post_id));
         }
       }
     }

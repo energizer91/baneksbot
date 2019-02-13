@@ -3,19 +3,10 @@
  */
 
 import * as config from 'config';
-import {Types} from 'mongoose';
 import * as botApi from '../botApi';
 import {AllMessageParams, Message, TelegramError} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
-import {Anek as AnekModel, IAnek, IElasticSearchResult, IUser, User} from './mongo';
-
-type ElasticHit = {
-  _id: Types.ObjectId,
-  text: string,
-  post_id: number,
-  from_id: number,
-  likes: number
-};
+import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
 export const processAnek = (anek: Anek, approved: boolean = true): PreparedAnek => {
   const {id, ...rest} = anek;
