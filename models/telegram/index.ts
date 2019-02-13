@@ -507,6 +507,7 @@ export type OtherParams = {
   native?: boolean,
   language?: string,
   needApprove?: boolean,
+  analysis?: boolean,
   admin?: boolean,
   editor?: boolean,
   keyboard?: boolean,

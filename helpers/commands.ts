@@ -570,7 +570,7 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
   await anek.save();
 
   return botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
-    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek).concat([
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {analysis: true}).concat([
       botApi.bot.createApproveButtons(anek.post_id, 0, 0)
     ])))
   });
@@ -1019,7 +1019,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek).concat([
+          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {analysis: true}).concat([
             botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
           ]))
         );
@@ -1054,7 +1054,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(unapprovedAnek).concat([
+          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(unapprovedAnek, {analysis: true}).concat([
             botApi.bot.createApproveButtons(unapprovedAnek.post_id, unapprovedAnek.pros.length, unapprovedAnek.cons.length)
           ]))
         );

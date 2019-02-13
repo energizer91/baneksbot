@@ -160,14 +160,13 @@ class Bot extends Telegram {
     return new Row()
       .addButton(this.createButton('👍 ' + pros, 'a_a ' + postId))
       .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId))
-      .addButton(this.createButton('🚫', 'spam ' + postId))
-      .addButton(this.createButton('🔍', 'analysis ' + postId));
+      .addButton(this.createButton('🚫', 'spam ' + postId));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
     const buttons: Menu = new Menu();
 
-    const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
+    const {analysis, disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
       const commentsRow = buttons.addRow();
@@ -203,6 +202,10 @@ class Bot extends Telegram {
         } else {
           adminButtons.addButton(this.createButton('🚫', 'spam ' + anek.post_id));
         }
+      }
+
+      if (analysis) {
+        buttons.addRow().addButton(this.createButton('🔍 Анализ анека', 'analysis ' + anek.post_id));
       }
     }
 

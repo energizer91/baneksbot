@@ -82,7 +82,7 @@ function updateAneksTimer() {
             action: UpdaterMessageActions.anek,
             anek,
             params: {
-              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard(bot.getAnekButtons(anek).concat([
+              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard(bot.getAnekButtons(anek, {analysis: true}).concat([
                 bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
               ])))
             },
