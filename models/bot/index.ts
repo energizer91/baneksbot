@@ -159,8 +159,7 @@ class Bot extends Telegram {
   public createApproveButtons(postId: number, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
     return new Row()
       .addButton(this.createButton('👍 ' + pros, 'a_a ' + postId))
-      .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId))
-      .addButton(this.createButton('🚫', 'spam ' + postId));
+      .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
@@ -202,10 +201,8 @@ class Bot extends Telegram {
         } else {
           adminButtons.addButton(this.createButton('🚫', 'spam ' + anek.post_id));
         }
-      }
 
-      if (analysis) {
-        buttons.addRow().addButton(this.createButton('🔍 Анализ анека', 'analysis ' + anek.post_id));
+        adminButtons.addButton(this.createButton('🔍', 'analysis ' + anek.post_id));
       }
     }
 
