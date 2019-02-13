@@ -371,7 +371,7 @@ botApi.bot.onCommand('inspect', async (command, message, user) => {
   const results = await inspect(anek);
 
   if (results.ok) {
-    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявило подозрительных моментов.');
+    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявила подозрительных моментов.');
   }
 
   return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {parse_mode: ParseMode.Markdown});

@@ -56,12 +56,14 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
         if (exactAnek) {
           reference = exactAnek._esResult._score;
 
-          const otherAneks = result.hits.hits.filter((someAnek) => someAnek.post_id !== exactAnek.post_id && someAnek._esResult._score / reference >= similarity);
+          const otherAneks = result.hits.hits
+            .filter((someAnek) => someAnek.post_id !== exactAnek.post_id && someAnek._esResult._score / reference >= similarity)
+            .map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / reference * 100) + '%');
           const ok = !otherAneks.length;
 
           return resolve({
             ok,
-            reason: !ok && otherAneks.map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / reference * 100) + '%')
+            reason: !ok && otherAneks
           });
         }
 
