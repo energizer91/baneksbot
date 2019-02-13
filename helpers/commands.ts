@@ -1019,9 +1019,9 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard([
+          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek).concat([
             botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
-          ])
+          ]))
         );
 
         await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
@@ -1054,9 +1054,9 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         await botApi.bot.editMessageReplyMarkup(
           callbackQuery.message.chat.id,
           callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard([
+          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(unapprovedAnek).concat([
             botApi.bot.createApproveButtons(unapprovedAnek.post_id, unapprovedAnek.pros.length, unapprovedAnek.cons.length)
-          ])
+          ]))
         );
 
         await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});

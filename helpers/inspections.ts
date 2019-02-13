@@ -55,7 +55,7 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
 
       if (result && result.hits && result.hits.hits) {
         const otherAneks = result.hits.hits
-          .filter((hit) => hit.post_id !== anek.post_id)
+          .filter((hit) => hit.post_id !== anek.post_id && hit._esResult._score / result.hits.max_score > similarity)
           .map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / result.hits.max_score * 100) + '%');
         const ok = !otherAneks.length;
 
