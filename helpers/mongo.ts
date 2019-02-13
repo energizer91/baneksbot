@@ -26,8 +26,16 @@ export type PluginOptions = {
 export type SearchQuery = {
   from?: number,
   query: {
-    match: {
-      text: string
+    match?: {
+      text: string,
+      minimum_should_match?: number | string
+    },
+    more_like_this?: {
+      fields?: string[],
+      like: string,
+      min_term_freq?: number,
+      max_query_terms?: number,
+      minimum_should_match?: number | string
     }
   },
   size?: number
@@ -55,7 +63,8 @@ export type ElasticHit = {
 
 export interface IElasticSearchResult<T> {
   hits: {
-    hits: Array<T & {_highlight: string, _esResult: {_score: number}}>
+    hits: Array<T & {_highlight: string, _esResult: {_score: number}}>,
+    max_score: number
   };
 }
 

@@ -216,6 +216,26 @@ async function performSuggest(command: string[], message: Message, user: IUser) 
     'добавлен в ваш список предложки анонимно.');
 }
 
+async function performAnalysis(postId: number, message: Message) {
+  const anek = await botApi.database.Anek.findOne({post_id: postId});
+
+  if (!anek) {
+    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден');
+  }
+
+  const results = await inspect(anek);
+
+  if (results.ok) {
+    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявила подозрительных моментов.');
+  }
+
+  return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {
+    parse_mode: ParseMode.Markdown,
+    reply_to_message_id: message.message_id
+  });
+
+}
+
 botApi.bot.onCommand('debug', async (command, message, user) => {
   if (!user.admin) {
     throw new Error('Unauthorized access');
@@ -362,19 +382,7 @@ botApi.bot.onCommand('inspect', async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, 'Укажите post_id анека');
   }
 
-  const anek = await botApi.database.Anek.findOne({post_id: command[1]});
-
-  if (!anek) {
-    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден');
-  }
-
-  const results = await inspect(anek);
-
-  if (results.ok) {
-    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявила подозрительных моментов.');
-  }
-
-  return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {parse_mode: ParseMode.Markdown});
+  return performAnalysis(Number(command[1]), message);
 });
 
 botApi.bot.onCommand('webhook_info', async (command, message, user) => {
@@ -1064,6 +1072,18 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
 
       return botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
+    case 'analysis':
+      if (!user.admin && !user.editor) {
+        return;
+      }
+
+      if (!queryData[1]) {
+        return;
+      }
+
+      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выполняется анализ...'});
+
+      return performAnalysis(Number(queryData[1]), callbackQuery.message);
     case 'unspam':
       if (!user.admin && !user.editor) {
         return;

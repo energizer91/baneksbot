@@ -160,7 +160,8 @@ class Bot extends Telegram {
     return new Row()
       .addButton(this.createButton('👍 ' + pros, 'a_a ' + postId))
       .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId))
-      .addButton(this.createButton('🚫 Спам', 'spam ' + postId));
+      .addButton(this.createButton('🚫', 'spam ' + postId))
+      .addButton(this.createButton('🔍', 'analysis ' + postId));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {

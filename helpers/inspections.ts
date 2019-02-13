@@ -38,10 +38,14 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
   return new Promise((resolve, reject) => {
     return AnekModel.esSearch({
       query: {
-        match: {
-          text: anek.text
+        more_like_this: {
+          fields: ['text'],
+          like: anek.text,
+          min_term_freq: 1,
+          minimum_should_match: Math.round(similarity * 100) + '%'
         }
-      }
+      },
+      size: 4
     }, {
       hydrateWithESResults: true
     }, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
@@ -50,22 +54,15 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
       }
 
       if (result && result.hits && result.hits.hits) {
-        const exactAnek = result.hits.hits.find((someAnek) => someAnek.post_id === anek.post_id);
-        let reference = 0;
+        const otherAneks = result.hits.hits
+          .filter((hit) => hit.post_id !== anek.post_id)
+          .map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / result.hits.max_score * 100) + '%');
+        const ok = !otherAneks.length;
 
-        if (exactAnek) {
-          reference = exactAnek._esResult._score;
-
-          const otherAneks = result.hits.hits
-            .filter((someAnek) => someAnek.post_id !== exactAnek.post_id && someAnek._esResult._score / reference >= similarity)
-            .map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / reference * 100) + '%');
-          const ok = !otherAneks.length;
-
-          return resolve({
-            ok,
-            reason: !ok && otherAneks
-          });
-        }
+        return resolve({
+          ok,
+          reason: !ok && otherAneks
+        });
 
         return resolve({
           ok: true
