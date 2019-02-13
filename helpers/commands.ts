@@ -220,13 +220,17 @@ async function performAnalysis(postId: number, message: Message) {
   const anek = await botApi.database.Anek.findOne({post_id: postId});
 
   if (!anek) {
-    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден');
+    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден', {
+      reply_to_message_id: message.message_id
+    });
   }
 
   const results = await inspect(anek);
 
   if (results.ok) {
-    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявила подозрительных моментов.');
+    return botApi.bot.sendMessage(message.chat.id, 'Проверка анека не выявила подозрительных моментов.', {
+      reply_to_message_id: message.message_id
+    });
   }
 
   return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {
