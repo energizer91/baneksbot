@@ -1,3 +1,4 @@
+import * as config from 'config';
 import * as botApi from '../botApi';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult} from './mongo';
 
@@ -67,7 +68,7 @@ export async function similar(anek: IAnek, similarity: number = 0.9): Promise<Va
 
       if (result && result.hits && result.hits.hits) {
         const results = result.hits.hits
-          .map((hit) => 'Совпадение с анеком ' + hit.post_id + ' больше ' + Math.round(similarity * 100) + '%');
+          .map((hit) => 'Совпадение с анеком [' + hit.post_id + '](https://vk.com/wall' + config.get('vk.group_id') + '_' + hit.post_id + ')');
         const ok = !results.length;
 
         return resolve({

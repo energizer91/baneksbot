@@ -205,26 +205,28 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  public async sendAnek(userId: number | string, anek: IAnek | Anek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
+  public async sendAnek(userId: number | string, anek: IAnek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
     if (!anek) {
       return;
     }
 
-    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(anek as IAnek, params);
+    const immutableAnek = anek.toObject ? anek.toObject() : cloneDeep(anek);
 
-    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
-      const insideMessage = cloneDeep(anek.copy_history[0]);
+    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(immutableAnek, params);
 
-      insideMessage.post_id = anek.post_id;
-      insideMessage.from_id = anek.from_id;
-      insideMessage.text = anek.text + (anek.text.length ? '\n' : '') + insideMessage.text;
+    if (immutableAnek.copy_history && immutableAnek.copy_history.length && immutableAnek.post_id) {
+      const insideMessage = immutableAnek.copy_history[0];
 
-      if (anek.attachments && anek.attachments.length) {
+      insideMessage.post_id = immutableAnek.post_id;
+      insideMessage.from_id = immutableAnek.from_id;
+      insideMessage.text = immutableAnek.text + (immutableAnek.text.length ? '\n' : '') + insideMessage.text;
+
+      if (immutableAnek.attachments && immutableAnek.attachments.length) {
         if (!insideMessage.attachments || !insideMessage.attachments.length) {
           insideMessage.attachments = [];
         }
 
-        insideMessage.attachments = insideMessage.attachments.concat(anek.attachments);
+        insideMessage.attachments = insideMessage.attachments.concat(immutableAnek.attachments);
       }
 
       return this.sendAnek(userId, insideMessage, params);
@@ -236,14 +238,14 @@ class Bot extends Telegram {
 
     const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
 
-    return this.sendMessage(userId, this.convertTextLinks(anek.text), {
+    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
       reply_markup: replyMarkup,
       ...params
     })
       .then((message: any) => {
-        if (anek.attachments && params.forceAttachments) {
-          return this.sendAttachments(userId, anek.attachments, {
-            forcePlaceholder: !anek.text,
+        if (immutableAnek.attachments && params.forceAttachments) {
+          return this.sendAttachments(userId, immutableAnek.attachments, {
+            forcePlaceholder: !immutableAnek.text,
             reply_markup: replyMarkup,
             ...params
           });

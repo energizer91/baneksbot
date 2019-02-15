@@ -234,6 +234,7 @@ async function performAnalysis(postId: number, message: Message) {
   }
 
   return botApi.bot.sendMessage(message.chat.id, 'Выявлены следующие проблемы при проверке анека: \n' + results.reason.map((result) => '- ' + result).join('\n'), {
+    disable_web_page_preview: true,
     parse_mode: ParseMode.Markdown,
     reply_to_message_id: message.message_id
   });
@@ -568,6 +569,31 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
       botApi.bot.createApproveButtons(anek.post_id, 0, 0)
     ])))
   });
+});
+
+botApi.bot.onCommand('kek', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  if (!command[1]) {
+    return botApi.bot.sendMessage(message.chat.id, 'Укажите id анека');
+  }
+
+  const anek = await botApi.database.Anek.findOne({post_id: command[1]});
+
+  if (!anek) {
+    return botApi.bot.sendMessage(message.chat.id, 'Анек не найден');
+  }
+
+  const duration = Number(command[2]) || 10;
+  const users = [];
+
+  for (let i = 0; i < duration; i++) {
+    users.push(user);
+  }
+
+  return common.broadcastAneks(users, [anek]);
 });
 
 botApi.bot.onCommand('stat', async (command, message, user) => {

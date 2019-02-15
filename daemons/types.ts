@@ -1,5 +1,5 @@
+import {IAnek} from "../helpers/mongo";
 import {MessageParams} from "../models/telegram";
-import {Anek} from "../models/vk";
 
 export enum UpdaterMessageTypes {
   service
@@ -47,7 +47,7 @@ interface IUpdaterServiceAnekMessage extends IUpdaterServiceMessage {
     needApprove: boolean
   };
   userId: number;
-  anek: Anek;
+  anek: IAnek;
 }
 
 interface IUpdaterUpdateMessage extends IUpdaterServiceMessage {
