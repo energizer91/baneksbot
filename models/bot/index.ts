@@ -232,8 +232,8 @@ class Bot extends Telegram {
       return this.sendAnek(userId, insideMessage, params);
     }
 
-    if (anek.attachments && anek.attachments.length > 0 && !params.forceAttachments && !params.disableAttachments) {
-      anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
+    if (immutableAnek.attachments && immutableAnek.attachments.length > 0 && !params.forceAttachments && !params.disableAttachments) {
+      immutableAnek.text += '\n(Вложений: ' + immutableAnek.attachments.length + ')';
     }
 
     const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
