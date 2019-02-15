@@ -588,7 +588,7 @@ class Telegram extends NetworkModel {
 
   public async sendMessage(userId: number | string , message: string, params?: AllMessageParams): Promise<Message> {
     if (!message) {
-      throw new Error('Message is not defined');
+      return;
     }
 
     if (message.length > 4096) {
