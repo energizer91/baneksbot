@@ -32,7 +32,8 @@ export type SearchQuery = {
     },
     more_like_this?: {
       fields?: string[],
-      like: string,
+      like: string | {_id: mongoose.Types.ObjectId},
+      min_doc_freq?: number,
       min_term_freq?: number,
       max_query_terms?: number,
       minimum_should_match?: number | string

@@ -165,7 +165,7 @@ class Bot extends Telegram {
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
     const buttons: Menu = new Menu();
 
-    const {analysis, disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
+    const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
 
     if (anek.from_id && anek.post_id) {
       const commentsRow = buttons.addRow();
@@ -183,13 +183,9 @@ class Bot extends Telegram {
       }
     }
 
-    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments) {
-      if (!disableAttachments) {
-        buttons.addRow()
-          .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
-
-        anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
-      }
+    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments && !disableAttachments) {
+      buttons.addRow()
+        .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
     }
 
     if (anek.post_id) {
@@ -232,6 +228,10 @@ class Bot extends Telegram {
       }
 
       return this.sendAnek(userId, insideMessage, params);
+    }
+
+    if (anek.attachments && anek.attachments.length > 0 && !params.forceAttachments && !params.disableAttachments) {
+      anek.text += '\n(Вложений: ' + anek.attachments.length + ')';
     }
 
     const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));

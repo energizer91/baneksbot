@@ -446,16 +446,6 @@ botApi.bot.onCommand('unspam', async (command, message, user) => {
   return botApi.bot.sendMessage(message.chat.id, 'Анек изъят из спам листа.');
 });
 
-botApi.bot.onCommand('get_me', async (command, message, user) => {
-  if (!user.admin) {
-    throw new Error('Unauthorized access');
-  }
-
-  const me = await botApi.bot.getMe();
-
-  return botApi.bot.sendMessage(message.chat.id, JSON.stringify(me));
-});
-
 botApi.bot.onCommand('start', async (command, message, user) => {
   if (command[1] && command[1] === 'donate') {
     return botApi.bot.sendInvoice(message.from.id, {

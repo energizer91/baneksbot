@@ -34,18 +34,30 @@ export async function hasHashTags(anek: IAnek): Promise<ValidationResult> {
   };
 }
 
-export async function similar(anek: IAnek, similarity: number = 0.7): Promise<ValidationResult> {
+export async function hasAttachments(anek: IAnek): Promise<ValidationResult> {
+  const ok = !anek.attachments.length;
+
+  return {
+    ok,
+    reason: !ok && ['Анек содержит вложения: ' + anek.attachments.length]
+  };
+}
+
+export async function similar(anek: IAnek, similarity: number = 0.9): Promise<ValidationResult> {
   return new Promise((resolve, reject) => {
     return AnekModel.esSearch({
       query: {
         more_like_this: {
           fields: ['text'],
-          like: anek.text,
-          min_term_freq: 1,
+          like: {
+            _id: anek._id
+          },
+          min_doc_freq: 1,
+          min_term_freq : 1,
           minimum_should_match: Math.round(similarity * 100) + '%'
         }
       },
-      size: 4
+      size: 3
     }, {
       hydrateWithESResults: true
     }, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
@@ -54,18 +66,13 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
       }
 
       if (result && result.hits && result.hits.hits) {
-        const otherAneks = result.hits.hits
-          .filter((hit) => hit.post_id !== anek.post_id && hit._esResult._score / result.hits.max_score > similarity)
-          .map((hit) => 'Совпадение с анеком ' + hit.post_id + ': ' + Math.round(hit._esResult._score / result.hits.max_score * 100) + '%');
-        const ok = !otherAneks.length;
+        const results = result.hits.hits
+          .map((hit) => 'Совпадение с анеком ' + hit.post_id + ' больше ' + Math.round(similarity * 100) + '%');
+        const ok = !results.length;
 
         return resolve({
           ok,
-          reason: !ok && otherAneks
-        });
-
-        return resolve({
-          ok: true
+          reason: !ok && results
         });
       }
 
@@ -77,7 +84,7 @@ export async function similar(anek: IAnek, similarity: number = 0.7): Promise<Va
 }
 
 export default async function inspect(anek: IAnek): Promise<ValidationResult> {
-  const results = await botApi.bot.fulfillAll([isLong(anek), isAds(anek), hasHashTags(anek), similar(anek)]);
+  const results = await botApi.bot.fulfillAll([isLong(anek), hasAttachments(anek), isAds(anek), hasHashTags(anek), similar(anek)]);
 
   return results.reduce((acc: ValidationResult, current) => ({
     ok: acc.ok && current.ok,
