@@ -180,7 +180,7 @@ class Bot extends Telegram {
     if (anek.from_id && anek.post_id) {
       const commentsRow = buttons.addRow();
 
-      commentsRow.addButton(translate(language, 'go_to_anek'), {url: `https://vk.com/wall${anek.from_id}_${anek.post_id}`});
+      commentsRow.addButton({text: translate(language, 'go_to_anek'), url: `https://vk.com/wall${anek.from_id}_${anek.post_id}`});
 
       if (!disableComments) {
         commentsRow.addButton(translate(language, 'comments'), `comment ${anek.post_id}`);

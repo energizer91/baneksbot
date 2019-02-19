@@ -4,7 +4,6 @@ import {InlineKeyboardButton} from '../models/telegram';
 
 export class Row extends Array {
   public addButton(button: InlineKeyboardButton): Row;
-  public addButton(text: string, params?: InlineKeyboardButton): Row;
   public addButton(text: string, callbackData?: string, params?: InlineKeyboardButton): Row;
   public addButton(button: string | InlineKeyboardButton, callbackData?: string | InlineKeyboardButton, params?: InlineKeyboardButton): Row {
     if (typeof button === 'object' && button.text) {
@@ -38,7 +37,6 @@ class Menu extends Array {
   }
 
   public addButton(button: InlineKeyboardButton): Menu;
-  public addButton(text: string, params?: InlineKeyboardButton): Menu;
   public addButton(text: string, callbackData?: string, params?: InlineKeyboardButton): Menu;
   public addButton(button: string | InlineKeyboardButton, callbackData?: string | InlineKeyboardButton, params?: InlineKeyboardButton): Menu {
     if (!this.length) {

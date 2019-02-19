@@ -204,7 +204,7 @@ export type InlineKeyboardMarkup = {
 };
 
 export type InlineKeyboardButton = {
-  text?: string,
+  text: string,
   url?: string,
   callback_data?: string,
   switch_inline_query?: string,
