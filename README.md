@@ -85,7 +85,7 @@ Each request has hidden fields for operating queue:
 
 - `_key`: Unique key of queue (e.g. for private messages)
 - `_rule`: Rule name of queue, which is described in config
-- `_getBackoff`: function for getting retry timeout in case if you get 429 error
+- `_getRetry`: function for getting retry timeout in case if you get 429 error
 
 Every request in bot goes through this model.
 

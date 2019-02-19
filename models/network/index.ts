@@ -2,7 +2,7 @@ import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import * as FormData from 'form-data';
 import debugFactory from '../../helpers/debug';
 import EventEmitter from '../events';
-import Queue, {BackOffFunction} from '../queue';
+import Queue, {RetryFunction} from '../queue';
 import {RequestParams} from './index';
 
 const debugError = debugFactory('baneks-node:network:error', true);
@@ -20,7 +20,7 @@ export type RequestConfig = {
 export type RequestParams = {
     _key?: string,
     _rule?: string,
-    _getBackoff?: (error: AxiosError) => number,
+    _getRetry?: (error: AxiosError) => number,
     _stream?: boolean,
 };
 
@@ -35,7 +35,7 @@ class NetworkModel extends EventEmitter {
     }
 
     let data: AxiosRequestConfig;
-    const {_key: key, _rule: rule, _getBackoff, _stream, ...httpParams} = params;
+    const {_key: key, _rule: rule, _getRetry, _stream, ...httpParams} = params;
 
     if (config.method === Methods.GET) {
       data = {...config, params: httpParams};
@@ -50,16 +50,16 @@ class NetworkModel extends EventEmitter {
       data = {...config, data: httpParams};
     }
 
-    return this.queue.request((backoff: BackOffFunction) => axios(data)
+    return this.queue.request((retry: RetryFunction) => axios(data)
       .then((response: AxiosResponse<R>) => response.data)
       .catch((error: AxiosError) => {
         if (!error || !error.response) {
           throw new Error('Unknown error');
         }
 
-        if (typeof backoff === 'function' && error.response.status === 429) {
+        if (typeof retry === 'function' && error.response.status === 429) {
           debugError('Back off request', error.response.data.parameters);
-          backoff(_getBackoff ? _getBackoff(error) : 300);
+          retry(_getRetry ? _getRetry(error) : 300);
 
           return error;
         }

@@ -94,7 +94,7 @@ export interface IUser extends mongoose.Document {
 
 export interface IAnek extends mongoose.Document {
   attachments: any[];
-  copy_history: any[];
+  copy_history: IAnek[];
   date: number;
   from_id: number;
   post_id: number;
@@ -245,7 +245,7 @@ const anekSchema = new mongoose.Schema({
   date: Number,
   from_id: Number,
   is_pinned: Boolean,
-  likes: Number,
+  likes: {type: Number, set: (likes: number | {count: number}): number => typeof likes === 'object' ? likes.count : likes},
   marked_as_ads: Boolean,
   owner_id: Number,
   post_id: Number,
@@ -416,6 +416,23 @@ if (config.get('mongodb.searchEngine') === 'elastic') {
     weights: {content: 10, keywords: 5}
   });
 }
+
+const getCopyHistory = (aneks: IAnek[], accumulator: IAnek): IAnek => aneks.reduce((acc, anek) => {
+  if (anek.copy_history) {
+    return getCopyHistory(anek.copy_history, acc);
+  }
+
+  acc.text += '\n' + anek.text;
+  acc.attachments = acc.attachments.concat(anek.attachments);
+
+  return acc;
+}, accumulator);
+
+anekSchema.pre<IAnek>('save', function() {
+  if (this.copy_history) {
+    getCopyHistory(this.copy_history, this);
+  }
+});
 
 export const Anek = mongoose.model('Anek', anekSchema) as IAnekModel;
 export const Comment = mongoose.model('Comment', commentSchema);

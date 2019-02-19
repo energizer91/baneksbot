@@ -15,8 +15,8 @@ type Rule = {
   priority: number
 };
 
-export type BackOffFunction = (delay: number) => void;
-export type QueueRequest = (BackOffFunction: BackOffFunction) => Promise<any>;
+export type RetryFunction = (delay: number) => void;
+export type QueueRequest = (RetryFunction: RetryFunction) => Promise<any>;
 export type Callback = (error: Error | null, data?: any) => void;
 
 type QueueItemData = {
@@ -46,9 +46,9 @@ type Params = {
   default: {
     rule: string,
     key: string
-  } & Rule,
+  },
   overall: Rule,
-  backOffTime: number,
+  retryTime: number,
   ignoreOverallOverheat: boolean
 };
 
@@ -58,16 +58,18 @@ type QueueMap = Map<string, QueueItem>;
 const defaultParams: Params = {
   default: {
     rule: 'common',
-    key: 'common',
-    rate: 30,
-    limit: 1,
-    priority: 3
+    key: 'common'
   },
   rules: {
     common: {
       rate: 30,
       limit: 1,
       priority: 3
+    },
+    unlimited: {
+      rate: Infinity,
+      limit: 0,
+      priority: 0
     }
   },
   overall: {
@@ -75,7 +77,7 @@ const defaultParams: Params = {
     limit: 1,
     priority: 1
   },
-  backOffTime: 300,
+  retryTime: 300,
   ignoreOverallOverheat: true
 };
 // tslint:enable object-literal-sort-keys
@@ -103,7 +105,7 @@ class Queue {
     }
   }
 
-  public request(fn: QueueRequest, key = 'common', rule = 'common'): Promise<any> {
+  public request(fn: QueueRequest, key: string = this.params.default.key, rule: string = this.params.default.rule): Promise<any> {
     debug('Adding queue request', key, rule);
 
     return new Promise((resolve, reject) => {
@@ -154,22 +156,18 @@ class Queue {
     return this.queue.get(queueName);
   }
 
-  private getRule(name: string, params = {}): Rule {
+  private getRule(name: string): Rule {
     if (this.params.rules[name]) {
       return this.params.rules[name];
     }
 
-    this.params.rules[name] = Object.assign({
-      limit: this.params.default.limit,
-      priority: this.params.default.priority,
-      rate: this.params.default.rate
-    }, params);
+    this.params.rules[name] = this.params.rules[this.params.default.rule];
 
     return this.params.rules[name];
   }
 
-  private addBackoff(item: ShiftItemStructure, delay: number): void {
-    debug('Adding backoff', item.queue.id, delay);
+  private addRetry(item: ShiftItemStructure, delay: number): void {
+    debug('Adding retry', item.queue.id, delay);
 
     this.delay(delay * 1000)
       .then(() => {
@@ -184,11 +182,11 @@ class Queue {
 
     this.pending = true;
 
-    let backoffState = false;
-    let backoffTimer = 0;
-    const backoffFn = (delay: number) => {
-      backoffState = true;
-      backoffTimer = delay || this.params.backOffTime;
+    let retryState = false;
+    let retryTimer = 0;
+    const retryFn = (delay?: number) => {
+      retryState = true;
+      retryTimer = delay || this.params.retryTime;
     };
 
     this.shift(queue)
@@ -201,10 +199,10 @@ class Queue {
 
         debug('Executing queue item', nextItem.item.id);
 
-        nextItem.item.request(backoffFn)
+        nextItem.item.request(retryFn)
           .then((data) => {
-            if (backoffState) {
-              this.addBackoff(nextItem, backoffTimer);
+            if (retryState) {
+              this.addRetry(nextItem, retryTimer);
 
               return;
             }

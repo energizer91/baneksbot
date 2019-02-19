@@ -1,7 +1,7 @@
 export type Callback = (...params: any) => any | Promise<any>;
 
 class EventEmitter {
-  public events: Map<string, Callback[]> = new Map();
+  private events: Map<string, Callback[]> = new Map();
 
   public on(event: string, callback: (...params: any) => void | Promise<any>): void {
     if (!this.events.has(event)) {
@@ -13,7 +13,7 @@ class EventEmitter {
 
   public emit(event: string, ...params: any): Promise<any[]> {
     if (this.events.has(event)) {
-      return Promise.all(this.events.get(event).map((callback: Callback) => callback(...params))); // eslint-disable-line standard/no-callback-literal
+      return Promise.all(this.events.get(event).map((callback: Callback) => callback(...params)));
     }
 
     return Promise.resolve([]);

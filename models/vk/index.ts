@@ -102,13 +102,6 @@ export type Anek = {
   }
 };
 
-export type PreparedAnek = {
-  approved: boolean,
-  post_id: number,
-  likes: number,
-  reposts: number
-};
-
 export type Attachment = {
   type: string,
   photo?: Photo,
@@ -172,7 +165,7 @@ class Vk extends NetworkModel {
     };
 
     const requestParams = Object.assign({
-      _getBackoff: () => 300,
+      _getRetry: () => 300,
       _rule: 'vk',
       access_token: config.get('vk.access_token'),
       v: config.get('vk.api_version')

@@ -204,7 +204,7 @@ export type InlineKeyboardMarkup = {
 };
 
 export type InlineKeyboardButton = {
-  text: string,
+  text?: string,
   url?: string,
   callback_data?: string,
   switch_inline_query?: string,
@@ -813,17 +813,6 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendMessageWithChatAction(
-    userId: number | string,
-    chatAction: ChatAction,
-    message: string,
-    params?: AllMessageParams
-  ): Promise<Message> {
-    this.sendChatAction(userId, chatAction);
-
-    return this.sendMessage(userId, message, params);
-  }
-
   public getWebhookInfo(): Promise<Message> {
     return this.sendRequest('getWebhookInfo');
   }
@@ -848,14 +837,6 @@ class Telegram extends NetworkModel {
       });
   }
 
-  public createButton(text: string, callbackData: string, params?: InlineKeyboardButton): InlineKeyboardButton {
-    return {
-      callback_data: callbackData,
-      text,
-      ...params
-    };
-  }
-
   protected sendRequest(request: string, params: AllMessageParams | {} = {}, method: Methods = Methods.POST) {
     const axiosConfig: RequestConfig = {
       method,
@@ -863,7 +844,7 @@ class Telegram extends NetworkModel {
     };
 
     const requestParams: AllMessageParams = Object.assign({
-      _getBackoff: (error: AxiosError): number => error.response.data.parameters.retry_after
+      _getRetry: (error: AxiosError): number => error.response.data.parameters.retry_after
     }, params);
 
     if (!requestParams._key) {

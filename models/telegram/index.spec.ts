@@ -21,7 +21,7 @@ describe('Telegram model', () => {
     expect(telegram).to.be.a('object');
   });
 
-  describe('Telegram.sendMessage',  () => {
+  xdescribe('Telegram.sendMessage',  () => {
     it('should send message', async () => {
       await telegram.sendMessage(123, 'lol');
 

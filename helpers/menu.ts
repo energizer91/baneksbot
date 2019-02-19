@@ -2,32 +2,54 @@
 
 import {InlineKeyboardButton} from '../models/telegram';
 
-export const createButton = (text: string, callbackData?: string): InlineKeyboardButton => ({
-  callback_data: callbackData,
-  text
-});
-
 export class Row extends Array {
-  public addButton(button: InlineKeyboardButton): Row {
-    this.push(button);
+  public addButton(button: InlineKeyboardButton): Row;
+  public addButton(text: string, params?: InlineKeyboardButton): Row;
+  public addButton(text: string, callbackData?: string, params?: InlineKeyboardButton): Row;
+  public addButton(button: string | InlineKeyboardButton, callbackData?: string | InlineKeyboardButton, params?: InlineKeyboardButton): Row {
+    if (typeof button === 'object' && button.text) {
+      this.push(button);
+    } else if (typeof button === 'string') {
+      if (typeof callbackData === 'string') {
+        this.push({
+          callback_data: callbackData,
+          text: button,
+          ...params
+        });
+      } else {
+        this.push({
+          text: button,
+          ...callbackData
+        });
+      }
+    }
 
     return this;
   }
 }
 
 class Menu extends Array {
-  public static toInlineMarkup(menuStructure: Menu) {
-    return JSON.stringify({
-      inline_keyboard: menuStructure
-    });
-  }
-
-  public addRow(): Row {
+  public addRow(): Menu {
     const newRow = new Row();
 
     this.push(newRow);
 
-    return newRow;
+    return this;
+  }
+
+  public addButton(button: InlineKeyboardButton): Menu;
+  public addButton(text: string, params?: InlineKeyboardButton): Menu;
+  public addButton(text: string, callbackData?: string, params?: InlineKeyboardButton): Menu;
+  public addButton(button: string | InlineKeyboardButton, callbackData?: string | InlineKeyboardButton, params?: InlineKeyboardButton): Menu {
+    if (!this.length) {
+      this.addRow();
+    }
+
+    const row = this[this.length - 1];
+
+    row.addButton(button, callbackData, params);
+
+    return this;
   }
 
   public toInlineMarkup(): string {
@@ -37,16 +59,26 @@ class Menu extends Array {
   }
 }
 
+// class ReplyMenu extends Menu {
+//   public toReplyMarkup(): string {
+//     return JSON.stringify({
+//       reply_keyboard: this
+//     });
+//   }
+// }
+
 export default Menu;
 
-// const menu: Menu = new Menu();
+// new Row()
+//   .addButton('lol', 'kek')
+//   .addButton('cheburek', {url: 'azaza'});
 //
-// menu
+// new Menu()
 //   .addRow()
-//   .addButton(createButton('Сосать'))
-//   .addButton(createButton('Кусать'));
-//
-// menu
+//   .addButton('Сосать')
+//   .addButton('Кусать', {url: 'https://ya.ru'})
 //   .addRow()
-//   .addButton(createButton('Сидеть'))
-//   .addButton(createButton('Пердеть'));
+//   .addButton({text: 'Сидеть'})
+//   .addButton('Пердеть', 'sit')
+//   .addButton('Пердеть', 'sit', {pay: true})
+//   .toInlineMarkup();

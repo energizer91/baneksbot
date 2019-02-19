@@ -5,20 +5,8 @@
 import * as config from 'config';
 import * as botApi from '../botApi';
 import {AllMessageParams, Message, TelegramError} from '../models/telegram';
-import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
+import {Anek, MultipleResponse} from '../models/vk';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
-
-export const processAnek = (anek: Anek, approved: boolean = true): PreparedAnek => {
-  const {id, ...rest} = anek;
-
-  return {
-    ...rest,
-    approved,
-    likes: anek.likes.count,
-    post_id: anek.id,
-    reposts: anek.reposts.count
-  };
-};
 
 export function searchAneks(searchPhrase: string, skip: number = 0, limit: number) {
   return AnekModel.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip).exec();
@@ -126,9 +114,7 @@ export function getLastAneks(count: number) {
     .then((response) => {
       return response.items.map((anek) => {
         return AnekModel.findOneAndUpdate({post_id: anek.post_id}, {
-          comments: anek.comments,
-          likes: anek.likes.count,
-          reposts: anek.reposts.count
+          likes: anek.likes.count
         });
       });
     });
@@ -160,7 +146,7 @@ export async function redefineDatabase(count: number) {
 
   const aneks = responses
     .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
-    .map((anek: Anek): PreparedAnek => processAnek(anek, true));
+    .map((anek: Anek): IAnek => new AnekModel(anek));
 
   if (aneks.length) {
     return AnekModel.insertMany(aneks)
@@ -179,11 +165,7 @@ export function updateAneks() {
       responses.forEach((response) => {
         response.items.forEach((anek) => {
           bulk.find({post_id: anek.post_id}).update({
-            $set: {
-              comments: anek.comments,
-              likes: anek.likes.count,
-              reposts: anek.reposts.count
-            }
+            $set: {likes: anek.likes.count}
           });
         });
       });
@@ -245,7 +227,6 @@ export default {
   getAneksUpdate,
   getLastAneks,
   performSearch,
-  processAnek,
   redefineDatabase,
   searchAneks,
   searchAneksElastic,

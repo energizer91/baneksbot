@@ -9,6 +9,7 @@ import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './typ
 
 import {bot, database, statistics} from '../botApi';
 import common from '../helpers/common';
+import {Anek} from '../models/vk';
 
 const debug = debugFactory('baneks-node:updater');
 const error = debugFactory('baneks-node:updater:error', true);
@@ -67,9 +68,15 @@ function updateAneksTimer() {
   const needApprove: boolean = config.get('vk.needApprove');
 
   return common.getAneksUpdate()
-    .then((aneks) => aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek))))
-    .then((aneks) => database.Anek.insertMany(aneks))
-    .then((aneks) => aneks.filter((anek) => common.filterAnek(anek)))
+    .then((aneks: Anek[]) => aneks.map((anek) => {
+      const DbAnek = new database.Anek(anek);
+
+      DbAnek.approved = !needApprove || !common.filterAnek(anek);
+
+      return DbAnek;
+    }))
+    .then((aneks: IAnek[]) => database.Anek.insertMany(aneks))
+    .then((aneks: IAnek[]) => aneks.filter((anek) => common.filterAnek(anek)))
     .then((aneks: IAnek[]) => {
       if (!aneks.length) {
         return;

@@ -630,10 +630,7 @@ botApi.bot.onCommand('stat', async (command, message, user) => {
     now
   ) as StatisticsData;
 
-  return botApi.bot.sendMessage(message.chat.id, generateStatistics(startTitle, results), {
-    disableButtons: true,
-    parse_mode: ParseMode.Markdown
-  });
+  return botApi.bot.sendMessage(message.chat.id, generateStatistics(startTitle, results), {parse_mode: ParseMode.Markdown});
 });
 
 botApi.bot.onCommand('filin', (command, message, user) => botApi.bot.sendMessage(message.chat.id, translate(user.language, 'filin')));
