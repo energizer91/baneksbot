@@ -1079,8 +1079,14 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
+      const anek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+
+      if (!anek) {
+        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
+      }
+
       const approve: IApprove = await botApi.database.Approve
-        .findOne({anek: {post_id: queryData[1]}})
+        .findOne({anek: anek._id})
         .populate('anek')
         .exec();
 
@@ -1119,8 +1125,14 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
+      const unanek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+
+      if (!unanek) {
+        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
+      }
+
       const unapprove: IApprove = await botApi.database.Approve
-        .findOne({anek: {post_id: queryData[1]}})
+        .findOne({anek: unanek._id})
         .populate('anek')
         .exec();
 
@@ -1159,10 +1171,15 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
+      const spamAnek = await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
+
+      if (!spamAnek) {
+        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
+      }
+
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
 
-      const spamApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
+      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek._id});
 
       if (spamApprove) {
         spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
