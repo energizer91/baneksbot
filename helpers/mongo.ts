@@ -73,6 +73,7 @@ export type SearchCallback = (err: Error, result: IElasticSearchResult<any>) => 
 
 export interface IUser extends mongoose.Document {
   username: string;
+  approver: boolean;
   first_name: string;
   last_name: string;
   title: string;
@@ -107,11 +108,6 @@ export interface IAnek extends mongoose.Document {
   reposts: number;
   spam: boolean;
   text: string;
-  approved: boolean;
-  approveTimeout: Date;
-  approver: IUser;
-  pros: mongoose.Types.DocumentArray<IUser>;
-  cons: mongoose.Types.DocumentArray<IUser>;
 }
 
 export interface ISuggest extends mongoose.Document {
@@ -186,6 +182,20 @@ export interface IStatistics extends mongoose.Document {
   };
 }
 
+export type ApproveMessage = {
+  chat_id: number,
+  message_id: number
+};
+
+export interface IApprove extends mongoose.Document {
+  anek: IAnek;
+  approveTimeout: Date;
+  approver: IUser;
+  pros: mongoose.Types.DocumentArray<IUser>;
+  cons: mongoose.Types.DocumentArray<IUser>;
+  messages: ApproveMessage[];
+}
+
 export interface IAnekModel extends mongoose.Model<IAnek> {
   random(): Promise<IAnek>;
   synchronize(): Stream;
@@ -217,6 +227,7 @@ db.once('open', () => {
 
 const userSchema = new mongoose.Schema({
   admin: {type: Boolean, default: false},
+  approver: {type: Boolean, default: false},
   banned: {type: Boolean, default: false},
   client: {type: String, default: 'web'},
   date: {type: Date, default: Date.now},
@@ -236,11 +247,7 @@ const userSchema = new mongoose.Schema({
   username: String
 });
 const anekSchema = new mongoose.Schema({
-  approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
-  approved: {type: Boolean, default: true},
-  approver: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
   attachments: Array,
-  cons: [userSchema],
   copy_history: Array,
   date: Number,
   from_id: Number,
@@ -250,7 +257,6 @@ const anekSchema = new mongoose.Schema({
   owner_id: Number,
   post_id: Number,
   post_type: String,
-  pros: [userSchema],
   reposts: Number,
   signer_id: Number,
   spam: {type: Boolean, default: false},
@@ -294,7 +300,7 @@ const suggestSchema = new mongoose.Schema({
   }],
   public: {type: Boolean, default: false},
   text: String,
-  user: {type: mongoose.Schema.Types.ObjectId, ref: userSchema},
+  user: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
   video_note: {
     duration: Number,
     file_id: String,
@@ -357,6 +363,17 @@ const statisticsSchema = new mongoose.Schema({
     subscribed: Number,
     unsubscribed: Number
   }
+});
+
+const approveSchema = new mongoose.Schema({
+  anek: {type: mongoose.Schema.Types.ObjectId, ref: 'Anek'},
+  approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
+  cons: [userSchema],
+  messages: [{
+    chat_id: Number,
+    message_id: Number
+  }],
+  pros: [userSchema]
 });
 
 anekSchema.statics.random = function() {
@@ -424,3 +441,4 @@ export const Log = mongoose.model('Log', logSchema);
 export const Statistic = mongoose.model('Statistic', statisticsSchema);
 export const Suggest = mongoose.model('Suggest', suggestSchema) as ISuggestModel;
 export const User = mongoose.model('User', userSchema) as mongoose.Model<IUser>;
+export const Approve = mongoose.model('Approve', approveSchema) as mongoose.Model<IApprove>;

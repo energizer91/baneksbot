@@ -5,6 +5,7 @@ import EventEmitter from '../events';
 import Queue, {BackOffFunction} from '../queue';
 import {RequestParams} from './index';
 
+const debug = debugFactory('baneks-node:network', true);
 const debugError = debugFactory('baneks-node:network:error', true);
 
 export enum Methods {
@@ -34,6 +35,8 @@ class NetworkModel extends EventEmitter {
       throw new Error('Config not specified');
     }
 
+    debug("Sending request", config, params);
+
     let data: AxiosRequestConfig;
     const {_key: key, _rule: rule, _getBackoff, _stream, ...httpParams} = params;
 
@@ -51,7 +54,11 @@ class NetworkModel extends EventEmitter {
     }
 
     return this.queue.request((backoff: BackOffFunction) => axios(data)
-      .then((response: AxiosResponse<R>) => response.data)
+      .then((response: AxiosResponse<R>) => {
+        debug("Returning response", response.data);
+
+        return response.data;
+      })
       .catch((error: AxiosError) => {
         if (!error || !error.response) {
           throw new Error('Unknown error');
@@ -68,6 +75,8 @@ class NetworkModel extends EventEmitter {
           debugError('An error occurred with code ' + error.response.status, error.response.data);
           throw error.response.data;
         }
+
+        debugError("Returning empty response");
 
         return {};
       }), key, rule);

@@ -1,7 +1,7 @@
 import * as config from 'config';
 import {NextFunction, Response} from 'express';
 import {cloneDeep} from 'lodash';
-import {IBotRequest} from '../../botApi';
+import {bot, IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
 import Menu, {Row} from '../../helpers/menu';
@@ -18,13 +18,14 @@ import Telegram, {
   PreCheckoutQuery,
   SuccessfulPayment,
   Update,
-  User
+  User,
+  UserId
 } from '../telegram';
-import {Anek, Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
+import {Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
 
 type SuggestMessage = {
   caption: string,
-  chat_id: number,
+  chat_id: UserId,
   text: string,
   photo?: string,
   video?: string,
@@ -37,7 +38,7 @@ type SuggestMessage = {
 
 const debug = debugFactory('baneks-node:bot');
 
-interface Bot extends Telegram {
+interface IBot extends Telegram {
   on(event: string, callback: (...params: any) => void | Promise<void>): void | Promise<void>;
   on(event: 'message' | 'feedback', callback: (message: Message, user: IUser) => void): void | Promise<void>;
   on(event: 'callbackQuery', callback: (callbackQuery: CallbackQuery, user: IUser) => void): void | Promise<void>;
@@ -50,7 +51,7 @@ interface Bot extends Telegram {
   on(event: 'reply', callback: (reply: Message, message: Message, user: IUser) => void): void | Promise<void>;
 }
 
-class Bot extends Telegram {
+class Bot extends Telegram implements IBot {
   private buttons: string[] = [];
 
   public onCommand(command: string, callback: (command: string[], message: Message, user: IUser) => any | Promise<any>) {
@@ -95,7 +96,7 @@ class Bot extends Telegram {
     return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
   }
 
-  public async sendAttachment(userId: number | string, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
+  public async sendAttachment(userId: UserId, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
     switch (attachment.type) {
       case 'photo':
         const photo = attachment.photo.photo_2560
@@ -134,7 +135,7 @@ class Bot extends Telegram {
     }
   }
 
-  public async sendAttachments(userId: number | string, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
+  public async sendAttachments(userId: UserId, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
     const mediaGroup: MediaGroup = attachments
         .filter((attachment: VkAttachment) => attachment.type === 'photo')
         .map((attachment: VkAttachment): InputMediaPhoto => ({
@@ -165,9 +166,9 @@ class Bot extends Telegram {
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
     const buttons: Menu = new Menu();
 
-    const {disableComments, language, forceAttachments, admin, editor, disableAttachments} = params;
+    const {disableComments, language, forceAttachments, admin, editor, disableAttachments, disableStandardButtons} = params;
 
-    if (anek.from_id && anek.post_id) {
+    if (anek.from_id && anek.post_id && !disableStandardButtons) {
       const commentsRow = buttons.addRow();
 
       commentsRow.addButton({
@@ -183,7 +184,7 @@ class Bot extends Telegram {
       }
     }
 
-    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments && !disableAttachments) {
+    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments && !disableAttachments && !disableStandardButtons) {
       buttons.addRow()
         .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
     }
@@ -205,11 +206,13 @@ class Bot extends Telegram {
     return buttons;
   }
 
-  public async sendAnek(userId: number | string, anek: IAnek, params: AllMessageParams = {}): Promise<Message | Message[] | void> {
-    if (!anek) {
-      return;
-    }
+  public prepareApproveInlineKeyboard(anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
+    return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: false}).concat([
+      this.createApproveButtons(anek.post_id, pros, cons)
+    ]));
+  }
 
+  public async sendAnek(userId: UserId, anek: IAnek, params: AllMessageParams = {}): Promise<Message> {
     const immutableAnek = anek.toObject ? anek.toObject() : cloneDeep(anek);
 
     const buttons: InlineKeyboardButton[][] = this.getAnekButtons(immutableAnek, params);
@@ -244,7 +247,7 @@ class Bot extends Telegram {
     })
       .then((message: any) => {
         if (immutableAnek.attachments && params.forceAttachments) {
-          return this.sendAttachments(userId, immutableAnek.attachments, {
+          this.sendAttachments(userId, immutableAnek.attachments, {
             forcePlaceholder: !immutableAnek.text,
             reply_markup: replyMarkup,
             ...params
@@ -255,7 +258,7 @@ class Bot extends Telegram {
       });
   }
 
-  public sendComment(userId: number, comment: Comment, params: MessageParams) {
+  public sendComment(userId: UserId, comment: Comment, params: MessageParams) {
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then((message: any) => {
         if (comment.attachments && comment.attachments.length) {
@@ -266,11 +269,11 @@ class Bot extends Telegram {
       });
   }
 
-  public sendComments(userId: number, comments: Comment[] = [], params: AllMessageParams) {
+  public sendComments(userId: UserId, comments: Comment[] = [], params: AllMessageParams) {
     return this.fulfillAll(comments.map((comment) => this.sendComment(userId, comment, params)));
   }
 
-  public sendSuggest(userId: number, suggest: ISuggest, params: AllMessageParams) {
+  public sendSuggest(userId: UserId, suggest: ISuggest, params: AllMessageParams) {
     const buttons: InlineKeyboardButton[][] = [];
 
     const sendMessage: SuggestMessage = {
@@ -332,11 +335,11 @@ class Bot extends Telegram {
     return this.sendRequest(commandType, sendMessage);
   }
 
-  public sendSuggests(userId: number, suggests: ISuggest[], params: AllMessageParams) {
+  public sendSuggests(userId: UserId, suggests: ISuggest[], params: AllMessageParams) {
     return this.fulfillAll(suggests.map((suggest: ISuggest) => this.sendSuggest(userId, suggest, params)));
   }
 
-  public async sendMediaGroup(userId: number | string, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
+  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
     if (params.forcePlaceholder) {
       await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
     }

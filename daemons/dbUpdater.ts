@@ -8,7 +8,8 @@ import {IAnek, IUser} from "../helpers/mongo";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
 import {bot, database, statistics} from '../botApi';
-import common from '../helpers/common';
+import * as botApi from "../botApi";
+import * as common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
 const error = debugFactory('baneks-node:updater:error', true);
@@ -27,24 +28,24 @@ function approveAneksTimer() {
   updateInProcess = true;
   currentUpdate = 'approve aneks';
 
-  return database.Anek.find({
-    approveTimeout: {$lte: new Date()},
-    approved: false,
-    spam: false
-  }).exec()
-    .then((aneks) => {
-      if (aneks.length) {
-        const readyAneks = aneks.filter((anek) => anek.pros.length >= anek.cons.length);
-
-        if (readyAneks.length) {
-          debug(aneks.length + ' anek(s) approve time expired. ' + readyAneks.length + ' of them approved. Start broadcasting');
-        }
-
-        return database.Anek.updateMany(aneks, {$set: {approved: true}})
-          .exec()
-          .then(() => database.User.find({subscribed: true}).exec())
-          .then((users: IUser[]) => common.broadcastAneks(users, readyAneks, {_rule: 'individual'}));
+  return database.Approve.find({approveTimeout: {$lte: new Date()}})
+    .populate('anek')
+    .exec()
+    .then((approves) => {
+      if (!approves.length) {
+        return;
       }
+
+      const readyApproves = approves.filter((approve) => approve.pros.length >= approve.cons.length);
+
+      if (readyApproves.length) {
+        debug(approves.length + ' anek(s) approve time expired. ' + readyApproves.length + ' of them approved. Start broadcasting');
+      }
+
+      return database.Approve.deleteMany(approves)
+        .exec()
+        .then(() => database.User.find({subscribed: true}).exec())
+        .then((users: IUser[]) => common.broadcastAneks(users, readyApproves.map((approve) => approve.anek), {_rule: 'individual'}));
     })
     .catch((err: Error) => {
       error('Update aneks error', err);
@@ -71,26 +72,33 @@ function updateAneksTimer() {
     .then((aneks) => database.Anek.insertMany(aneks))
     .then((aneks) => aneks.filter((anek) => common.filterAnek(anek)))
     .then((aneks: IAnek[]) => {
-      if (!aneks.length) {
-        return;
-      }
-
       if (needApprove) {
-        aneks
-          // .map((anek: IAnek) => common.sendAnekForApproval(anek))
-          .map((anek: IAnek) => process.send({
-            action: UpdaterMessageActions.anek,
-            anek,
-            params: {
-              reply_markup: bot.prepareReplyMarkup(bot.prepareInlineKeyboard(bot.getAnekButtons(anek, {editor: true}).concat([
-                bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
-              ])))
-            },
-            type: UpdaterMessageTypes.service,
-            userId: config.get('telegram.editorialChannel')
-          }));
+        return database.User.find({approver: true}).exec()
+          .then((users: IUser[]) => aneks.map((anek) => {
+            const result = new database.Approve({anek});
 
-        return;
+            const results = users
+              .map((user) =>
+                bot.sendAnek(user.user_id, anek, {
+                  reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(anek, user))
+                })
+              );
+
+            return bot
+              .fulfillAll(results)
+              .then((messages) => {
+                result.messages = messages.map((message) => ({
+                  chat_id: message.chat.id,
+                  message_id: message.message_id
+                }));
+
+                return result;
+              });
+            }))
+          .then((messages) => bot.fulfillAll(messages))
+          .then((approves) => {
+            database.Approve.insertMany(approves);
+          });
       }
 
       debug(aneks.length + ' anek(s) found. Start broadcasting.');
@@ -194,24 +202,9 @@ process.on('message', (m: UpdaterMessages) => {
         case UpdaterMessageActions.last:
           return updateLastAneksTimer();
         case UpdaterMessageActions.message:
-          process.send({
-            action: UpdaterMessageActions.message,
-            text: m.text || 'Проверка',
-            type: UpdaterMessageTypes.service,
-            value: m.value
-          });
-
-          break;
+          return bot.sendMessage(m.value, m.text || 'Проверка');
         case UpdaterMessageActions.anek:
-          return database.Anek.random().then((anek: IAnek) => {
-            process.send({
-              action: UpdaterMessageActions.anek,
-              anek,
-              params: {language: m.params.language},
-              type: UpdaterMessageTypes.service,
-              userId: m.userId
-            });
-          });
+          return database.Anek.random().then((anek: IAnek) => bot.sendAnek(m.userId, anek, {language: m.params.language}));
         case UpdaterMessageActions.statistics:
           debug('Switch statistics update to', m.value);
           forceDenyUpdate = !m.value;

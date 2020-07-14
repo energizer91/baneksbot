@@ -11,6 +11,8 @@ export enum ParseMode {
   HTML = 'HTML'
 }
 
+export type UserId = number | string;
+
 export type User = {
   id: number,
   is_bot: boolean,
@@ -516,6 +518,7 @@ export type OtherParams = {
   forceAttachments?: boolean,
   disableAttachments?: boolean,
   disableButtons?: boolean,
+  disableStandardButtons?: boolean
 };
 
 type InvoiceParams = {
@@ -586,7 +589,7 @@ class Telegram extends NetworkModel {
     return this.sendRequest('getMe');
   }
 
-  public async sendMessage(userId: number | string , message: string, params?: AllMessageParams): Promise<Message> {
+  public async sendMessage(userId: UserId , message: string, params?: AllMessageParams): Promise<Message> {
     if (!message) {
       return;
     }
@@ -620,7 +623,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public forwardMessage(userId: number | string, messageId: number, fromId: number, params?: AllMessageParams): Promise<Message> {
+  public forwardMessage(userId: UserId, messageId: number, fromId: UserId, params?: AllMessageParams): Promise<Message> {
     debug('Forwarding message', userId, messageId, fromId);
 
     return this.sendRequest('forwardMessage', {
@@ -631,7 +634,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendPhoto(userId: number | string, photo: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
+  public async sendPhoto(userId: UserId, photo: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadPhoto);
 
     return this.sendRequest('sendPhoto', {
@@ -642,7 +645,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendAudio(userId: number | string, audio: string, params?: AllMessageParams & {title?: string, performer?: string}): Promise<Message> {
+  public async sendAudio(userId: UserId, audio: string, params?: AllMessageParams & {title?: string, performer?: string}): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadAudio);
 
     return this.sendRequest('sendAudio', {
@@ -652,7 +655,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendDocument(userId: number | string, document: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
+  public async sendDocument(userId: UserId, document: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadDocument);
 
     return this.sendRequest('sendDocument', {
@@ -663,7 +666,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async sendVideo(userId: number | string, video: string, params?: AllMessageParams): Promise<Message> {
+  public async sendVideo(userId: UserId, video: string, params?: AllMessageParams): Promise<Message> {
     this.sendChatAction(userId, ChatAction.uploadVideo);
 
     return this.sendRequest('sendVideo', {
@@ -673,7 +676,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendChatAction(userId: number | string, action: ChatAction): Promise<boolean> {
+  public sendChatAction(userId: UserId, action: ChatAction): Promise<boolean> {
     debug('Sending chat action', userId, action);
 
     return this.sendRequest('sendChatAction', {
@@ -682,7 +685,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async editMessageText(chatId: number | string, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
+  public async editMessageText(chatId: UserId, messageId: number, text: string, params?: AllMessageParams): Promise<Message> {
     debug('Editing message text', chatId, messageId, text, params);
 
     return this.sendRequest('editMessageText', {
@@ -693,7 +696,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async editMessageReplyMarkup(chatId: number | string, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
+  public async editMessageReplyMarkup(chatId: UserId, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
     debug('Editing message markup', chatId, messageId, markup);
 
     return this.sendRequest('editMessageReplyMarkup', {
@@ -708,7 +711,7 @@ class Telegram extends NetworkModel {
         });
   }
 
-  public deleteMessage(chatId: number | string, messageId: number): Promise<boolean> {
+  public deleteMessage(chatId: UserId, messageId: number): Promise<boolean> {
     if (!chatId) {
       throw new Error('Chat id is not specified');
     }
@@ -723,7 +726,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendSticker(userId: number, stickerId: string, params?: AllMessageParams): Promise<Message> {
+  public sendSticker(userId: UserId, stickerId: string, params?: AllMessageParams): Promise<Message> {
     if (!userId) {
       throw new Error('No user specified!');
     }
@@ -752,7 +755,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendInvoice(userId: number, invoice: InvoiceParams): Promise<Message> {
+  public sendInvoice(userId: UserId, invoice: InvoiceParams): Promise<Message> {
     debug('Sending invoice', userId, invoice);
 
     return this.sendRequest('sendInvoice', {
@@ -774,7 +777,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public promoteChatMember(chatId: number | string, userId: number, rights: AdminRights, params?: AllMessageParams) {
+  public promoteChatMember(chatId: UserId, userId: number, rights: AdminRights, params?: AllMessageParams) {
     return this.sendRequest('promoteChatMember', {
       chat_id: chatId,
       user_id: userId,
@@ -799,7 +802,7 @@ class Telegram extends NetworkModel {
     return JSON.stringify(args.reduce((acc: ReplyMarkup, arg: ReplyMarkup) => Object.assign(acc, arg), {}));
   }
 
-  public sendMessages(userId: number | string, messages: string[] = [], params?: AllMessageParams): Promise<Message[]> {
+  public sendMessages(userId: UserId, messages: string[] = [], params?: AllMessageParams): Promise<Message[]> {
     return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
   }
 

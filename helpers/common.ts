@@ -4,7 +4,7 @@
 
 import * as config from 'config';
 import * as botApi from '../botApi';
-import {AllMessageParams, Message, TelegramError} from '../models/telegram';
+import {AllMessageParams, TelegramError} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
@@ -96,29 +96,6 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
 
   // return recursion if all aneks in response are new
   return getAneksUpdate(skip + limit, limit, aneks);
-}
-
-// EXPERIMENTAL: Use timers instead cron for approving and broadcasting aneks
-// POTENTIAL ISSUE: instead dbUpdater queue application queue will be used. Potential message sending delays
-// Need to be tested before going to production
-export async function sendAnekForApproval(anek: IAnek): Promise<void> {
-  botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
-    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([
-      botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
-    ]))
-  })
-    .then((message: Message) => setTimeout(async () => {
-      await botApi.bot.deleteMessage(message.chat.id, message.message_id);
-      const anekResults = await botApi.database.Anek.findOne(anek);
-
-      if (anekResults.pros.length < anekResults.cons.length) {
-        return;
-      }
-
-      const subscribed = await botApi.database.User.find({subscribed: true}).exec();
-
-      return broadcastAneks(subscribed, [anekResults], {_rule: 'individual'});
-    }, config.get('vk.approveTimeout')));
 }
 
 export function getLastAneks(count: number) {
@@ -237,18 +214,3 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: Al
       }
     });
 }
-
-export default {
-  broadcastAneks,
-  filterAnek,
-  getAllAneks,
-  getAneksUpdate,
-  getLastAneks,
-  performSearch,
-  processAnek,
-  redefineDatabase,
-  searchAneks,
-  searchAneksElastic,
-  sendAnekForApproval,
-  updateAneks
-};

@@ -16,7 +16,7 @@ import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
 import debugFactory from './debug';
 import {languageExists, translate} from './dictionary';
-import {IAnek, IAnekModel, IUser} from './mongo';
+import {IAnek, IAnekModel, IApprove, IUser} from './mongo';
 
 const debugError = debugFactory('baneks-node:commands:error', true);
 
@@ -559,16 +559,31 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
     return;
   }
 
-  anek.approved = false;
-  anek.approveTimeout = new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000);
-
-  await anek.save();
-
-  return botApi.bot.sendAnek(config.get('telegram.editorialChannel'), anek, {
-    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {admin: user.admin, editor: user.editor}).concat([
-      botApi.bot.createApproveButtons(anek.post_id, 0, 0)
-    ])))
+  const approve = new botApi.database.Approve({
+    anek,
+    approveTimeout: new Date(Date.now() + 10 * 1000)
   });
+
+  const groups = await botApi.database.User.find({approver: true});
+
+  await Promise.all(groups.map(async (group) => {
+    const sentMessage = await botApi.bot.sendAnek(group.user_id, anek, {
+      reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(anek, user))
+    });
+
+    if (!sentMessage) {
+      return;
+    }
+
+    const {message_id, chat: {id}} = sentMessage;
+
+    approve.messages.push({
+      chat_id: id,
+      message_id
+    });
+  }));
+
+  await approve.save();
 });
 
 botApi.bot.onCommand('kek', async (command, message, user) => {
@@ -763,41 +778,87 @@ botApi.bot.onCommand('donate', (command, message) => botApi.bot.sendInvoice(mess
 }));
 
 botApi.bot.onCommand('subscribe', async (command, message) => {
-  let user: IUser | void;
+  let subscriber: IUser | void;
 
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.updateWith(message.chat);
+    subscriber = await botApi.user.updateWith(message.chat);
   } else {
-    user = await botApi.database.User.findOne({user_id: message.from.id});
+    subscriber = await botApi.database.User.findOne({user_id: message.from.id});
   }
 
-  if (user) {
-    if (!user.subscribed) {
-      await botApi.user.updateWith(user, {subscribed: true});
-      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'subscribe_success', {first_name: user.first_name || user.title}));
+  if (subscriber) {
+    if (!subscriber.subscribed) {
+      await botApi.user.updateWith(subscriber, {subscribed: true});
+      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'subscribe_success', {first_name: botApi.bot.getUserInfo(subscriber)}));
     } else {
-      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'subscribe_fail'));
+      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'subscribe_fail'));
     }
   }
 });
 botApi.bot.onCommand('unsubscribe', async (command, message) => {
-  let user;
+  let subscriber: IUser | void;
 
   if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
-    user = await botApi.user.updateWith(message.chat);
+    subscriber = await botApi.user.updateWith(message.chat);
   } else {
-    user = await botApi.database.User.findOne({user_id: message.from.id});
+    subscriber = await botApi.database.User.findOne({user_id: message.from.id});
   }
 
-  if (user) {
-    if (user.subscribed) {
-      await botApi.user.updateWith(user, {subscribed: false});
-      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'unsubscribe_success', {first_name: user.first_name}));
+  if (subscriber) {
+    if (subscriber.subscribed) {
+      await botApi.user.updateWith(subscriber, {subscribed: false});
+      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'unsubscribe_success', {first_name: botApi.bot.getUserInfo(subscriber)}));
     } else {
-      return botApi.bot.sendMessage(user.user_id, translate(user.language, 'unsubscribe_fail'));
+      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'unsubscribe_fail'));
     }
   }
 });
+
+botApi.bot.onCommand('approve', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  let approver: IUser | void;
+
+  if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
+    approver = await botApi.user.updateWith(message.chat);
+  } else {
+    approver = await botApi.database.User.findOne({user_id: message.from.id});
+  }
+
+  if (approver) {
+    if (!approver.approver) {
+      await botApi.user.updateWith(approver, {approver: true});
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approver_success', {first_name: botApi.bot.getUserInfo(approver)}));
+    } else {
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approver_fail'));
+    }
+  }
+});
+botApi.bot.onCommand('unapprove', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  let approver: IUser | void;
+
+  if (command[1] && command[1] === 'chat' && message.from.id !== message.chat.id) {
+    approver = await botApi.user.updateWith(message.chat);
+  } else {
+    approver = await botApi.database.User.findOne({user_id: message.from.id});
+  }
+
+  if (approver) {
+    if (approver.approver) {
+      await botApi.user.updateWith(approver, {approver: false});
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'unapprove_success', {first_name: botApi.bot.getUserInfo(approver)}));
+    } else {
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'unapprove_fail'));
+    }
+  }
+});
+
 
 botApi.bot.onCommand('feedback', async (command, message, user) => {
   if (command[1] && user.admin) {
@@ -1018,33 +1079,35 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      const anek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+      const approve: IApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
 
-      if (anek && !anek.approved) {
-        const alreadyPros = anek.pros.id(user.id);
-        const alreadyCons = anek.cons.id(user.id);
+      if (approve) {
+        const alreadyPros = approve.pros.id(user.id);
+        const alreadyCons = approve.cons.id(user.id);
 
         if (alreadyCons) {
           await alreadyCons.remove();
 
-          anek.pros.push(user);
+          approve.pros.push(user);
         } else if (alreadyPros) {
           await alreadyPros.remove();
         } else {
-          anek.pros.push(user);
+          approve.pros.push(user);
         }
 
-        await anek.save();
+        await approve.save();
 
-        await botApi.bot.editMessageReplyMarkup(
-          callbackQuery.message.chat.id,
-          callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {admin: user.admin, editor: user.editor}).concat([
-            botApi.bot.createApproveButtons(anek.post_id, anek.pros.length, anek.cons.length)
-          ]))
-        );
+        approve.messages.map(async (message) => {
+          const chat = await botApi.database.User.findOne({user_id: message.chat_id});
 
-        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
+          return botApi.bot.editMessageReplyMarkup(
+            message.chat_id,
+            message.message_id,
+            botApi.bot.prepareApproveInlineKeyboard(approve.anek, chat, approve.pros.length, approve.cons.length)
+          );
+        });
+
+        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
       }
 
       return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
@@ -1053,33 +1116,35 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      const unapprovedAnek: IAnek = await botApi.database.Anek.findOne({post_id: queryData[1]});
+      const unapprove: IApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
 
-      if (unapprovedAnek && !unapprovedAnek.approved) {
-        const alreadyPros = unapprovedAnek.pros.id(user._id);
-        const alreadyCons = unapprovedAnek.cons.id(user._id);
+      if (unapprove) {
+        const alreadyPros = unapprove.pros.id(user._id);
+        const alreadyCons = unapprove.cons.id(user._id);
 
         if (alreadyPros) {
           await alreadyPros.remove();
 
-          unapprovedAnek.cons.push(user);
+          unapprove.cons.push(user);
         } else if (alreadyCons) {
           await alreadyCons.remove();
         } else {
-          unapprovedAnek.cons.push(user);
+          unapprove.cons.push(user);
         }
 
-        await unapprovedAnek.save();
+        await unapprove.save();
 
-        await botApi.bot.editMessageReplyMarkup(
-          callbackQuery.message.chat.id,
-          callbackQuery.message.message_id,
-          botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(unapprovedAnek, {admin: user.admin, editor: user.editor}).concat([
-            botApi.bot.createApproveButtons(unapprovedAnek.post_id, unapprovedAnek.pros.length, unapprovedAnek.cons.length)
-          ]))
-        );
+        unapprove.messages.map(async (message) => {
+          const chat = await botApi.database.User.findOne({user_id: message.chat_id});
 
-        await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
+          return botApi.bot.editMessageReplyMarkup(
+            message.chat_id,
+            message.message_id,
+            botApi.bot.prepareApproveInlineKeyboard(unapprove.anek, chat, unapprove.pros.length, unapprove.cons.length)
+          );
+        });
+
+        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
       }
 
       return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
@@ -1088,8 +1153,16 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true, approved: true, approver: user});
+      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
+
+      const spamApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
+
+      if (spamApprove) {
+        spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
+
+        return spamApprove.remove();
+      }
 
       return botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
     case 'analysis':
