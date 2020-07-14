@@ -830,9 +830,9 @@ botApi.bot.onCommand('approve', async (command, message, user) => {
   if (approver) {
     if (!approver.approver) {
       await botApi.user.updateWith(approver, {approver: true});
-      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approver_success', {first_name: botApi.bot.getUserInfo(approver)}));
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approve_success', {first_name: botApi.bot.getUserInfo(approver)}));
     } else {
-      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approver_fail'));
+      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approve_fail'));
     }
   }
 });
@@ -1079,7 +1079,10 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      const approve: IApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
+      const approve: IApprove = await botApi.database.Approve
+        .findOne({anek: {post_id: queryData[1]}})
+        .populate('anek')
+        .exec();
 
       if (approve) {
         const alreadyPros = approve.pros.id(user.id);
@@ -1116,7 +1119,10 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return;
       }
 
-      const unapprove: IApprove = await botApi.database.Approve.findOne({anek: {post_id: queryData[1]}});
+      const unapprove: IApprove = await botApi.database.Approve
+        .findOne({anek: {post_id: queryData[1]}})
+        .populate('anek')
+        .exec();
 
       if (unapprove) {
         const alreadyPros = unapprove.pros.id(user._id);
