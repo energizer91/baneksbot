@@ -565,7 +565,7 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
 
   await Promise.all(groups.map(async (group) => {
     const sentMessage = await botApi.bot.sendAnek(group.user_id, anek, {
-      reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(approve.id, anek, user))
+      reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(approve.id, anek, group))
     });
 
     if (!sentMessage) {

@@ -168,25 +168,27 @@ class Bot extends Telegram implements IBot {
 
     const {disableComments, language, forceAttachments, admin, editor, disableAttachments, disableStandardButtons} = params;
 
-    if (anek.from_id && anek.post_id && !disableStandardButtons) {
-      const commentsRow = buttons.addRow();
+    if (!disableStandardButtons) {
+      if (anek.from_id && anek.post_id) {
+        const commentsRow = buttons.addRow();
 
-      commentsRow.addButton({
-        text: translate(language, 'go_to_anek'),
-        url: 'https://vk.com/wall' + anek.from_id + '_' + anek.post_id
-      });
-
-      if (!disableComments) {
         commentsRow.addButton({
-          callback_data: 'comment ' + anek.post_id,
-          text: translate(language, 'comments')
+          text: translate(language, 'go_to_anek'),
+          url: 'https://vk.com/wall' + anek.from_id + '_' + anek.post_id
         });
-      }
-    }
 
-    if (anek.attachments && anek.attachments.length > 0 && !forceAttachments && !disableAttachments && !disableStandardButtons) {
-      buttons.addRow()
-        .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
+        if (!disableComments) {
+          commentsRow.addButton({
+            callback_data: 'comment ' + anek.post_id,
+            text: translate(language, 'comments')
+          });
+        }
+      }
+
+      if (anek.attachments && anek.attachments.length > 0 && !forceAttachments && !disableAttachments) {
+        buttons.addRow()
+          .addButton(this.createButton(translate(language, 'attachments'), 'attach ' + anek.post_id));
+      }
     }
 
     if (anek.post_id) {
@@ -207,7 +209,7 @@ class Bot extends Telegram implements IBot {
   }
 
   public prepareApproveInlineKeyboard(approveId: string, anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
-    return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: false}).concat([
+    return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: true}).concat([
       this.createApproveButtons(approveId, pros, cons)
     ]));
   }
