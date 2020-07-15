@@ -1086,7 +1086,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       }
 
       const approve: IApprove = await botApi.database.Approve
-        .findOne({anek: anek.id})
+        .findOne({anek})
         .populate('anek')
         .exec();
 
@@ -1132,7 +1132,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
       }
 
       const unapprove: IApprove = await botApi.database.Approve
-        .findOne({anek: unanek.id})
+        .findOne({anek: unanek})
         .populate('anek')
         .exec();
 
@@ -1179,7 +1179,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
 
-      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek.id});
+      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek});
 
       if (spamApprove) {
         spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
