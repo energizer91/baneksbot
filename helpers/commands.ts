@@ -1072,10 +1072,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       return botApi.bot.sendAttachments(callbackQuery.message.chat.id, post.attachments, params);
     case 'a_a':
-      if (!user.admin && !user.editor) {
-        return;
-      }
-
       const approve: IApprove = await botApi.database.Approve
         .findById(queryData[1])
         .populate('anek')
@@ -1112,10 +1108,6 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
     case 'a_d':
-      if (!user.admin && !user.editor) {
-        return;
-      }
-
       const unapprove: IApprove = await botApi.database.Approve
         .findById(queryData[1])
         .populate('anek')
