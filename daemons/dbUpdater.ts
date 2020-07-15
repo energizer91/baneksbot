@@ -80,7 +80,7 @@ function updateAneksTimer() {
             const results = users
               .map((user) =>
                 bot.sendAnek(user.user_id, anek, {
-                  reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(anek, user))
+                  reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(result.id, anek, user))
                 })
               );
 

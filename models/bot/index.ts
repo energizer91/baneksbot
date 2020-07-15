@@ -157,10 +157,10 @@ class Bot extends Telegram implements IBot {
         .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
   }
 
-  public createApproveButtons(postId: number, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
+  public createApproveButtons(approveId: string, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
     return new Row()
-      .addButton(this.createButton('👍 ' + pros, 'a_a ' + postId))
-      .addButton(this.createButton('👎 ' + cons, 'a_d ' + postId));
+      .addButton(this.createButton('👍 ' + pros, 'a_a ' + approveId))
+      .addButton(this.createButton('👎 ' + cons, 'a_d ' + approveId));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
@@ -206,9 +206,9 @@ class Bot extends Telegram implements IBot {
     return buttons;
   }
 
-  public prepareApproveInlineKeyboard(anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
+  public prepareApproveInlineKeyboard(approveId: string, anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
     return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: false}).concat([
-      this.createApproveButtons(anek.post_id, pros, cons)
+      this.createApproveButtons(approveId, pros, cons)
     ]));
   }
 
