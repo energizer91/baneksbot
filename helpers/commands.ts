@@ -559,10 +559,7 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
     return;
   }
 
-  const approve = new botApi.database.Approve({
-    anek,
-    approveTimeout: new Date(Date.now() + 10 * 1000)
-  });
+  const approve = new botApi.database.Approve({anek});
 
   const groups = await botApi.database.User.find({approver: true});
 
@@ -1085,14 +1082,11 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
       }
 
-      const approve: IApprove = await botApi.database.Approve
-        .findOne({anek})
-        .populate('anek')
-        .exec();
+      const approve: IApprove = await botApi.database.Approve.findOne({anek: anek._id});
 
       if (approve) {
-        const alreadyPros = approve.pros.id(user.id);
-        const alreadyCons = approve.cons.id(user.id);
+        const alreadyPros = approve.pros.id(user._id);
+        const alreadyCons = approve.cons.id(user._id);
 
         if (alreadyCons) {
           await alreadyCons.remove();
@@ -1112,7 +1106,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
           return botApi.bot.editMessageReplyMarkup(
             message.chat_id,
             message.message_id,
-            botApi.bot.prepareApproveInlineKeyboard(approve.anek, chat, approve.pros.length, approve.cons.length)
+            botApi.bot.prepareApproveInlineKeyboard(anek, chat, approve.pros.length, approve.cons.length)
           );
         });
 
@@ -1131,10 +1125,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
         return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
       }
 
-      const unapprove: IApprove = await botApi.database.Approve
-        .findOne({anek: unanek})
-        .populate('anek')
-        .exec();
+      const unapprove: IApprove = await botApi.database.Approve.findOne({anek: unanek._id});
 
       if (unapprove) {
         const alreadyPros = unapprove.pros.id(user._id);
@@ -1158,7 +1149,7 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
           return botApi.bot.editMessageReplyMarkup(
             message.chat_id,
             message.message_id,
-            botApi.bot.prepareApproveInlineKeyboard(unapprove.anek, chat, unapprove.pros.length, unapprove.cons.length)
+            botApi.bot.prepareApproveInlineKeyboard(anek, chat, unapprove.pros.length, unapprove.cons.length)
           );
         });
 
