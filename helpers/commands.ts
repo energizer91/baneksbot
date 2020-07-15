@@ -1164,15 +1164,16 @@ botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
 
       await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
 
-      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek});
+      // in case we have this in approve queue
+      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek._id});
 
-      if (spamApprove) {
-        spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
-
-        await spamApprove.remove();
+      if (!spamApprove) {
+        return;
       }
 
-      return botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
+      spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
+
+      return spamApprove.remove();
     case 'analysis':
       if (!user.admin && !user.editor) {
         return;
