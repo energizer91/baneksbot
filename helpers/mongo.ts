@@ -226,7 +226,7 @@ db.once('open', () => {
   debug('MongoDB connection successful');
 });
 
-const userSchema: mongoose.Schema<IUser> = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   admin: {type: Boolean, default: false},
   approver: {type: Boolean, default: false},
   banned: {type: Boolean, default: false},

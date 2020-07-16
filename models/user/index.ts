@@ -12,29 +12,30 @@ class User {
     return this.updateWith(user);
   }
 
-  public async updateWith(user: UserType | Chat | IUser, params?: any): Promise<IUser | void> {
+  public async updateWith(user: UserType | Chat | IUser, params?: any): Promise<IUser> {
     if (!user) {
       return;
     }
 
-    return UserModel.findOneAndUpdate(
-      // @ts-ignore
-      {user_id: user.user_id || user.id},
-      params || user,
-      {new: true, upsert: true, setDefaultsOnInsert: true}
-    )
-      .catch((error: Error) => {
-        console.error(error);
+    try {
+      return UserModel.findOneAndUpdate(
+        // @ts-ignore
+        {user_id: user.user_id || user.id},
+        params || user,
+        {new: true, upsert: true, setDefaultsOnInsert: true}
+      ).exec();
+    } catch (error) {
+      console.error(error);
 
-        return user as IUser;
-      });
+      return user as IUser;
+    }
   }
 
   public middleware = async (req: ITelegramRequest, res: Response, next: NextFunction) => {
     const update = req.body;
     const message = update.message || update.inline_query || update.callback_query;
-    const user = message.from;
-    const chat = message.chat;
+    const user = message && message.from;
+    const chat = message && message.chat;
 
     const updatedUser = await this.update(user);
     const updatedChat = await this.update(chat);
