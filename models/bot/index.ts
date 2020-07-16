@@ -1,7 +1,7 @@
 import * as config from 'config';
 import {NextFunction, Response} from 'express';
 import {cloneDeep} from 'lodash';
-import {bot, IBotRequest} from '../../botApi';
+import {IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
 import Menu, {Row} from '../../helpers/menu';
@@ -21,7 +21,7 @@ import Telegram, {
   User,
   UserId
 } from '../telegram';
-import {Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
+import Vk, {Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
 
 type SuggestMessage = {
   caption: string,
@@ -40,8 +40,8 @@ const debug = debugFactory('baneks-node:bot');
 
 interface IBot extends Telegram {
   on(event: string, callback: (...params: any) => void | Promise<void>): void | Promise<void>;
+  on(event: 'update', callback: (update: Update, user: IUser, chat: IUser) => void): void | Promise<void>;
   on(event: 'message' | 'feedback', callback: (message: Message, user: IUser) => void): void | Promise<void>;
-  on(event: 'callbackQuery', callback: (callbackQuery: CallbackQuery, user: IUser) => void): void | Promise<void>;
   on(event: 'inlineQuery', callback: (inlineQuery: InlineQuery, user: IUser) => void): void | Promise<void>;
   on(event: 'preCheckoutQuery', callback: (preCheckoutQuery: PreCheckoutQuery, user: IUser) => void): void | Promise<void>;
   on(event: 'successfulPayment', callback: (successfulPayment: SuccessfulPayment, user: IUser) => void): void | Promise<void>;
@@ -56,6 +56,10 @@ class Bot extends Telegram implements IBot {
 
   public onCommand(command: string, callback: (command: string[], message: Message, user: IUser) => any | Promise<any>) {
     return this.on('command:' + command, callback);
+  }
+
+  public onCallbackQuery(callbackQuery: string, callback: (args: string[], callbackQuery: CallbackQuery, user: IUser) => void) {
+    return this.on('callbackQuery:' + callbackQuery, callback);
   }
 
   public onButton(button: string, callback: (message: Message, user: IUser) => any | Promise<any>) {
@@ -174,7 +178,7 @@ class Bot extends Telegram implements IBot {
 
         commentsRow.addButton({
           text: translate(language, 'go_to_anek'),
-          url: 'https://vk.com/wall' + anek.from_id + '_' + anek.post_id
+          url: Vk.getAnekLink(anek.post_id, anek.from_id)
         });
 
         if (!disableComments) {
@@ -260,7 +264,7 @@ class Bot extends Telegram implements IBot {
       });
   }
 
-  public sendComment(userId: UserId, comment: Comment, params: MessageParams) {
+  public async sendComment(userId: UserId, comment: Comment, params: MessageParams): Promise<Message> {
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then((message: any) => {
         if (comment.attachments && comment.attachments.length) {
@@ -271,7 +275,7 @@ class Bot extends Telegram implements IBot {
       });
   }
 
-  public sendComments(userId: UserId, comments: Comment[] = [], params: AllMessageParams) {
+  public async sendComments(userId: UserId, comments: Comment[] = [], params: AllMessageParams): Promise<Message[]> {
     return this.fulfillAll(comments.map((comment) => this.sendComment(userId, comment, params)));
   }
 
@@ -362,8 +366,17 @@ class Bot extends Telegram implements IBot {
     return this.sendMessage(config.get('telegram.adminChat'), text);
   }
 
+  /**
+   * Simple check to verify that we are in private messages. Returns false if bot was called from groups
+   * @param {Message} message Incoming message
+   * @returns {boolean} whether we are in PM or in chat
+   */
   public isSameChat(message: Message): boolean {
     return message && message.chat && message.from && message.chat.id === message.from.id;
+  }
+
+  public isGroup(message: Message): boolean {
+    return !this.isSameChat(message);
   }
 
   public performInlineQuery(inlineQuery: InlineQuery, user: IUser) {
@@ -373,7 +386,10 @@ class Bot extends Telegram implements IBot {
 
   public performCallbackQuery(callbackQuery: CallbackQuery, user: IUser) {
     debug('Performing callback query from ' + this.getUserInfo(user));
-    return this.emit('callbackQuery', callbackQuery, user);
+    const {data = ''} = callbackQuery;
+    const queryData = data.split(' ');
+
+    return this.emit('callbackQuery:' + queryData[0], queryData, callbackQuery, user);
   }
 
   public performMessage(message: Message, user: IUser) {
@@ -421,7 +437,7 @@ class Bot extends Telegram implements IBot {
     return this.emit('button:' + button, message, user);
   }
 
-  public performUpdate(update: Update, user: IUser) {
+  public async performUpdate(update: Update, user: IUser, chat: IUser) {
     if (!update) {
       throw new Error('No webhook data specified');
     }
@@ -460,6 +476,10 @@ class Bot extends Telegram implements IBot {
             const botName = firstPart.split('@');
 
             if (botName.length === 1 || (botName.length === 2 && botName[1] === config.get('telegram.botName'))) {
+              if (this.isGroup(message) && chat.disable_commands && !user.admin) {
+                return [];
+              }
+
               return this.performCommand([botName[0], ...command.slice(1)], update.message, user);
             }
           }
@@ -495,7 +515,7 @@ class Bot extends Telegram implements IBot {
       return this.performPreCheckoutQuery(update.pre_checkout_query, user);
     }
 
-    return Promise.resolve([]);
+    return [];
   }
 
   public middleware = (req: IBotRequest, res: Response, next: NextFunction) => {
@@ -507,15 +527,15 @@ class Bot extends Telegram implements IBot {
       return;
     }
 
-    const {user} = req;
+    const {user, chat} = req;
 
     this.emit('update', update, user);
 
     req.update = update;
 
-    this.performUpdate(update, user)
+    this.performUpdate(update, user, chat)
       .then((results) => {
-        req.results = results;
+        req.results = results || [];
 
         next();
       })

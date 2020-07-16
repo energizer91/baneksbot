@@ -1,5 +1,5 @@
-import * as config from 'config';
 import * as botApi from '../botApi';
+import Vk from '../models/vk';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult} from './mongo';
 
 type ValidationResult = {
@@ -68,7 +68,7 @@ export async function similar(anek: IAnek, similarity: number = 0.9): Promise<Va
 
       if (result && result.hits && result.hits.hits) {
         const results = result.hits.hits
-          .map((hit) => 'Совпадение с анеком [' + hit.post_id + '](https://vk.com/wall' + config.get('vk.group_id') + '_' + hit.post_id + ')');
+          .map((hit) => 'Совпадение с анеком [' + hit.post_id + '](' + Vk.getAnekLink(hit.post_id) + ')');
         const ok = !results.length;
 
         return resolve({
@@ -85,7 +85,13 @@ export async function similar(anek: IAnek, similarity: number = 0.9): Promise<Va
 }
 
 export default async function inspect(anek: IAnek): Promise<ValidationResult> {
-  const results = await botApi.bot.fulfillAll([isLong(anek), hasAttachments(anek), isAds(anek), hasHashTags(anek), similar(anek)]);
+  const results = await botApi.bot.fulfillAll([
+    isLong(anek),
+    hasAttachments(anek),
+    isAds(anek),
+    hasHashTags(anek),
+    similar(anek)
+  ]);
 
   return results.reduce((acc: ValidationResult, current) => ({
     ok: acc.ok && current.ok,

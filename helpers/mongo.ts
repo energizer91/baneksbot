@@ -80,6 +80,7 @@ export interface IUser extends mongoose.Document {
   user_id: number;
   subscribed: boolean;
   deleted_subscribe: boolean;
+  disable_commands: boolean;
   feedback_mode: boolean;
   force_attachments: boolean;
   suggest_mode: boolean;
@@ -225,13 +226,14 @@ db.once('open', () => {
   debug('MongoDB connection successful');
 });
 
-const userSchema = new mongoose.Schema({
+const userSchema: mongoose.Schema<IUser> = new mongoose.Schema({
   admin: {type: Boolean, default: false},
   approver: {type: Boolean, default: false},
   banned: {type: Boolean, default: false},
   client: {type: String, default: 'web'},
   date: {type: Date, default: Date.now},
   deleted_subscribe: {type: Boolean, default: false},
+  disable_commands: {type: Boolean, default: false},
   editor: {type: Boolean, default: false},
   feedback_mode: {type: Boolean, default: false},
   first_name: String,
@@ -246,7 +248,7 @@ const userSchema = new mongoose.Schema({
   user_id: Number,
   username: String
 });
-const anekSchema = new mongoose.Schema({
+const anekSchema: mongoose.Schema<IAnek> = new mongoose.Schema({
   attachments: Array,
   copy_history: Array,
   date: Number,

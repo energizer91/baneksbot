@@ -42,10 +42,30 @@ function approveAneksTimer() {
         debug(approves.length + ' anek(s) approve time expired. ' + readyApproves.length + ' of them approved. Start broadcasting');
       }
 
-      return database.Approve.deleteMany(approves)
-        .exec()
+      const messages = approves
+        .map((approve) => approve.messages)
+        .reduce((acc, m) => acc.concat(m), []);
+
+      return bot
+        .fulfillAll(messages.map(
+          (message) =>
+            bot
+              .editMessageReplyMarkup(
+                message.chat_id,
+                message.message_id,
+                botApi.bot.prepareInlineKeyboard([])
+              )
+          )
+        )
+        .then(() => database.Approve.deleteMany(approves).exec())
         .then(() => database.User.find({subscribed: true}).exec())
-        .then((users: IUser[]) => common.broadcastAneks(users, readyApproves.map((approve) => approve.anek), {_rule: 'individual'}));
+        .then((users: IUser[]) =>
+          common.broadcastAneks(
+            users,
+            readyApproves.map((approve) => approve.anek),
+            {_rule: 'individual'}
+          )
+        );
     })
     .catch((err: Error) => {
       error('Update aneks error', err);

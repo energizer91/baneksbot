@@ -162,6 +162,10 @@ type AllRequestParams = {
 };
 
 class Vk extends NetworkModel {
+  public static getAnekLink(postId: number, fromId: number = config.get('vk.group_id')) {
+    return 'https://vk.com/wall' + fromId + '_' + postId;
+  }
+
   public endpoint: string = config.get('vk.url');
   public groupId: number = config.get('vk.group_id');
 

@@ -18,6 +18,7 @@ const debug = debugFactory('baneks-node:api');
 export interface IBotRequest extends Request {
   update: Update;
   user: IUser;
+  chat: IUser;
   results: any[];
 }
 

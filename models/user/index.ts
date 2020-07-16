@@ -2,6 +2,11 @@ import {NextFunction, Request, Response} from 'express';
 import {IUser, User as UserModel} from '../../helpers/mongo';
 import {Chat, User as UserType} from '../telegram';
 
+export interface ITelegramRequest extends Request {
+  user: IUser | void;
+  chat: IUser | void;
+}
+
 class User {
   public update(user: IUser | UserType) {
     return this.updateWith(user);
@@ -25,17 +30,19 @@ class User {
       });
   }
 
-  public middleware = (req: Request & {user: IUser}, res: Response, next: NextFunction) => {
+  public middleware = async (req: ITelegramRequest, res: Response, next: NextFunction) => {
     const update = req.body;
     const message = update.message || update.inline_query || update.callback_query;
     const user = message.from;
+    const chat = message.chat;
 
-    return this.update(user)
-      .then((updatedUser: IUser) => {
-        req.user = updatedUser;
+    const updatedUser = await this.update(user);
+    const updatedChat = await this.update(chat);
 
-        return next();
-      });
+    req.user = updatedUser;
+    req.chat = updatedChat;
+
+    return next();
   }
 }
 

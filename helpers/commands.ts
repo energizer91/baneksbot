@@ -92,6 +92,56 @@ async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, 
   }
 }
 
+async function acceptVote(acceptId: string, callbackQuery: CallbackQuery, user: IUser, like: boolean = true) {
+  const approve: IApprove = await botApi.database.Approve
+    .findById(acceptId)
+    .populate('anek')
+    .exec();
+
+  if (approve) {
+    const pros = approve.pros.id(user._id);
+    const cons = approve.cons.id(user._id);
+
+    if (like) {
+      if (pros) {
+        await pros.remove();
+      } else {
+        if (cons) {
+          await cons.remove();
+        }
+
+        approve.pros.push(user);
+      }
+    } else {
+      if (cons) {
+        await cons.remove();
+      } else {
+        if (pros) {
+          await pros.remove();
+        }
+
+        approve.cons.push(user);
+      }
+    }
+
+    await approve.save();
+
+    approve.messages.map(async (message) => {
+      const chat = await botApi.database.User.findOne({user_id: message.chat_id});
+
+      return botApi.bot.editMessageReplyMarkup(
+        message.chat_id,
+        message.message_id,
+        botApi.bot.prepareApproveInlineKeyboard(approve.id, approve.anek, chat, approve.pros.length, approve.cons.length)
+      );
+    });
+
+    return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
+  }
+
+  return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
+}
+
 const shlyapaAnswers = [
   'как раз',
   'тут не гадюшник, вешать негде'
@@ -983,6 +1033,33 @@ botApi.bot.onCommand('unban', async (command, message, user) => {
   }
 });
 
+botApi.bot.onCommand('disable_commands', async (command, message: Message, user) => {
+  if (!user.admin) {
+    return;
+  }
+
+  if (botApi.bot.isSameChat(message)) {
+    return botApi.bot.sendMessage(message.chat.id, 'Нельзя отключить команды самому себе');
+  }
+
+  await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {disable_commands: true});
+
+  return botApi.bot.sendMessage(message.chat.id, 'Команды отключены');
+});
+botApi.bot.onCommand('enable_commands', async (command, message: Message, user) => {
+  if (!user.admin) {
+    return;
+  }
+
+  if (botApi.bot.isSameChat(message)) {
+    return botApi.bot.sendMessage(message.chat.id, 'Нельзя отключить команды самому себе');
+  }
+
+  await botApi.database.User.findOneAndUpdate({user_id: message.chat.id}, {disable_commands: false});
+
+  return botApi.bot.sendMessage(message.chat.id, 'Команды включены');
+});
+
 botApi.bot.onCommand('find', async (command, message, user) => {
   command.splice(0, 1);
 
@@ -1034,186 +1111,10 @@ botApi.bot.onCommand('photo', async (command, message) => {
   return botApi.bot.sendPhoto(message.chat.id, photo);
 });
 
-botApi.bot.on('callbackQuery', async (callbackQuery, user) => {
-  const {data = ''} = callbackQuery;
-  const queryData = data.split(' ');
-  const params: AllMessageParams = {
-    reply_to_message_id: callbackQuery.message && callbackQuery.message.message_id
-  };
-
-  switch (queryData[0]) {
-    case 'comment':
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
-
-      const commentsResponse = await botApi.vk.getAllComments(Number(queryData[1]));
-      const comments = commentsResponse
-        .reduce((acc: Comment[], comment: MultipleResponse<Comment>) => acc.concat(comment.items), [])
-        .sort((a: Comment, b: Comment) => b.likes.count - a.likes.count)
-        .slice(0, 3)
-        .map((comment, index) => ({...comment, text: translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
-
-      return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: ParseMode.Markdown, disable_web_page_preview: true});
-    case 'attach':
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
-
-      let post = await botApi.vk.getPostById(Number(queryData[1]));
-
-      if (!post) {
-        throw new Error('Post not found');
-      }
-
-      if (!post.attachments && !post.copy_history) {
-        throw new Error('Attachments not found');
-      }
-
-      while (!post.attachments && post.copy_history) {
-        post = post.copy_history[0];
-      }
-
-      return botApi.bot.sendAttachments(callbackQuery.message.chat.id, post.attachments, params);
-    case 'a_a':
-      const approve: IApprove = await botApi.database.Approve
-        .findById(queryData[1])
-        .populate('anek')
-        .exec();
-
-      if (approve) {
-        const alreadyPros = approve.pros.id(user._id);
-        const alreadyCons = approve.cons.id(user._id);
-
-        if (alreadyCons) {
-          await alreadyCons.remove();
-
-          approve.pros.push(user);
-        } else if (alreadyPros) {
-          await alreadyPros.remove();
-        } else {
-          approve.pros.push(user);
-        }
-
-        await approve.save();
-
-        approve.messages.map(async (message) => {
-          const chat = await botApi.database.User.findOne({user_id: message.chat_id});
-
-          return botApi.bot.editMessageReplyMarkup(
-            message.chat_id,
-            message.message_id,
-            botApi.bot.prepareApproveInlineKeyboard(approve.id, approve.anek, chat, approve.pros.length, approve.cons.length)
-          );
-        });
-
-        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
-      }
-
-      return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
-    case 'a_d':
-      const unapprove: IApprove = await botApi.database.Approve
-        .findById(queryData[1])
-        .populate('anek')
-        .exec();
-
-      if (unapprove) {
-        const alreadyPros = unapprove.pros.id(user._id);
-        const alreadyCons = unapprove.cons.id(user._id);
-
-        if (alreadyPros) {
-          await alreadyPros.remove();
-
-          unapprove.cons.push(user);
-        } else if (alreadyCons) {
-          await alreadyCons.remove();
-        } else {
-          unapprove.cons.push(user);
-        }
-
-        await unapprove.save();
-
-        unapprove.messages.map(async (message) => {
-          const chat = await botApi.database.User.findOne({user_id: message.chat_id});
-
-          return botApi.bot.editMessageReplyMarkup(
-            message.chat_id,
-            message.message_id,
-            botApi.bot.prepareApproveInlineKeyboard(unapprove.id, unapprove.anek, chat, unapprove.pros.length, unapprove.cons.length)
-          );
-        });
-
-        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
-      }
-
-      return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
-    case 'spam':
-      if (!user.admin && !user.editor) {
-        return;
-      }
-
-      const spamAnek = await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: true});
-
-      if (!spamAnek) {
-        return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
-      }
-
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
-
-      // in case we have this in approve queue
-      const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek._id});
-
-      if (!spamApprove) {
-        return;
-      }
-
-      spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
-
-      return spamApprove.remove();
-    case 'analysis':
-      if (!user.admin && !user.editor) {
-        return;
-      }
-
-      if (!queryData[1]) {
-        return;
-      }
-
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выполняется анализ...'});
-
-      return performAnalysis(Number(queryData[1]), callbackQuery.message);
-    case 'unspam':
-      if (!user.admin && !user.editor) {
-        return;
-      }
-
-      await botApi.database.Anek.findOneAndUpdate({post_id: queryData[1]}, {spam: false, approver: user});
-      await botApi.bot.answerCallbackQuery(callbackQuery.id);
-
-      return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как нормальный.');
-    case 's_a':
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено' });
-
-      return acceptSuggest(queryData, callbackQuery, false);
-    case 's_aa':
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено анонимно' });
-
-      return acceptSuggest(queryData, callbackQuery, true);
-    case 's_d':
-      await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(queryData[1])});
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
-
-      return botApi.bot.deleteMessage(callbackQuery.from.id, callbackQuery.message.message_id);
-    case 's_da':
-      await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {public: true});
-      await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.', show_alert: true });
-
-      return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
-  }
-
-  throw new Error('Unknown callback query ' + queryData);
-});
-
 botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   const skip = Number(inlineQuery.offset || 0);
   const limit = 5;
-  let aneks = [];
+  let aneks;
 
   if (!inlineQuery.query) {
     aneks = await botApi.database.Anek.find({text: {$ne: ''}})
@@ -1252,6 +1153,123 @@ botApi.bot.on('reply', async (reply, message, user) => {
 
     return botApi.bot.sendMessage(reply.forward_from.id, 'Сообщение от службы поддержки: ' + message.text);
   }
+});
+
+botApi.bot.onCallbackQuery('s_a', async (args: string[], callbackQuery, user) => {
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено' });
+
+  return acceptSuggest(args, callbackQuery, false);
+});
+botApi.bot.onCallbackQuery('s_aa', async (args: string[], callbackQuery, user) => {
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение одобрено анонимно' });
+
+  return acceptSuggest(args, callbackQuery, true);
+});
+botApi.bot.onCallbackQuery('s_d', async (args: string[], callbackQuery, user) => {
+  await botApi.database.Suggest.findOneAndRemove({_id: botApi.database.Suggest.convertId(args[1])});
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение удалено' });
+
+  return botApi.bot.deleteMessage(callbackQuery.from.id, callbackQuery.message.message_id);
+});
+botApi.bot.onCallbackQuery('s_da', async (args: string[], callbackQuery, user) => {
+  await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(args[1])}, {public: true});
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Предложение будет опубликовано неанонимно.', show_alert: true });
+
+  return botApi.bot.editMessageReplyMarkup(callbackQuery.from.id, callbackQuery.message.message_id, botApi.bot.prepareInlineKeyboard([]));
+});
+botApi.bot.onCallbackQuery('comment', async (args: string[], callbackQuery, user) => {
+  const params: AllMessageParams = {
+    reply_to_message_id: callbackQuery.message && callbackQuery.message.message_id
+  };
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Выбираю лучшие 3 переделки...' });
+
+  const commentsResponse = await botApi.vk.getAllComments(Number(args[1]));
+  const comments = commentsResponse
+    .reduce((acc: Comment[], comment: MultipleResponse<Comment>) => acc.concat(comment.items), [])
+    .sort((a: Comment, b: Comment) => b.likes.count - a.likes.count)
+    .slice(0, 3)
+    .map((comment, index) => ({...comment, text: translate(user.language, 'th_place', {nth: (index + 1)}) + comment.text}));
+
+  return botApi.bot.sendComments(callbackQuery.message.chat.id, comments, {...params, parse_mode: ParseMode.Markdown, disable_web_page_preview: true});
+});
+botApi.bot.onCallbackQuery('attach', async (args: string[], callbackQuery, user) => {
+  const params: AllMessageParams = {
+    reply_to_message_id: callbackQuery.message && callbackQuery.message.message_id
+  };
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, { text: 'Получаю вложения...' });
+
+  let post = await botApi.vk.getPostById(Number(args[1]));
+
+  if (!post) {
+    throw new Error('Post not found');
+  }
+
+  if (!post.attachments && !post.copy_history) {
+    throw new Error('Attachments not found');
+  }
+
+  while (!post.attachments && post.copy_history) {
+    post = post.copy_history[0];
+  }
+
+  return botApi.bot.sendAttachments(callbackQuery.message.chat.id, post.attachments, params);
+});
+botApi.bot.onCallbackQuery('spam', async (args: string[], callbackQuery, user) => {
+  if (!user.admin && !user.editor) {
+    return;
+  }
+
+  const spamAnek = await botApi.database.Anek.findOneAndUpdate({post_id: args[1]}, {spam: true});
+
+  if (!spamAnek) {
+    return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек не найден'});
+  }
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Анек помечен как спам.'});
+
+  // in case we have this in approve queue
+  const spamApprove = await botApi.database.Approve.findOne({anek: spamAnek._id});
+
+  if (!spamApprove) {
+    return;
+  }
+
+  spamApprove.messages.forEach((message) => botApi.bot.deleteMessage(message.chat_id, message.message_id));
+
+  return spamApprove.remove();
+});
+botApi.bot.onCallbackQuery('unspam', async (args: string[], callbackQuery, user) => {
+  if (!user.admin && !user.editor) {
+    return;
+  }
+
+  await botApi.database.Anek.findOneAndUpdate({post_id: args[1]}, {spam: false, approver: user});
+  await botApi.bot.answerCallbackQuery(callbackQuery.id);
+
+  return botApi.bot.sendMessage(callbackQuery.message.chat.id, 'Анек помечен как нормальный.');
+});
+botApi.bot.onCallbackQuery('analysis', async (args: string[], callbackQuery, user) => {
+  if (!user.admin && !user.editor) {
+    return;
+  }
+
+  const anek = Number(args[1]);
+
+  if (!anek) {
+    return;
+  }
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выполняется анализ...'});
+
+  return performAnalysis(Number(anek), callbackQuery.message);
+});
+botApi.bot.onCallbackQuery('a_a', async (args: string[], callbackQuery, user) => {
+  return acceptVote(args[1], callbackQuery, user, true);
+});
+botApi.bot.onCallbackQuery('a_d', async (args: string[], callbackQuery, user) => {
+  return acceptVote(args[1], callbackQuery, user, false);
 });
 
 botApi.bot.on('feedback', (message: Message) => {
