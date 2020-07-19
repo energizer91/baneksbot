@@ -4,11 +4,10 @@
 import * as config from 'config';
 import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
-import {IAnek, IUser} from "../helpers/mongo";
+import {IAnek} from "../helpers/mongo";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
 import {bot, database, statistics} from '../botApi';
-import * as botApi from "../botApi";
 import * as common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
@@ -18,64 +17,7 @@ let updateInProcess = false;
 let currentUpdate = '';
 let forceDenyUpdate = false;
 
-function approveAneksTimer() {
-  if (updateInProcess) {
-    debug('Conflict: updating ' + currentUpdate + ' and approve aneks');
-
-    return;
-  }
-
-  updateInProcess = true;
-  currentUpdate = 'approve aneks';
-
-  return database.Approve.find({approveTimeout: {$lte: new Date()}})
-    .populate('anek')
-    .exec()
-    .then((approves) => {
-      if (!approves.length) {
-        return;
-      }
-
-      const readyApproves = approves.filter((approve) => approve.pros.length >= approve.cons.length);
-
-      if (readyApproves.length) {
-        debug(approves.length + ' anek(s) approve time expired. ' + readyApproves.length + ' of them approved. Start broadcasting');
-      }
-
-      const messages = approves
-        .map((approve) => approve.messages)
-        .reduce((acc, m) => acc.concat(m), []);
-
-      return bot
-        .fulfillAll(messages.map(
-          (message) =>
-            bot
-              .editMessageReplyMarkup(
-                message.chat_id,
-                message.message_id,
-                botApi.bot.prepareInlineKeyboard([])
-              )
-          )
-        )
-        .then(() => database.Approve.deleteMany(approves).exec())
-        .then(() => database.User.find({subscribed: true}).exec())
-        .then((users: IUser[]) =>
-          common.broadcastAneks(
-            users,
-            readyApproves.map((approve) => approve.anek),
-            {_rule: 'individual'}
-          )
-        );
-    })
-    .catch((err: Error) => {
-      error('Update aneks error', err);
-    })
-    .then(() => {
-      updateInProcess = false;
-    });
-}
-
-function updateAneksTimer() {
+async function updateAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and update aneks');
 
@@ -87,51 +29,45 @@ function updateAneksTimer() {
 
   const needApprove: boolean = config.get('vk.needApprove');
 
-  return common.getAneksUpdate()
-    .then((aneks) => aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek))))
-    .then((aneks) => database.Anek.insertMany(aneks))
-    .then((aneks) => aneks.filter((anek) => common.filterAnek(anek)))
-    .then((aneks: IAnek[]) => {
-      if (needApprove) {
-        return database.User.find({approver: true}).exec()
-          .then((users: IUser[]) => aneks.map((anek) => {
-            const result = new database.Approve({anek});
+  try {
+    const aneks = await common.getAneksUpdate();
+    const filteredAneks = aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek)));
+    const dbAneks = await database.Anek.insertMany(filteredAneks);
 
-            const results = users
-              .map((user) =>
-                bot.sendAnek(user.user_id, anek, {
-                  reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareApproveInlineKeyboard(result.id, anek, user))
-                })
-              );
+    if (needApprove) {
+      const approvedUsers = await database.User.find({approver: true}).exec();
+      const approves = await bot.fulfillAll(dbAneks.map(async (anek) => {
+        const result = new database.Approve({anek});
+        const message = await bot.sendAnek(config.get("telegram.editorialChannel"), anek);
+        const poll = await bot.sendApprovePoll(config.get("telegram.editorialChannel"), message, {
+          open_period: config.get("telegram.approveTimeout")
+        });
 
-            return bot
-              .fulfillAll(results)
-              .then((messages) => {
-                result.messages = messages.map((message) => ({
-                  chat_id: message.chat.id,
-                  message_id: message.message_id
-                }));
+        result.poll = poll.message_id;
 
-                return result;
-              });
-            }))
-          .then((messages) => bot.fulfillAll(messages))
-          .then((approves) => {
-            database.Approve.insertMany(approves);
+        try {
+          await approvedUsers.map((user) => {
+            bot.forwardMessage(user.user_id, poll.message_id, poll.from.id);
+            bot.forwardMessage(user.user_id, message.message_id, message.from.id);
           });
-      }
+        } catch (e) {
+          error("Unable to forward poll", e);
+        }
 
-      debug(aneks.length + ' anek(s) found. Start broadcasting.');
+        return result;
+      }));
 
-      return database.User.find({subscribed: true}).exec()
-        .then((users: IUser[]) => common.broadcastAneks(users, aneks, {_rule: 'individual'}));
-    })
-    .catch((err: Error) => {
-      error('Update aneks error', err);
-    })
-    .then(() => {
-      updateInProcess = false;
-    });
+      await database.Approve.insertMany(approves);
+    }
+
+    const users = await database.User.find({subscribed: true}).exec();
+
+    await common.broadcastAneks(users, dbAneks, {_rule: 'individual'});
+  } catch (err) {
+    error('Update aneks error', err);
+  } finally {
+    updateInProcess = false;
+  }
 }
 
 function updateLastAneksTimer() {
@@ -153,7 +89,7 @@ function updateLastAneksTimer() {
     });
 }
 
-function refreshAneksTimer() {
+async function refreshAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and refresh aneks');
 
@@ -163,13 +99,13 @@ function refreshAneksTimer() {
   updateInProcess = true;
   currentUpdate = 'refresh aneks';
 
-  return common.updateAneks()
-    .catch((err: Error) => {
-      error('Aneks refresh', err);
-    })
-    .then(() => {
-      updateInProcess = false;
-    });
+  try {
+    await common.updateAneks();
+  } catch (err) {
+    error('Aneks refresh', err);
+  } finally {
+    updateInProcess = false;
+  }
 }
 
 function synchronizeDatabase() {
@@ -190,7 +126,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-const approveAneksCron = new CronJob('25 * * * * *', approveAneksTimer, null, true);
+// const approveAneksCron = new CronJob('25 * * * * *', approveAneksTimer, null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
 process.on('message', (m: UpdaterMessages) => {
@@ -208,13 +144,13 @@ process.on('message', (m: UpdaterMessages) => {
             updateLastAneksCron.stop();
             refreshAneksCron.stop();
             synchronizeDatabaseCron.stop();
-            approveAneksCron.stop();
+            // approveAneksCron.stop();
           } else {
             updateAneksCron.start();
             updateLastAneksCron.start();
             refreshAneksCron.start();
             synchronizeDatabaseCron.start();
-            approveAneksCron.start();
+            // approveAneksCron.start();
           }
           break;
         case UpdaterMessageActions.synchronize:

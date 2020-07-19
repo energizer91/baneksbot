@@ -172,8 +172,10 @@ export function updateAneks() {
 export function filterAnek(anek: Anek | IAnek): boolean {
   const donate = (anek.text || '').indexOf('#донат') >= 0;
   const ads = anek.marked_as_ads;
+  const empty = !anek.text || !anek.text.length;
+  const long = anek.text && anek.text.length >= 2000;
 
-  return !donate && !ads;
+  return !donate && !ads && !empty && !long;
 }
 
 export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: AllMessageParams): Promise<void> {

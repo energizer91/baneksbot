@@ -11,6 +11,11 @@ export enum ParseMode {
   HTML = 'HTML'
 }
 
+export enum PollType {
+  Regular = 'regular',
+  Quiz = 'quiz'
+}
+
 export type UserId = number | string;
 
 export type User = {
@@ -489,7 +494,9 @@ export type Update = {
   edited_channel_post?: Message,
   inline_query?: InlineQuery,
   callback_query?: CallbackQuery,
-  pre_checkout_query?: PreCheckoutQuery
+  pre_checkout_query?: PreCheckoutQuery,
+  poll?: Poll,
+  poll_answer?: PollAnswer
 };
 
 export type MessageParams = {
@@ -545,6 +552,18 @@ type InvoiceParams = {
   reply_markup?: string
 };
 
+export type PollParams = {
+  is_anonymous?: boolean,
+  type?: PollType,
+  allow_multiple_answers?: boolean,
+  correct_option_id?: number,
+  explanation?: string,
+  explanation_parse_mode?: ParseMode,
+  open_period?: number,
+  close_date?: number,
+  is_closed?: boolean
+};
+
 export type LabeledPrice = {
   label: string,
   amount: number
@@ -579,6 +598,34 @@ export type AdminRights = {
   can_pin_messages?: boolean,
   can_promote_members?: boolean
 };
+
+export type PollOption = {
+  text: string,
+  voter_count: number
+};
+
+export type PollAnswer = {
+  poll_id: string,
+  user: User,
+  option_ids: number[]
+};
+
+export type Poll = {
+  id: string,
+  question: string,
+  options: PollOption[],
+  total_voter_count: number,
+  is_closed: boolean,
+  is_anonymous: boolean,
+  type: PollType,
+  allow_multiple_answers: boolean,
+  correct_option_id?: number,
+  explanation?: string,
+  explanation_entities?: MessageEntity[],
+  open_period?: number,
+  close_date?: number
+};
+
 
 class Telegram extends NetworkModel {
   public endpoint: string = `${config.get('telegram.url')}${config.get('telegram.token')}`;
@@ -726,7 +773,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendSticker(userId: UserId, stickerId: string, params?: AllMessageParams): Promise<Message> {
+  public async sendSticker(userId: UserId, stickerId: string, params?: AllMessageParams): Promise<Message> {
     if (!userId) {
       throw new Error('No user specified!');
     }
@@ -740,6 +787,29 @@ class Telegram extends NetworkModel {
     return this.sendRequest('sendSticker', {
       chat_id: userId,
       sticker: stickerId,
+      ...params
+    });
+  }
+
+  public async sendPoll(chatId: UserId, question: string, options: string[], params?: PollParams & AllMessageParams): Promise<Message> {
+    if (!chatId) {
+      throw new Error('No chat specified!');
+    }
+
+    if (!question) {
+      throw new Error('No question specified!');
+    }
+
+    if (!options || !options.length) {
+      throw new Error('No options specified!');
+    }
+
+    debug('Sending poll', chatId);
+
+    return this.sendRequest('sendPoll', {
+      chat_id: chatId,
+      options,
+      question,
       ...params
     });
   }

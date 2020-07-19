@@ -183,18 +183,10 @@ export interface IStatistics extends mongoose.Document {
   };
 }
 
-export type ApproveMessage = {
-  chat_id: number,
-  message_id: number
-};
-
 export interface IApprove extends mongoose.Document {
   anek: IAnek;
   approveTimeout: Date;
-  approver: IUser;
-  pros: mongoose.Types.DocumentArray<IUser>;
-  cons: mongoose.Types.DocumentArray<IUser>;
-  messages: ApproveMessage[];
+  poll: number;
 }
 
 export interface IAnekModel extends mongoose.Model<IAnek> {
@@ -370,12 +362,12 @@ const statisticsSchema = new mongoose.Schema({
 const approveSchema = new mongoose.Schema({
   anek: {type: mongoose.Schema.Types.ObjectId, ref: 'Anek'},
   approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
-  cons: [userSchema],
-  messages: [{
-    chat_id: Number,
-    message_id: Number
-  }],
-  pros: [userSchema]
+  date: {
+    default: Date.now,
+    expires: 60 * 10,
+    type: Date
+  },
+  poll: Number
 });
 
 anekSchema.statics.random = function() {

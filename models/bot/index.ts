@@ -4,7 +4,7 @@ import {cloneDeep} from 'lodash';
 import {IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
-import Menu, {Row} from '../../helpers/menu';
+import Menu from '../../helpers/menu';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 
 import Telegram, {
@@ -12,16 +12,22 @@ import Telegram, {
   CallbackQuery,
   ChatAction,
   InlineKeyboardButton,
-  InlineQuery, InputMediaPhoto, MediaGroup,
+  InlineQuery,
+  InputMediaPhoto,
+  MediaGroup,
   Message,
-  MessageParams, OtherParams,
+  MessageParams,
+  OtherParams,
+  Poll,
+  PollAnswer as TelegramPollAnswer,
+  PollParams,
   PreCheckoutQuery,
   SuccessfulPayment,
   Update,
   User,
   UserId
 } from '../telegram';
-import Vk, {Attachment as VkAttachment, Comment, PollAnswer} from '../vk';
+import Vk, {Attachment as VkAttachment, Comment, PollAnswer as VkPollAnswer} from '../vk';
 
 type SuggestMessage = {
   caption: string,
@@ -49,6 +55,8 @@ interface IBot extends Telegram {
   on(event: 'leftChatMember', callback: (member: User, message: Message, user: IUser) => void): void | Promise<void>;
   on(event: 'suggest', callback: (suggest: Message, user: IUser) => void): void | Promise<void>;
   on(event: 'reply', callback: (reply: Message, message: Message, user: IUser) => void): void | Promise<void>;
+  on(event: 'poll', callback: (poll: Poll, user: IUser) => void): void | Promise<void>;
+  on(event: 'pollAnswer', callback: (pollAnswer: TelegramPollAnswer, user: IUser) => void): void | Promise<void>;
 }
 
 class Bot extends Telegram implements IBot {
@@ -128,7 +136,7 @@ class Bot extends Telegram implements IBot {
         return this.sendAudio(userId, audio, {title: attachment.audio.title, performer: attachment.audio.artist, ...params});
       case 'poll':
         const poll = 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || [])
-            .map((answer: PollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
+            .map((answer: VkPollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
             .join('\n');
 
         return this.sendMessageWithChatAction(userId, ChatAction.typing, poll, params);
@@ -159,12 +167,6 @@ class Bot extends Telegram implements IBot {
     return this.fulfillAll(attachments
         .filter(Boolean)
         .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
-  }
-
-  public createApproveButtons(approveId: string, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
-    return new Row()
-      .addButton(this.createButton('👍 ' + pros, 'a_a ' + approveId))
-      .addButton(this.createButton('👎 ' + cons, 'a_d ' + approveId));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
@@ -210,12 +212,6 @@ class Bot extends Telegram implements IBot {
     }
 
     return buttons;
-  }
-
-  public prepareApproveInlineKeyboard(approveId: string, anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
-    return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: true}).concat([
-      this.createApproveButtons(approveId, pros, cons)
-    ]));
   }
 
   public async sendAnek(userId: UserId, anek: IAnek, params: AllMessageParams = {}): Promise<Message> {
@@ -355,6 +351,13 @@ class Bot extends Telegram implements IBot {
     return super.sendMediaGroup(userId, mediaGroup, params);
   }
 
+  public async sendApprovePoll(chatId: UserId, anek: Message, params?: AllMessageParams & PollParams): Promise<Message> {
+    return this.sendPoll(config.get("telegram.editorialChannel"), "Хорош?", ["Да", "Нет"], {
+      ...params,
+      reply_to_message_id: anek.message_id
+    });
+  }
+
   public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {
     if (!config.get('telegram.baneksChannel')) {
       return;
@@ -410,6 +413,14 @@ class Bot extends Telegram implements IBot {
   public performSuccessfulPayment(successfulPayment: SuccessfulPayment, user: IUser) {
     debug('Performing successful payment from ' + this.getUserInfo(user));
     return this.emit('successfulPayment', successfulPayment, user);
+  }
+
+  public performPoll(poll: Poll, user: IUser) {
+    return this.emit('poll', poll, user);
+  }
+
+  public performPollAnswer(pollAnswer: TelegramPollAnswer, user: IUser) {
+    return this.emit('pollAnswer', pollAnswer, user);
   }
 
   public performNewChatMembers(members: User[], message: Message, user: IUser) {
@@ -513,6 +524,14 @@ class Bot extends Telegram implements IBot {
 
     if (update.pre_checkout_query) {
       return this.performPreCheckoutQuery(update.pre_checkout_query, user);
+    }
+
+    if (update.poll) {
+      return this.performPoll(update.poll, user);
+    }
+
+    if (update.poll_answer) {
+      return this.performPollAnswer(update.poll_answer, user);
     }
 
     return [];
