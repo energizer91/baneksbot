@@ -17,6 +17,47 @@ let updateInProcess = false;
 let currentUpdate = '';
 let forceDenyUpdate = false;
 
+async function approveAneksTimer() {
+  if (updateInProcess) {
+    debug('Conflict: updating ' + currentUpdate + ' and approve aneks');
+
+    return;
+  }
+
+  updateInProcess = true;
+  currentUpdate = 'approve aneks';
+
+  const approves = await database.Approve.find({approveTimeout: {$lte: new Date()}})
+    .populate('anek')
+    .exec();
+
+  if (!approves.length) {
+    return;
+  }
+
+  const readyApproves = approves.filter((approve) => approve.pros >= approve.cons);
+
+  if (readyApproves.length) {
+    debug(approves.length + ' anek(s) approve time expired. ' + readyApproves.length + ' of them approved. Start broadcasting');
+  }
+
+  await database.Approve.deleteMany(approves).exec();
+
+  const users = await database.User.find({subscribed: true}).exec();
+
+  try {
+    common.broadcastAneks(
+      users,
+      readyApproves.map((approve) => approve.anek),
+      {_rule: 'individual'}
+    );
+  } catch (err) {
+    error('Update aneks error', err);
+  } finally {
+    updateInProcess = false;
+  }
+}
+
 async function updateAneksTimer() {
   if (updateInProcess) {
     debug('Conflict: updating ' + currentUpdate + ' and update aneks');
@@ -39,16 +80,14 @@ async function updateAneksTimer() {
       const approves = await bot.fulfillAll(dbAneks.map(async (anek) => {
         const result = new database.Approve({anek});
         const message = await bot.sendAnek(config.get("telegram.editorialChannel"), anek);
-        const poll = await bot.sendApprovePoll(config.get("telegram.editorialChannel"), message, {
-          open_period: config.get("telegram.approveTimeout")
-        });
+        const poll = await bot.sendApprovePoll(config.get("telegram.editorialChannel"), message);
 
         result.poll = poll.message_id;
 
         try {
           await approvedUsers.map((user) => {
-            bot.forwardMessage(user.user_id, poll.message_id, poll.from.id);
-            bot.forwardMessage(user.user_id, message.message_id, message.from.id);
+            bot.forwardMessage(user.user_id, poll.message_id, poll.chat.id);
+            bot.forwardMessage(user.user_id, message.message_id, message.chat.id);
           });
         } catch (e) {
           error("Unable to forward poll", e);
@@ -80,7 +119,7 @@ function updateLastAneksTimer() {
   updateInProcess = true;
   currentUpdate = 'update last anek';
 
-  return common.getLastAneks(100)
+  return common.getLastAneks()
     .catch((err: Error) => {
       error('Last aneks error', err);
     })
@@ -126,7 +165,7 @@ const updateAneksCron = new CronJob('*/30 * * * * *', updateAneksTimer, null, tr
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', updateLastAneksTimer, null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', refreshAneksTimer, null, true);
-// const approveAneksCron = new CronJob('25 * * * * *', approveAneksTimer, null, true);
+const approveAneksCron = new CronJob('25 * * * * *', approveAneksTimer, null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
 process.on('message', (m: UpdaterMessages) => {
@@ -144,13 +183,13 @@ process.on('message', (m: UpdaterMessages) => {
             updateLastAneksCron.stop();
             refreshAneksCron.stop();
             synchronizeDatabaseCron.stop();
-            // approveAneksCron.stop();
+            approveAneksCron.stop();
           } else {
             updateAneksCron.start();
             updateLastAneksCron.start();
             refreshAneksCron.start();
             synchronizeDatabaseCron.start();
-            // approveAneksCron.start();
+            approveAneksCron.start();
           }
           break;
         case UpdaterMessageActions.synchronize:

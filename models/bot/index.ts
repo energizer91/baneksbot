@@ -352,9 +352,12 @@ class Bot extends Telegram implements IBot {
   }
 
   public async sendApprovePoll(chatId: UserId, anek: Message, params?: AllMessageParams & PollParams): Promise<Message> {
-    return this.sendPoll(config.get("telegram.editorialChannel"), "Хорош?", ["Да", "Нет"], {
-      ...params,
-      reply_to_message_id: anek.message_id
+    debug("Sending approve poll", chatId, anek.message_id);
+
+    return this.sendPoll(chatId, "Хорош?", ["Да", "Нет"], {
+      open_period: config.get("vk.approveTimeout"),
+      reply_to_message_id: anek.message_id,
+      ...params
     });
   }
 

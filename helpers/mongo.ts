@@ -186,7 +186,9 @@ export interface IStatistics extends mongoose.Document {
 export interface IApprove extends mongoose.Document {
   anek: IAnek;
   approveTimeout: Date;
+  cons: number;
   poll: number;
+  pros: number;
 }
 
 export interface IAnekModel extends mongoose.Model<IAnek> {
@@ -362,12 +364,9 @@ const statisticsSchema = new mongoose.Schema({
 const approveSchema = new mongoose.Schema({
   anek: {type: mongoose.Schema.Types.ObjectId, ref: 'Anek'},
   approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
-  date: {
-    default: Date.now,
-    expires: 60 * 10,
-    type: Date
-  },
-  poll: Number
+  cons: {type: Number, default: 0},
+  poll: Number,
+  pros: {type: Number, default: 0}
 });
 
 anekSchema.statics.random = function() {

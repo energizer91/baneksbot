@@ -98,7 +98,7 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
   return getAneksUpdate(skip + limit, limit, aneks);
 }
 
-export function getLastAneks(count: number) {
+export function getLastAneks(count: number = 100) {
   return botApi.vk.getPosts(0, count)
     .then((response) => {
       return response.items.map((anek) => {

@@ -610,7 +610,7 @@ export type PollAnswer = {
   option_ids: number[]
 };
 
-export type Poll = {
+export type BasePoll = {
   id: string,
   question: string,
   options: PollOption[],
@@ -618,13 +618,23 @@ export type Poll = {
   is_closed: boolean,
   is_anonymous: boolean,
   type: PollType,
-  allow_multiple_answers: boolean,
-  correct_option_id?: number,
-  explanation?: string,
-  explanation_entities?: MessageEntity[],
   open_period?: number,
   close_date?: number
 };
+
+export type RegularPoll = {
+  type: PollType.Regular,
+  allow_multiple_answers: boolean
+};
+
+export type QuizPoll = {
+  type: PollType.Quiz,
+  correct_option_id?: number,
+  explanation?: string,
+  explanation_entities?: MessageEntity[],
+};
+
+export type Poll = BasePoll & RegularPoll & QuizPoll;
 
 
 class Telegram extends NetworkModel {
@@ -670,12 +680,12 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public forwardMessage(userId: UserId, messageId: number, fromId: UserId, params?: AllMessageParams): Promise<Message> {
-    debug('Forwarding message', userId, messageId, fromId);
+  public forwardMessage(userId: UserId, messageId: number, fromChatId: UserId, params?: AllMessageParams): Promise<Message> {
+    debug('Forwarding message', userId, messageId, fromChatId);
 
     return this.sendRequest('forwardMessage', {
       chat_id: userId,
-      from_chat_id: fromId,
+      from_chat_id: fromChatId,
       message_id: messageId,
       ...params
     });

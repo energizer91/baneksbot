@@ -192,18 +192,17 @@ class Vk extends NetworkModel {
       });
   }
 
-  public getPostById(postId: number): Promise<Anek | void> {
+  public async getPostById(postId: number): Promise<Anek | void> {
     debug('Making VK request wall.getById', postId);
 
-    return this.executeCommand('wall.getById', {
+    const posts = await this.executeCommand<Anek[]>('wall.getById', {
       _key: String(this.groupId),
       posts: this.groupId + '_' + postId
-    })
-      .then((posts: Anek[]) => {
-        if (posts.length && posts[0]) {
-          return posts[0];
-        }
-      });
+    });
+
+    if (posts.length && posts[0]) {
+      return posts[0];
+    }
   }
 
   public getPosts(offset?: number, count?: number): Promise<MultipleResponse<Anek>> {
@@ -217,24 +216,24 @@ class Vk extends NetworkModel {
     });
   }
 
-  public getCommentsCount(postId: number): Promise<number> {
-    return this.getComments(postId, 0, 1)
-      .then((comments: MultipleResponse<Comment>) => comments.count || 0);
+  public async getCommentsCount(postId: number): Promise<number> {
+    const comments = await this.getComments(postId, 0, 1);
+
+    return comments.count || 0;
   }
 
-  public getPostsCount(): Promise<{count: number, hasPinned: boolean}> {
-    return this.getPosts(0, 1)
-      .then((response: MultipleResponse<Anek>) => {
-        const count = response.count || 0;
+  public async getPostsCount(): Promise<{ count: number, hasPinned: boolean }> {
+    const response = await this.getPosts(0, 1);
+    const count = response.count || 0;
+    const hasPinned = response.items ? response.items[0].is_pinned : false;
 
-        return {
-          count,
-          hasPinned: response.items ? response.items[0].is_pinned : false
-        };
-      });
+    return {
+      count,
+      hasPinned
+    };
   }
 
-  public getComments(postId: number, offset?: number, count?: number): Promise<MultipleResponse<Comment>> {
+  public async getComments(postId: number, offset: number = 0, count: number = 100): Promise<MultipleResponse<Comment>> {
     if (!postId) {
       throw new Error('Post ID is not defined');
     }

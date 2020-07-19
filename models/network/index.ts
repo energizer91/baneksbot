@@ -14,15 +14,15 @@ export enum Methods {
 }
 
 export type RequestConfig = {
-    url: string,
-    method: Methods
+  url: string,
+  method: Methods
 };
 
 export type RequestParams = {
-    _key?: string,
-    _rule?: string,
-    _getBackoff?: (error: AxiosError) => number,
-    _stream?: boolean,
+  _key?: string,
+  _rule?: string,
+  _getBackoff?: (error: AxiosError) => number,
+  _stream?: boolean,
 };
 
 const queue = new Queue();

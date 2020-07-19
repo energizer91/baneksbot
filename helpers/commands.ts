@@ -560,10 +560,8 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
     return;
   }
 
-  const approve = new botApi.database.Approve({anek});
-
+  const approve = new botApi.database.Approve({anek, approveTimeout: new Date(Date.now() + 30 * 1000)});
   const groups = await botApi.database.User.find({approver: true});
-
   const anekMessage = await botApi.bot.sendAnek(config.get("telegram.editorialChannel"), anek, {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {editor: true, disableStandardButtons: true})))
   });
@@ -577,8 +575,8 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
 
   approve.poll = poll.message_id;
 
-  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, anekMessage.message_id, anekMessage.from.id)));
-  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, poll.message_id, poll.from.id)));
+  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, anekMessage.message_id, anekMessage.chat.id)));
+  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, poll.message_id, poll.chat.id)));
 
   await approve.save();
 });
@@ -1233,6 +1231,10 @@ botApi.bot.onCallbackQuery('analysis', async (args: string[], callbackQuery, use
 });
 
 botApi.bot.on('poll', async (poll: Poll) => {
+  if (poll.is_closed) {
+    return;
+  }
+
   const dbPoll = await botApi.database.Approve
     .findOne({poll: poll.id})
     .populate("anek")
@@ -1242,20 +1244,10 @@ botApi.bot.on('poll', async (poll: Poll) => {
     return;
   }
 
-  const {anek} = dbPoll;
+  dbPoll.pros = poll.options[0].voter_count;
+  dbPoll.cons = poll.options[1].voter_count;
 
-  await dbPoll.remove();
-
-  if (poll.options[0].voter_count < poll.options[1].voter_count) {
-    return;
-  }
-
-  if (poll.is_closed) {
-    const users = await botApi.database.User.find({subscribed: true});
-
-    common.broadcastAneks(users, [anek], {_rule: 'individual'})
-      .catch((e) => debugError("poll broadcast error", e));
-  }
+  await dbPoll.save();
 });
 
 botApi.bot.on('feedback', (message: Message) => {
