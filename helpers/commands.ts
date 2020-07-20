@@ -280,7 +280,7 @@ botApi.bot.onCommand('disable_update', (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: false});
+  botApi.sendUpdaterMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: false});
 
   return botApi.bot.sendMessage(message.from.id, 'Апдейтер отключен');
 });
@@ -289,7 +289,7 @@ botApi.bot.onCommand('enable_update', (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: true});
+  botApi.sendUpdaterMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.update, value: true});
 
   return botApi.bot.sendMessage(message.from.id, 'Апдейтер включен');
 });
@@ -309,7 +309,7 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.updater.sendMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.synchronize, value: true});
+  botApi.sendUpdaterMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.synchronize, value: true});
 
   return botApi.bot.sendMessage(message.from.id, 'synchronize start');
 });

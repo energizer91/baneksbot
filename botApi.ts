@@ -82,7 +82,7 @@ export const connect = (app: Application) => {
 
 let dbUpdater: cp.ChildProcess = null;
 
-async function startDaemon() {
+export async function startDaemon() {
   if (process.env.NODE_ENV !== 'production') {
     process.execArgv.push('--inspect=' + (40894));
   }
@@ -145,7 +145,7 @@ async function startDaemon() {
   });
 }
 
-function sendUpdaterMessage(message: UpdaterMessages) {
+export function sendUpdaterMessage(message: UpdaterMessages) {
   if (!dbUpdater || !dbUpdater.connected) {
     throw new Error('Updater is not connected');
   }
@@ -156,9 +156,3 @@ function sendUpdaterMessage(message: UpdaterMessages) {
 
   dbUpdater.send(message);
 }
-
-export const updater = {
-  ...dbUpdater,
-  connect: startDaemon,
-  sendMessage: sendUpdaterMessage
-};
