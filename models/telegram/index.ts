@@ -16,7 +16,58 @@ export enum PollType {
   Quiz = 'quiz'
 }
 
+export enum MessageEntityType {
+  Mention = 'mention',
+  Hashtag = 'hashtag',
+  Cashtag = 'cashtag',
+  BotCommand = 'bot_command',
+  Email = 'email',
+  PhoneNumber = 'phone_number',
+  Bold = 'bold',
+  Italic = 'italic',
+  Underline = 'underline',
+  Strikethrough = 'strikethrough',
+  Code = 'code',
+  Pre = 'pre',
+  TextLink = 'text_link',
+  TextMention = 'text_mention'
+}
+
 export type UserId = number | string;
+
+type ResponseParameters = {
+  migrate_to_chat_id?: number,
+  retry_after?: number
+};
+
+export type TelegramSuccessfulResponse<T> = {
+  ok: true;
+  result: T;
+};
+
+export type TelegramErrorResponse = {
+  ok: false;
+  error_code: number;
+  description: string;
+  parameters?: ResponseParameters;
+};
+
+export type TelegramResponse<T> = TelegramSuccessfulResponse<T> | TelegramErrorResponse;
+
+export type WebhookInfo = {
+  url: string,
+  has_custom_certificate: boolean,
+  pending_update_count: number,
+  last_error_date?: number,
+  last_error_message?: string,
+  max_connections?: number,
+  allowed_updates?: string[]
+};
+
+export type BotCommand = {
+  command: string,
+  description: string
+};
 
 export type User = {
   id: number,
@@ -35,8 +86,13 @@ export type Chat = {
   username?: string,
   first_name?: string,
   last_name?: string,
-  all_members_are_administrators?: boolean,
-  language_code?: string
+  photo?: ChatPhoto,
+  description?: string,
+  invite_link?: string,
+  pinned_message?: Message,
+  slow_mode_delay?: number,
+  sticker_set_name?: string,
+  can_set_sticker_set?: boolean
 };
 
 /**
@@ -52,7 +108,8 @@ export type Message = {
   forward_signature?: string,
   forward_date?: number,
   reply_to_message?: Message,
-  editt_date?: number,
+  via_bot?: boolean,
+  edit_date?: number,
   media_group_id?: string,
   author_signature?: string,
   text?: string,
@@ -88,7 +145,7 @@ export type Message = {
 };
 
 type MessageEntity = {
-  type: string,
+  type: MessageEntityType,
   offset: number,
   length: number,
   url?: string,
@@ -206,8 +263,10 @@ export type ReplyKeyboardRemove = {
   selective?: true
 };
 
+export type InlineKeyboard = InlineKeyboardButton[][];
+
 export type InlineKeyboardMarkup = {
-  inline_keyboard: InlineKeyboardButton[][]
+  inline_keyboard: InlineKeyboard
 };
 
 export type InlineKeyboardButton = {
@@ -259,11 +318,6 @@ type ChatMember = {
   can_add_web_page_previews?: boolean
 };
 
-type ResponseParameters = {
-  migrate_to_chat_id?: number,
-  retry_after?: number
-};
-
 interface InputMedia {
   type: string;
   media: string;
@@ -306,11 +360,6 @@ interface InputMediaDocument extends InputMedia {
 }
 
 type InputFile = ReadableStream;
-
-type TextAttachment = {
-  type: 'text',
-  text: string
-};
 
 type Game = {
   title: string,
@@ -501,7 +550,7 @@ export type Update = {
 
 export type MessageParams = {
   caption?: string,
-  chat_id?: number,
+  chat_id?: UserId,
   remove_keyboard?: boolean,
   reply_to_message_id?: number,
   disable_notification?: boolean
@@ -571,15 +620,6 @@ export type LabeledPrice = {
 
 export type AllMessageParams =  MessageParams & RequestParams & OtherParams;
 
-export type TelegramError = {
-  ok: false,
-  error_code: number,
-  description: string,
-  parameters?: {
-    retry_after?: number
-  }
-};
-
 export enum ChatAction {
   typing = 'typing',
   uploadPhoto = 'upload_photo',
@@ -642,7 +682,7 @@ class Telegram extends NetworkModel {
   public individualRule: string = config.get('telegram.rules.individualMessage');
   public groupRule: string = config.get('telegram.rules.groupMessage');
 
-  public getMe(): Promise<Message> {
+  public async getMe(): Promise<User> {
     return this.sendRequest('getMe');
   }
 
@@ -733,7 +773,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendChatAction(userId: UserId, action: ChatAction): Promise<boolean> {
+  public async sendChatAction(userId: UserId, action: ChatAction): Promise<boolean> {
     debug('Sending chat action', userId, action);
 
     return this.sendRequest('sendChatAction', {
@@ -756,7 +796,7 @@ class Telegram extends NetworkModel {
   public async editMessageReplyMarkup(chatId: UserId, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
     debug('Editing message markup', chatId, messageId, markup);
 
-    return this.sendRequest('editMessageReplyMarkup', {
+    return this.sendRequest<boolean>('editMessageReplyMarkup', {
       chat_id: chatId,
       message_id: messageId,
       reply_markup: this.prepareReplyMarkup.apply(this, markup)
@@ -824,7 +864,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public answerInlineQuery(inlineId: string, results: any[], nextOffset = 0): Promise<boolean> {
+  public async answerInlineQuery(inlineId: string, results: InlineQueryResult[], nextOffset = 0): Promise<boolean> {
     return this.sendRequest('answerInlineQuery', {
       _key: inlineId,
       _rule: config.get('telegram.rules.inlineQuery'),
@@ -835,7 +875,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public sendInvoice(userId: UserId, invoice: InvoiceParams): Promise<Message> {
+  public async sendInvoice(userId: UserId, invoice: InvoiceParams): Promise<Message> {
     debug('Sending invoice', userId, invoice);
 
     return this.sendRequest('sendInvoice', {
@@ -845,7 +885,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public async answerPreCheckoutQuery(preCheckoutQueryId: string, ok: boolean = true, error?: string) {
+  public async answerPreCheckoutQuery(preCheckoutQueryId: string, ok: boolean = true, error?: string): Promise<boolean> {
     if (!preCheckoutQueryId) {
       throw new Error('PreCheckoutQuery id is missing');
     }
@@ -857,7 +897,7 @@ class Telegram extends NetworkModel {
     });
   }
 
-  public promoteChatMember(chatId: UserId, userId: number, rights: AdminRights, params?: AllMessageParams) {
+  public async promoteChatMember(chatId: UserId, userId: number, rights: AdminRights, params?: AllMessageParams): Promise<boolean> {
     return this.sendRequest('promoteChatMember', {
       chat_id: chatId,
       user_id: userId,
@@ -886,7 +926,7 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
   }
 
-  public async sendMediaGroup(userId: number | string, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
+  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
     debug('Sending media group', userId, mediaGroup, params);
 
     return this.sendRequest('sendMediaGroup', {
@@ -907,28 +947,72 @@ class Telegram extends NetworkModel {
     return this.sendMessage(userId, message, params);
   }
 
-  public getWebhookInfo(): Promise<Message> {
+  public async getWebhookInfo(): Promise<WebhookInfo> {
     return this.sendRequest('getWebhookInfo');
   }
 
-  public async answerCallbackQuery(queryId: string, payload?: AnswerCallbackQuery): Promise<Message> {
+  public async getChatMembersCount(chatId: UserId): Promise<number> {
+    return this.sendRequest('getChatMembersCount', {
+      chat_id: chatId
+    });
+  }
+
+  public async getChatMember(chatId: UserId, userId: number): Promise<ChatMember> {
+    return this.sendRequest('getChatMember', {
+      chat_id: chatId,
+      user_id: userId
+    });
+  }
+
+  public async getUserProfilePhotos(userId: number, offset: number = 0, limit: number = 100): Promise<UserProfilePhotos> {
+    return this.sendRequest('getUserProfilePhotos', {
+      limit,
+      offset,
+      user_id: userId
+    });
+  }
+
+  public async getStickerSet(name: string): Promise<StickerSet> {
+    return this.sendRequest('getStickerSet', {
+      name
+    });
+  }
+
+  public async getFile(fileId: string): Promise<File> {
+    return this.sendRequest('getFile', {
+      file_id: fileId
+    });
+  }
+
+  public async getMyCommands(): Promise<BotCommand[]> {
+    return this.sendRequest('getMyCommands');
+  }
+
+  public async setMyCommands(commands: BotCommand[]): Promise<boolean> {
+    return this.sendRequest('setMyCommands', {
+      commands
+    });
+  }
+
+  public async answerCallbackQuery(queryId: string, payload?: AnswerCallbackQuery): Promise<boolean> {
     debug('Answering callback query', queryId, payload);
 
     if (!queryId) {
       throw new Error('Callback query id is not specified');
     }
 
-    return this.sendRequest('answerCallbackQuery', {
-      _key: Number(queryId),
-      _rule: config.get('telegram.rules.callbackQuery'),
-      callback_query_id: queryId,
-      ...payload
-    })
-      .catch((error: Error) => {
-        debugError(error);
-
-        return {};
+    try {
+      return this.sendRequest<boolean>('answerCallbackQuery', {
+        _key: Number(queryId),
+        _rule: config.get('telegram.rules.callbackQuery'),
+        callback_query_id: queryId,
+        ...payload
       });
+    } catch (error) {
+      debugError(error);
+
+      return false;
+    }
   }
 
   public createButton(text: string, callbackData: string, params?: InlineKeyboardButton): InlineKeyboardButton {
@@ -939,7 +1023,7 @@ class Telegram extends NetworkModel {
     };
   }
 
-  protected sendRequest(request: string, params: AllMessageParams | {} = {}, method: Methods = Methods.POST) {
+  protected async sendRequest<T>(request: string, params: AllMessageParams | {} = {}, method: Methods = Methods.POST): Promise<T> {
     const axiosConfig: RequestConfig = {
       method,
       url: `${this.endpoint}/${request}`
@@ -957,7 +1041,13 @@ class Telegram extends NetworkModel {
       requestParams._rule = Number(requestParams._key) > 0 ? this.individualRule : this.groupRule;
     }
 
-    return this.makeRequest(axiosConfig, requestParams).then((response: any) => response ? response.result : {});
+    const response: TelegramResponse<T> = await this.makeRequest(axiosConfig, requestParams);
+
+    if (response.ok === false) {
+      throw new Error(response.description);
+    }
+
+    return response.result;
   }
 }
 

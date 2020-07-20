@@ -4,7 +4,7 @@
 
 import * as config from 'config';
 import * as botApi from '../botApi';
-import {AllMessageParams, TelegramError} from '../models/telegram';
+import {AllMessageParams, TelegramErrorResponse} from '../models/telegram';
 import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
@@ -186,22 +186,25 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: Al
   }
 
   Promise.all(aneks
-    .map((anek) => botApi.bot.fulfillAll(users.map((user) => botApi.bot.sendAnek(user.user_id, anek, {
-      ...params,
-      forceAttachments: user.force_attachments
-    })
-      .catch((error: TelegramError) => {
-        if ((!error.ok && (error.error_code === 403)) || (
-          error.description === 'Bad Request: chat not found' ||
-          error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
-          error.description === 'Bad Request: chat_id is empty')) {
-          errorMessages.add(Number(user.user_id));
+    .map((anek) => botApi.bot.fulfillAll(
+      users.map((user) =>
+        botApi.bot
+          .sendAnek(user.user_id, anek, {
+            ...params,
+            forceAttachments: user.force_attachments
+          })
+          .catch((error: TelegramErrorResponse) => {
+            if ((!error.ok && (error.error_code === 403)) || (
+              error.description === 'Bad Request: chat not found' ||
+              error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
+              error.description === 'Bad Request: chat_id is empty')) {
+              errorMessages.add(Number(user.user_id));
 
-          return {};
-        }
+              return {};
+            }
 
-        return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
-      })))))
+            return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
+          })))))
     .then(() => {
       const usersArray: number[] = Array.from(errorMessages);
 

@@ -11,12 +11,14 @@ class EventEmitter {
     this.events.get(event).push(callback);
   }
 
-  public emit(event: string, ...params: any): Promise<any[]> {
+  public async emit(event: string, ...params: any): Promise<any[]> {
     if (this.events.has(event)) {
-      return Promise.all(this.events.get(event).map((callback: Callback) => callback(...params))); // eslint-disable-line standard/no-callback-literal
+      return Promise.all(this.events.get(event).map((callback: Callback) =>
+        callback(...params))
+      );
     }
 
-    return Promise.resolve([]);
+    return [];
   }
 }
 

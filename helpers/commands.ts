@@ -15,11 +15,8 @@ import {
 } from "../models/telegram";
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
-import debugFactory from './debug';
 import {languageExists, translate} from './dictionary';
 import {IAnek, IAnekModel, IUser} from './mongo';
-
-const debugError = debugFactory('baneks-node:commands:error', true);
 
 let debugTimer: NodeJS.Timeout;
 
@@ -88,9 +85,11 @@ async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, 
 
   const foundUser = await botApi.database.User.findOne({_id: suggest.user});
 
-  if (sendMessage.ok && sendMessage.result) {
-    return botApi.bot.sendSuggest(foundUser.user_id, sendMessage.result, {native: true});
+  if (!foundUser) {
+    return;
   }
+
+  return botApi.bot.forwardMessage(foundUser.user_id, sendMessage.message_id, sendMessage.chat.id);
 }
 
 const shlyapaAnswers = [
@@ -259,11 +258,9 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
 
   const sentMessage = await botApi.bot.sendMessage(message.from.id, generateDebug(), params);
 
-  const editedMessage = sentMessage.message_id;
-
   debugTimer = setInterval(async () => {
     try {
-      await botApi.bot.editMessageText(message.from.id, editedMessage, generateDebug(), params);
+      await botApi.bot.editMessageText(sentMessage.from.id, sentMessage.message_id, generateDebug(), params);
     } catch (e) {
       clearInterval(debugTimer);
     }
@@ -785,9 +782,9 @@ botApi.bot.onCommand('subscribe', async (command, message) => {
     if (!subscriber.subscribed) {
       await botApi.user.updateWith(subscriber, {subscribed: true});
       return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'subscribe_success', {first_name: botApi.bot.getUserInfo(subscriber)}));
-    } else {
-      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'subscribe_fail'));
     }
+
+    return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'subscribe_fail'));
   }
 });
 botApi.bot.onCommand('unsubscribe', async (command, message) => {
@@ -803,9 +800,9 @@ botApi.bot.onCommand('unsubscribe', async (command, message) => {
     if (subscriber.subscribed) {
       await botApi.user.updateWith(subscriber, {subscribed: false});
       return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'unsubscribe_success', {first_name: botApi.bot.getUserInfo(subscriber)}));
-    } else {
-      return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'unsubscribe_fail'));
     }
+
+    return botApi.bot.sendMessage(subscriber.user_id, translate(subscriber.language, 'unsubscribe_fail'));
   }
 });
 
@@ -826,9 +823,9 @@ botApi.bot.onCommand('approve', async (command, message, user) => {
     if (!approver.approver) {
       await botApi.user.updateWith(approver, {approver: true});
       return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approve_success', {first_name: botApi.bot.getUserInfo(approver)}));
-    } else {
-      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approve_fail'));
     }
+
+    return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'approve_fail'));
   }
 });
 botApi.bot.onCommand('unapprove', async (command, message, user) => {
@@ -848,9 +845,9 @@ botApi.bot.onCommand('unapprove', async (command, message, user) => {
     if (approver.approver) {
       await botApi.user.updateWith(approver, {approver: false});
       return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'unapprove_success', {first_name: botApi.bot.getUserInfo(approver)}));
-    } else {
-      return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'unapprove_fail'));
     }
+
+    return botApi.bot.sendMessage(approver.user_id, translate(approver.language, 'unapprove_fail'));
   }
 });
 
@@ -1104,7 +1101,7 @@ botApi.bot.on('reply', async (reply, message, user) => {
 });
 
 botApi.bot.onCallbackQuery('s_a', async (args: string[], callbackQuery, user) => {
-  if (!user.admin || !user.editor) {
+  if (!user.admin && !user.editor) {
     return;
   }
 
@@ -1113,7 +1110,7 @@ botApi.bot.onCallbackQuery('s_a', async (args: string[], callbackQuery, user) =>
   return acceptSuggest(args, callbackQuery, false);
 });
 botApi.bot.onCallbackQuery('s_aa', async (args: string[], callbackQuery, user) => {
-  if (!user.admin || !user.editor) {
+  if (!user.admin && !user.editor) {
     return;
   }
 

@@ -1,11 +1,6 @@
 /* tslint:disable max-classes-per-file */
 
-import {InlineKeyboardButton} from '../models/telegram';
-
-export const createButton = (text: string, callbackData?: string): InlineKeyboardButton => ({
-  callback_data: callbackData,
-  text
-});
+import {InlineKeyboard, InlineKeyboardButton} from '../models/telegram';
 
 export class Row extends Array {
   public addButton(button: InlineKeyboardButton): Row {
@@ -15,7 +10,7 @@ export class Row extends Array {
   }
 }
 
-class Menu extends Array {
+class Menu extends Array implements InlineKeyboard {
   public static toInlineMarkup(menuStructure: Menu) {
     return JSON.stringify({
       inline_keyboard: menuStructure

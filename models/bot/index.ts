@@ -112,18 +112,18 @@ class Bot extends Telegram implements IBot {
     switch (attachment.type) {
       case 'photo':
         const photo = attachment.photo.photo_2560
-            || attachment.photo.photo_1280
-            || attachment.photo.photo_604
-            || attachment.photo.photo_130
-            || attachment.photo.photo_75;
+          || attachment.photo.photo_1280
+          || attachment.photo.photo_604
+          || attachment.photo.photo_130
+          || attachment.photo.photo_75;
 
         return this.sendPhoto(userId, photo, {caption: attachment.text, ...params});
       case 'video':
         const caption = (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
         const video = attachment.video.photo_800
-            || attachment.video.photo_640
-            || attachment.video.photo_320
-            || attachment.video.photo_130;
+          || attachment.video.photo_640
+          || attachment.video.photo_320
+          || attachment.video.photo_130;
 
         return this.sendPhoto(userId, video, {caption, ...params});
       case 'doc':
@@ -133,11 +133,15 @@ class Bot extends Telegram implements IBot {
       case 'audio':
         const audio = attachment.audio.url;
 
-        return this.sendAudio(userId, audio, {title: attachment.audio.title, performer: attachment.audio.artist, ...params});
+        return this.sendAudio(userId, audio, {
+          performer: attachment.audio.artist,
+          title: attachment.audio.title,
+          ...params
+        });
       case 'poll':
         const poll = 'Опрос: *' + attachment.poll.question + '*\n' + (attachment.poll.answers || [])
-            .map((answer: VkPollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
-            .join('\n');
+          .map((answer: VkPollAnswer, index: number) => (index + 1) + ') ' + answer.text + ': ' + answer.votes + ' голоса (' + answer.rate + '%)')
+          .join('\n');
 
         return this.sendMessageWithChatAction(userId, ChatAction.typing, poll, params);
       case 'link':
@@ -149,24 +153,24 @@ class Bot extends Telegram implements IBot {
 
   public async sendAttachments(userId: UserId, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
     const mediaGroup: MediaGroup = attachments
-        .filter((attachment: VkAttachment) => attachment.type === 'photo')
-        .map((attachment: VkAttachment): InputMediaPhoto => ({
-          caption: attachment.text,
-          media: attachment.photo.photo_2560
-              || attachment.photo.photo_1280
-              || attachment.photo.photo_604
-              || attachment.photo.photo_130
-              || attachment.photo.photo_75,
-          type: 'photo'
-        }));
+      .filter((attachment: VkAttachment) => attachment.type === 'photo')
+      .map((attachment: VkAttachment): InputMediaPhoto => ({
+        caption: attachment.text,
+        media: attachment.photo.photo_2560
+          || attachment.photo.photo_1280
+          || attachment.photo.photo_604
+          || attachment.photo.photo_130
+          || attachment.photo.photo_75,
+        type: 'photo'
+      }));
 
     if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
       return this.sendMediaGroup(userId, mediaGroup, params);
     }
 
     return this.fulfillAll(attachments
-        .filter(Boolean)
-        .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
+      .filter(Boolean)
+      .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
@@ -275,8 +279,8 @@ class Bot extends Telegram implements IBot {
     return this.fulfillAll(comments.map((comment) => this.sendComment(userId, comment, params)));
   }
 
-  public sendSuggest(userId: UserId, suggest: ISuggest, params: AllMessageParams) {
-    const buttons: InlineKeyboardButton[][] = [];
+  public async sendSuggest(userId: UserId, suggest: ISuggest, params?: AllMessageParams): Promise<Message> {
+    const menu: Menu = new Menu();
 
     const sendMessage: SuggestMessage = {
       caption: suggest.caption,
@@ -296,22 +300,22 @@ class Bot extends Telegram implements IBot {
     }
 
     if (params.suggest) {
-      buttons.push([]);
+      const row = menu.addRow();
 
       if (params.editor) {
         if (suggest.public) {
-          buttons[buttons.length - 1].push(this.createButton('+', 's_a ' + suggest._id));
+          row.addButton(this.createButton('+', 's_a ' + suggest._id));
         }
 
-        buttons[buttons.length - 1].push(this.createButton('Анон', 's_aa ' + suggest._id));
-        buttons[buttons.length - 1].push(this.createButton('-', 's_d ' + suggest._id));
+        row.addButton(this.createButton('Анон', 's_aa ' + suggest._id));
+        row.addButton(this.createButton('-', 's_d ' + suggest._id));
       } else {
-        buttons[buttons.length - 1].push(this.createButton('Удалить', 's_d ' + suggest._id));
+        row.addButton(this.createButton('Удалить', 's_d ' + suggest._id));
       }
     }
 
-    if (buttons.length) {
-      sendMessage.reply_markup = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
+    if (menu.length) {
+      sendMessage.reply_markup = this.prepareReplyMarkup(this.prepareInlineKeyboard(menu));
     }
 
     if (suggest.audio && suggest.audio.file_id) {
@@ -337,7 +341,7 @@ class Bot extends Telegram implements IBot {
     return this.sendRequest(commandType, sendMessage);
   }
 
-  public sendSuggests(userId: UserId, suggests: ISuggest[], params: AllMessageParams) {
+  public async sendSuggests(userId: UserId, suggests: ISuggest[], params: AllMessageParams): Promise<Message[]> {
     return this.fulfillAll(suggests.map((suggest: ISuggest) => this.sendSuggest(userId, suggest, params)));
   }
 
@@ -452,10 +456,6 @@ class Bot extends Telegram implements IBot {
   }
 
   public async performUpdate(update: Update, user: IUser, chat: IUser) {
-    if (!update) {
-      throw new Error('No webhook data specified');
-    }
-
     const {message} = update;
 
     if (message) {
@@ -540,7 +540,7 @@ class Bot extends Telegram implements IBot {
     return [];
   }
 
-  public middleware = (req: IBotRequest, res: Response, next: NextFunction) => {
+  public middleware = async (req: IBotRequest, res: Response, next: NextFunction) => {
     const update = req.body;
 
     if (!update) {
@@ -555,13 +555,15 @@ class Bot extends Telegram implements IBot {
 
     req.update = update;
 
-    this.performUpdate(update, user, chat)
-      .then((results) => {
-        req.results = results || [];
+    try {
+      const results = await this.performUpdate(update, user, chat);
 
-        next();
-      })
-      .catch(next);
+      req.results = results || [];
+
+      next();
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
