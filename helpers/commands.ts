@@ -15,7 +15,7 @@ import {
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
 import {languageExists, translate} from './dictionary';
-import {IAnek, IAnekModel, IUser, IApprove} from './mongo';
+import {IAnek, IAnekModel, IApprove, IUser} from './mongo';
 
 let debugTimer: NodeJS.Timeout;
 
@@ -58,6 +58,16 @@ function generateDebug() {
     '```';
 }
 
+function formatApprove(approve: IApprove): string {
+  return `
+ID анека: ${approve.anek.post_id}\n
+Время добавления: ${new Date(approve.anek.date * 1000)}\n
+Время публикации: ${new Date(approve.approveTimeout)}\n
+Голосов "За":     ${approve.pros.length}\n
+Голосов "Против": ${approve.cons.length}
+`;
+}
+
 const getDonatePrices = (): LabeledPrice[] => ([
   {
     amount: 6000,
@@ -69,7 +79,7 @@ const getDonatePrices = (): LabeledPrice[] => ([
   },
   {
     amount: 30000,
-    label: 'kayf хафка'
+    label: 'попитос'
   }
 ]);
 
@@ -891,6 +901,25 @@ botApi.bot.onCommand('unapprove', async (command, message, user) => {
   }
 });
 
+botApi.bot.onCommand('approves', async (command, message, user) => {
+  if (!user.admin) {
+    throw new Error('Unauthorized access');
+  }
+
+  const approves = await botApi.database.Approve.find().populate('anek').exec();
+
+  if (!approves.length) {
+    return botApi.bot.sendMessage(user.user_id, 'Анеков на рассмотрении не найдено.');
+  }
+
+  return botApi.bot.sendMessage(
+    user.user_id,
+    '```Аппрувы:\n' + approves.map(formatApprove).join('\n\n') + '```',
+    {
+      parse_mode: ParseMode.Markdown
+    }
+  );
+});
 
 botApi.bot.onCommand('feedback', async (command, message, user) => {
   if (command[1] && user.admin) {
