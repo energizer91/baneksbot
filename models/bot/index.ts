@@ -1,10 +1,10 @@
 import * as config from 'config';
 import {NextFunction, Response} from 'express';
 import {cloneDeep} from 'lodash';
-import {IBotRequest} from '../../botApi';
+import {bot, IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
-import Menu from '../../helpers/menu';
+import Menu, {Row} from '../../helpers/menu';
 import {IAnek, ISuggest, IUser} from "../../helpers/mongo";
 
 import Telegram, {
@@ -20,7 +20,6 @@ import Telegram, {
   OtherParams,
   Poll,
   PollAnswer as TelegramPollAnswer,
-  PollParams,
   PreCheckoutQuery,
   SuccessfulPayment,
   Update,
@@ -218,6 +217,18 @@ class Bot extends Telegram implements IBot {
     return buttons;
   }
 
+  public createApproveButtons(approveId: string, pros: number = 0, cons: number = 0): InlineKeyboardButton[] {
+    return new Row()
+      .addButton(this.createButton('👍 ' + pros, 'a_a ' + approveId))
+      .addButton(this.createButton('👎 ' + cons, 'a_d ' + approveId));
+  }
+
+  public prepareApproveInlineKeyboard(approveId: string, anek: IAnek, user: IUser | null, pros = 0, cons = 0) {
+    return this.prepareInlineKeyboard(this.getAnekButtons(anek, {editor: user ? user.editor : false, disableStandardButtons: true}).concat([
+      this.createApproveButtons(approveId, pros, cons)
+    ]));
+  }
+
   public async sendAnek(userId: UserId, anek: IAnek, params: AllMessageParams = {}): Promise<Message> {
     const immutableAnek = anek.toObject ? anek.toObject() : cloneDeep(anek);
 
@@ -355,14 +366,10 @@ class Bot extends Telegram implements IBot {
     return super.sendMediaGroup(userId, mediaGroup, params);
   }
 
-  public async sendApprovePoll(chatId: UserId, anek: Message, params?: AllMessageParams & PollParams): Promise<Message> {
-    debug("Sending approve poll", chatId, anek.message_id);
-
-    return this.sendPoll(chatId, "Хорош?", ["Да", "Нет"], {
-      open_period: config.get("vk.approveTimeout"),
-      reply_to_message_id: anek.message_id,
-      ...params
-    });
+  public async sendApproveAneks(users: IUser[], anek: IAnek, approveId: string): Promise<Message[]> {
+    return this.fulfillAll(users.map((user) => this.sendAnek(user.user_id, anek, {
+      reply_markup: bot.prepareReplyMarkup(bot.prepareApproveInlineKeyboard(approveId, anek, user))
+    })));
   }
 
   public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {

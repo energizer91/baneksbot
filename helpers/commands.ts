@@ -10,13 +10,12 @@ import {
   InlineQueryResultArticle,
   LabeledPrice,
   Message,
-  ParseMode,
-  Poll
+  ParseMode
 } from "../models/telegram";
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
 import {languageExists, translate} from './dictionary';
-import {IAnek, IAnekModel, IUser} from './mongo';
+import {IAnek, IAnekModel, IUser, IApprove} from './mongo';
 
 let debugTimer: NodeJS.Timeout;
 
@@ -90,6 +89,56 @@ async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, 
   }
 
   return botApi.bot.forwardMessage(foundUser.user_id, sendMessage.message_id, sendMessage.chat.id);
+}
+
+async function acceptVote(acceptId: string, callbackQuery: CallbackQuery, user: IUser, like: boolean = true) {
+  const approve: IApprove = await botApi.database.Approve
+    .findById(acceptId)
+    .populate('anek')
+    .exec();
+
+  if (approve) {
+    const pros = approve.pros.id(user._id);
+    const cons = approve.cons.id(user._id);
+
+    if (like) {
+      if (pros) {
+        await pros.remove();
+      } else {
+        if (cons) {
+          await cons.remove();
+        }
+
+        approve.pros.push(user);
+      }
+    } else {
+      if (cons) {
+        await cons.remove();
+      } else {
+        if (pros) {
+          await pros.remove();
+        }
+
+        approve.cons.push(user);
+      }
+    }
+
+    await approve.save();
+
+    approve.messages.map(async (message) => {
+      const chat = await botApi.database.User.findOne({user_id: message.chat_id});
+
+      return botApi.bot.editMessageReplyMarkup(
+        message.chat_id,
+        message.message_id,
+        botApi.bot.prepareApproveInlineKeyboard(approve.id, approve.anek, chat, approve.pros.length, approve.cons.length)
+      );
+    });
+
+    return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Выбор сделан'});
+  }
+
+  return botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Сообщение не найдено или уже было опубликовано'});
 }
 
 const shlyapaAnswers = [
@@ -559,21 +608,12 @@ botApi.bot.onCommand('test_broadcast', async (command, message, user) => {
 
   const approve = new botApi.database.Approve({anek, approveTimeout: new Date(Date.now() + 30 * 1000)});
   const groups = await botApi.database.User.find({approver: true});
-  const anekMessage = await botApi.bot.sendAnek(config.get("telegram.editorialChannel"), anek, {
-    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(botApi.bot.getAnekButtons(anek, {editor: true, disableStandardButtons: true})))
-  });
-  const poll = await botApi.bot.sendApprovePoll(config.get("telegram.editorialChannel"), anekMessage, {
-    open_period: 30
-  });
+  const messages = await botApi.bot.sendApproveAneks(groups, approve.anek, approve.id);
 
-  if (!poll) {
-    return;
-  }
-
-  approve.poll = poll.message_id;
-
-  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, anekMessage.message_id, anekMessage.chat.id)));
-  await Promise.all(groups.map(async (group) => botApi.bot.forwardMessage(group.user_id, poll.message_id, poll.chat.id)));
+  approve.messages = messages.map((m) => ({
+    chat_id: m.chat.id,
+    message_id: m.message_id
+  }));
 
   await approve.save();
 });
@@ -1197,7 +1237,7 @@ botApi.bot.onCallbackQuery('spam', async (args: string[], callbackQuery, user) =
     return;
   }
 
-  await botApi.bot.deleteMessage(config.get("telegram.editorialChannel"), approve.poll);
+  await botApi.bot.fulfillAll(approve.messages.map((message) => botApi.bot.deleteMessage(config.get("telegram.editorialChannel"), message.message_id)));
 
   return approve.remove();
 });
@@ -1227,24 +1267,11 @@ botApi.bot.onCallbackQuery('analysis', async (args: string[], callbackQuery, use
   return performAnalysis(Number(anek), callbackQuery.message);
 });
 
-botApi.bot.on('poll', async (poll: Poll) => {
-  if (poll.is_closed) {
-    return;
-  }
-
-  const dbPoll = await botApi.database.Approve
-    .findOne({poll: poll.id})
-    .populate("anek")
-    .exec();
-
-  if (!dbPoll) {
-    return;
-  }
-
-  dbPoll.pros = poll.options[0].voter_count;
-  dbPoll.cons = poll.options[1].voter_count;
-
-  await dbPoll.save();
+botApi.bot.onCallbackQuery('a_a', async (args: string[], callbackQuery, user) => {
+  return acceptVote(args[1], callbackQuery, user, true);
+});
+botApi.bot.onCallbackQuery('a_d', async (args: string[], callbackQuery, user) => {
+  return acceptVote(args[1], callbackQuery, user, false);
 });
 
 botApi.bot.on('feedback', (message: Message) => {
