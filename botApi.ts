@@ -1,3 +1,4 @@
+import * as io from "@pm2/io";
 import * as cp from 'child_process';
 import * as config from 'config';
 import * as path from 'path';
@@ -23,7 +24,12 @@ export interface IBotRequest extends Request {
   results: any[];
 }
 
+const meter = io.meter({
+  name: 'req/min'
+});
+
 const earlyResponse = (req: IBotRequest, res: Response, next: NextFunction) => {
+  meter.mark();
   res.status(200);
   res.send('OK');
 
@@ -76,6 +82,11 @@ export const connect = (app: Application) => {
     logMiddleware,
     errorMiddleware
   ];
+
+  io.metric({
+    name: "Network queue length",
+    value: () => bot.queue.totalLength
+  });
 
   app.post(config.get('telegram.endpoint'), middlewares);
 };

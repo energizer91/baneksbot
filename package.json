@@ -12,6 +12,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@pm2/io": "^4.3.5",
     "axios": "^0.18.0",
     "body-parser": "~1.13.2",
     "config": "^2.0.1",
