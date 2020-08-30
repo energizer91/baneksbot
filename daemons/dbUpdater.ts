@@ -220,4 +220,6 @@ async function synchronizeWithElastic() {
   });
 }
 
-process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.ready});
+if (!config.get("telegram.spawnUpdater")) {
+  process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.ready});
+}

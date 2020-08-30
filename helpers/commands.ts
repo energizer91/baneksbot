@@ -60,7 +60,8 @@ function generateDebug() {
 
 function formatApprove(approve: IApprove): string {
   return `
-ID анека: ${approve.anek.post_id}\n
+ID анека:         ${approve.anek.post_id}\n
+ID аппрува:       ${approve.id}\n
 Время добавления: ${new Date(approve.anek.date * 1000)}\n
 Время публикации: ${new Date(approve.approveTimeout)}\n
 Голосов "За":     ${approve.pros.length}\n

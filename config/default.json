@@ -19,7 +19,8 @@
       "groupMessage": "group"
     },
     "secret": "",
-    "daemonEnabled": true
+    "daemonEnabled": true,
+    "spawnUpdater": false
   },
   "mongodb": {
     "server": "",

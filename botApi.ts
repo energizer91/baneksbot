@@ -146,6 +146,10 @@ export async function startDaemon() {
 }
 
 export function sendUpdaterMessage(message: UpdaterMessages) {
+  if (!config.get<boolean>("telegram.spawnUpdater")) {
+    throw new Error("Updater is not spawned");
+  }
+
   if (!dbUpdater || !dbUpdater.connected) {
     throw new Error('Updater is not connected');
   }

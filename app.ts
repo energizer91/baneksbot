@@ -24,7 +24,11 @@ botApi.connect(app);
 require('./helpers/commands'); // tslint:disable-line
 
 if (config.get('telegram.daemonEnabled')) {
-  botApi.startDaemon();
+  if (config.get('telegram.spawnUpdater')) {
+    require("./daemons/dbUpdater");  // tslint:disable-line
+  } else if (config.get('telegram.daemonEnabled')) {
+    botApi.startDaemon();
+  }
 }
 
 // catch 404 and forward to error handler

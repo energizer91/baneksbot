@@ -796,16 +796,17 @@ class Telegram extends NetworkModel {
   public async editMessageReplyMarkup(chatId: UserId, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
     debug('Editing message markup', chatId, messageId, markup);
 
-    return this.sendRequest<boolean>('editMessageReplyMarkup', {
-      chat_id: chatId,
-      message_id: messageId,
-      reply_markup: this.prepareReplyMarkup.apply(this, markup)
-    })
-        .catch((error: Error) => {
-          debugError('Editing message markup error', error);
+    try {
+      return this.sendRequest<boolean>('editMessageReplyMarkup', {
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: this.prepareReplyMarkup.apply(this, markup)
+      });
+    } catch (error) {
+      debugError('Editing message markup error', error);
 
-          return false;
-        });
+      return false;
+    }
   }
 
   public deleteMessage(chatId: UserId, messageId: number): Promise<boolean> {
