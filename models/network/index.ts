@@ -2,7 +2,7 @@ import axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios';
 import * as FormData from 'form-data';
 import debugFactory from '../../helpers/debug';
 import EventEmitter from '../events';
-import Queue, {BackOffFunction} from '../queue';
+import Queue, {RetryFunction} from '../queue';
 import {RequestParams} from './index';
 
 const debug = debugFactory('baneks-node:network', true);
@@ -53,7 +53,7 @@ class NetworkModel extends EventEmitter {
       data = {...config, data: httpParams};
     }
 
-    return this.queue.request((backoff: BackOffFunction) => axios(data)
+    return this.queue.request((backoff: RetryFunction) => axios(data)
       .then((response: AxiosResponse<R>) => {
         debug("Returning response", response.data);
 
