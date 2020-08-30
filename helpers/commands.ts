@@ -320,7 +320,7 @@ botApi.bot.onCommand('debug', async (command, message, user) => {
 
   debugTimer = setInterval(async () => {
     try {
-      await botApi.bot.editMessageText(sentMessage.from.id, sentMessage.message_id, generateDebug(), params);
+      await botApi.bot.editMessageText(sentMessage.chat.id, sentMessage.message_id, generateDebug(), params);
     } catch (e) {
       clearInterval(debugTimer);
     }
