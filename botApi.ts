@@ -15,7 +15,7 @@ import User from './models/user';
 import Vk from './models/vk';
 
 const debug = debugFactory('baneks-node:api');
-const debugError = debugFactory('baneks-node:api:error');
+const debugError = debugFactory('baneks-node:api:error', true);
 
 export interface IBotRequest extends Request {
   update: Update;

@@ -521,7 +521,7 @@ class Bot extends Telegram implements IBot {
         return this.performMessage(update.message, user);
       }
 
-      throw new Error('Unknown message');
+      throw new Error('Unknown message: ' + JSON.stringify(update));
     }
 
     if (update.inline_query) {
