@@ -5,7 +5,7 @@ import EventEmitter from '../events';
 import Queue, {RetryFunction} from '../queue';
 import {RequestParams} from './index';
 
-const debug = debugFactory('baneks-node:network', true);
+const debug = debugFactory('baneks-node:network');
 const debugError = debugFactory('baneks-node:network:error', true);
 
 export enum Methods {

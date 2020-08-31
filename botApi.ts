@@ -15,6 +15,7 @@ import User from './models/user';
 import Vk from './models/vk';
 
 const debug = debugFactory('baneks-node:api');
+const debugError = debugFactory('baneks-node:api:error');
 
 export interface IBotRequest extends Request {
   update: Update;
@@ -37,6 +38,10 @@ const earlyResponse = (req: IBotRequest, res: Response, next: NextFunction) => {
 };
 
 const writeLog = async (data: Update, result: any[], error?: Error) => {
+  if (error) {
+    debugError(error);
+  }
+
   if (Array.isArray(result)) {
     return databaseModel.Log.insertMany(result.map((log: any) => ({
       date: new Date(),
@@ -106,24 +111,24 @@ export async function startDaemon() {
   await bot.sendMessageToAdmin(text);
 
   dbUpdater.on('close', async (code, signal) => {
-    debug('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
+    debugError('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
     await bot.sendMessageToAdmin('Aneks update process has been closed with code ' + code + ' and signal ' + signal);
 
     await startDaemon();
   });
 
   dbUpdater.on('exited', async (code, signal) => {
-    debug('Aneks update process has been exited with code ' + code + ' and signal ' + signal);
+    debugError('Aneks update process has been exited with code ' + code + ' and signal ' + signal);
     await bot.sendMessageToAdmin('Aneks update process has been exited with code ' + code + ' and signal ' + signal);
   });
 
   dbUpdater.on('disconnect', async () => {
-    debug('Aneks update process has been disconnected');
+    debugError('Aneks update process has been disconnected');
     await bot.sendMessageToAdmin('Aneks update process has been disconnected');
   });
 
   dbUpdater.on('error', async (error) => {
-    debug('Error in aneks update process', error);
+    debugError('Error in aneks update process', error);
     await bot.sendMessageToAdmin('Error in aneks update process: ' + JSON.stringify(error));
   });
 

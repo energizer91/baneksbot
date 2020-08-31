@@ -1030,9 +1030,10 @@ class Telegram extends NetworkModel {
       url: `${this.endpoint}/${request}`
     };
 
-    const requestParams: AllMessageParams = Object.assign({
+    const requestParams: AllMessageParams = {
+      ...params,
       _getBackoff: (error: AxiosError): number => error.response.data.parameters.retry_after
-    }, params);
+    };
 
     if (!requestParams._key) {
       requestParams._key = String(requestParams.chat_id);
@@ -1042,7 +1043,7 @@ class Telegram extends NetworkModel {
       requestParams._rule = Number(requestParams._key) > 0 ? this.individualRule : this.groupRule;
     }
 
-    const response: TelegramResponse<T> = await this.makeRequest(axiosConfig, requestParams);
+    const response = await this.makeRequest<TelegramResponse<T>>(axiosConfig, requestParams);
 
     if (response.ok === false) {
       throw new Error(response.description);

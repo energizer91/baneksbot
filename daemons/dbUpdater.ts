@@ -17,6 +17,34 @@ let updateInProcess = false;
 let currentUpdate = '';
 let forceDenyUpdate = false;
 
+async function synchronizeWithElastic() {
+  if (config.get('mongodb.searchEngine') !== 'elastic') {
+    debug('Database synchronizing is only available on elasticsearch engine');
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    let stream;
+    let count = 0;
+
+    try {
+      stream = database.Anek.synchronize();
+    } catch (err) {
+      return reject(err);
+    }
+
+    stream.on('data', () => {
+      count++;
+    });
+    stream.on('close', () => {
+      return resolve(count);
+    });
+    stream.on('error', (err: Error) => {
+      return reject(err);
+    });
+  });
+}
+
 async function approveAneksTimer() {
   const approves = await database.Approve.find({approveTimeout: {$lte: new Date()}})
     .populate('anek')
@@ -143,83 +171,55 @@ const refreshAneksCron = new CronJob('20 0 0 */1 * *', createUpdateFunction(refr
 const approveAneksCron = new CronJob('25 * * * * *', createUpdateFunction(approveAneksTimer), null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
 
-process.on('message', (m: UpdaterMessages) => {
-  debug('CHILD got message:', m);
-
-  switch (m.type) {
-    case UpdaterMessageTypes.service:
-      switch (m.action) {
-        case UpdaterMessageActions.update:
-          debug('Switch automatic updates to', m.value);
-          forceDenyUpdate = !m.value;
-
-          if (forceDenyUpdate) {
-            updateAneksCron.stop();
-            updateLastAneksCron.stop();
-            refreshAneksCron.stop();
-            synchronizeDatabaseCron.stop();
-            approveAneksCron.stop();
-          } else {
-            updateAneksCron.start();
-            updateLastAneksCron.start();
-            refreshAneksCron.start();
-            synchronizeDatabaseCron.start();
-            approveAneksCron.start();
-          }
-          break;
-        case UpdaterMessageActions.synchronize:
-          return synchronizeDatabase();
-        case UpdaterMessageActions.last:
-          return updateLastAneksTimer();
-        case UpdaterMessageActions.message:
-          return bot.sendMessage(m.value, m.text || 'Проверка');
-        case UpdaterMessageActions.anek:
-          return database.Anek.random().then((anek: IAnek) => bot.sendAnek(m.userId, anek, {language: m.params.language}));
-        case UpdaterMessageActions.statistics:
-          debug('Switch statistics update to', m.value);
-          forceDenyUpdate = !m.value;
-
-          if (forceDenyUpdate) {
-            calculateStatisticsCron.stop();
-          } else {
-            calculateStatisticsCron.start();
-          }
-          break;
-        default:
-          debug('Unknown service command');
-          break;
-      }
-  }
-});
-
-async function synchronizeWithElastic() {
-  if (config.get('mongodb.searchEngine') !== 'elastic') {
-    debug('Database synchronizing is only available on elasticsearch engine');
-    return;
-  }
-
-  return new Promise((resolve, reject) => {
-    let stream;
-    let count = 0;
-
-    try {
-      stream = database.Anek.synchronize();
-    } catch (err) {
-      return reject(err);
-    }
-
-    stream.on('data', () => {
-      count++;
-    });
-    stream.on('close', () => {
-      return resolve(count);
-    });
-    stream.on('error', (err: Error) => {
-      return reject(err);
-    });
-  });
-}
-
 if (!config.get("telegram.spawnUpdater")) {
+  process.on('message', (m: UpdaterMessages) => {
+    debug('CHILD got message:', m);
+
+    switch (m.type) {
+      case UpdaterMessageTypes.service:
+        switch (m.action) {
+          case UpdaterMessageActions.update:
+            debug('Switch automatic updates to', m.value);
+            forceDenyUpdate = !m.value;
+
+            if (forceDenyUpdate) {
+              updateAneksCron.stop();
+              updateLastAneksCron.stop();
+              refreshAneksCron.stop();
+              synchronizeDatabaseCron.stop();
+              approveAneksCron.stop();
+            } else {
+              updateAneksCron.start();
+              updateLastAneksCron.start();
+              refreshAneksCron.start();
+              synchronizeDatabaseCron.start();
+              approveAneksCron.start();
+            }
+            break;
+          case UpdaterMessageActions.synchronize:
+            return synchronizeDatabase();
+          case UpdaterMessageActions.last:
+            return updateLastAneksTimer();
+          case UpdaterMessageActions.message:
+            return bot.sendMessage(m.value, m.text || 'Проверка');
+          case UpdaterMessageActions.anek:
+            return database.Anek.random().then((anek: IAnek) => bot.sendAnek(m.userId, anek, {language: m.params.language}));
+          case UpdaterMessageActions.statistics:
+            debug('Switch statistics update to', m.value);
+            forceDenyUpdate = !m.value;
+
+            if (forceDenyUpdate) {
+              calculateStatisticsCron.stop();
+            } else {
+              calculateStatisticsCron.start();
+            }
+            break;
+          default:
+            debug('Unknown service command');
+            break;
+        }
+    }
+  });
+
   process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.ready});
 }
