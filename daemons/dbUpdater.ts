@@ -5,18 +5,30 @@ import * as config from 'config';
 import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
 import {IAnek} from "../helpers/mongo";
+import SmartQueue from "../models/queue";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
 import {bot, database, statistics} from '../botApi';
 import * as common from '../helpers/common';
-import {Anek} from "../models/vk";
 
 const debug = debugFactory('baneks-node:updater');
 const error = debugFactory('baneks-node:updater:error', true);
 
-let updateInProcess = false;
-let currentUpdate = '';
 let forceDenyUpdate = false;
+
+const cronQueue = new SmartQueue({
+  default: {
+    key: "cron",
+    rule: "cron"
+  },
+  rules: {
+    cron: {
+      limit: 1,
+      priority: 1,
+      rate: 1000
+    }
+  }
+});
 
 async function synchronizeWithElastic() {
   if (config.get('mongodb.searchEngine') !== 'elastic') {
@@ -83,15 +95,7 @@ async function approveAneksTimer() {
 
 async function updateAneksTimer() {
   const needApprove: boolean = config.get('vk.needApprove');
-  let aneks: Anek[] = [];
-
-  try {
-    aneks = await common.getAneksUpdate();
-  } catch (err) {
-    error('VK get aneks update error', err);
-
-    return [];
-  }
+  const aneks = await common.getAneksUpdate();
 
   const filteredAneks = aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek)));
   const dbAneks = await database.Anek.insertMany(filteredAneks);
@@ -158,25 +162,13 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
   const name = fn.name || "Unknown function";
 
   return () => {
-    if (updateInProcess) {
-      error(`Conflict: updating "${currentUpdate}" and "${name}"`);
-
-      return;
-    }
-
-    updateInProcess = true;
-    currentUpdate = name;
-
     debug(`Starting update function "${name}"`);
 
-    fn()
+    cronQueue.request(fn)
       .catch((err) => {
         error(`Executing update function "${name}" error`, err);
-
-        return;
       })
       .then(() => {
-        updateInProcess = false;
         debug(`Finishing update function "${name}"`);
       });
   };
