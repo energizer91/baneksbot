@@ -111,25 +111,24 @@ export function getLastAneks(count: number = 100) {
     });
 }
 
-export function getAllAneks(start: number = 0) {
-  return botApi.vk.getPostsCount().then((counter) => {
-    const requests = [];
-    let current = counter.count - start;
-    const goal = counter.hasPinned ? 1 : 0;
-    let step = 100;
+export async function getAllAneks(start: number = 0) {
+  const counter = await botApi.vk.getPostsCount();
+  const requests = [];
+  let current = counter.count - start;
+  const goal = counter.hasPinned ? 1 : 0;
+  let step = 100;
 
-    while (current > goal) {
-      if (current - step < goal) {
-        step = current - goal;
-      }
-
-      current -= step;
-
-      requests.push(botApi.vk.getPosts(current, step));
+  while (current > goal) {
+    if (current - step < goal) {
+      step = current - goal;
     }
 
-    return botApi.bot.fulfillAll(requests);
-  });
+    current -= step;
+
+    requests.push(botApi.vk.getPosts(current, step));
+  }
+
+  return botApi.bot.fulfillAll(requests);
 }
 
 export async function redefineDatabase(count: number) {
@@ -148,25 +147,23 @@ export async function redefineDatabase(count: number) {
   return [];
 }
 
-export function updateAneks() {
-  return this.getAllAneks()
-    .then((responses: Array<MultipleResponse<Anek>>) => {
-      const bulk = AnekModel.collection.initializeOrderedBulkOp();
+export async function updateAneks() {
+  const responses = await this.getAllAneks();
+  const bulk = AnekModel.collection.initializeOrderedBulkOp();
 
-      responses.forEach((response) => {
-        response.items.forEach((anek) => {
-          bulk.find({post_id: anek.post_id}).update({
-            $set: {
-              comments: anek.comments,
-              likes: anek.likes.count,
-              reposts: anek.reposts.count
-            }
-          });
-        });
+  responses.forEach((response: MultipleResponse<Anek>) => {
+    response.items.forEach((anek) => {
+      bulk.find({post_id: anek.post_id}).update({
+        $set: {
+          comments: anek.comments,
+          likes: anek.likes.count,
+          reposts: anek.reposts.count
+        }
       });
-
-      return bulk.execute();
     });
+  });
+
+  return bulk.execute();
 }
 
 export function filterAnek(anek: Anek | IAnek): boolean {
@@ -194,13 +191,15 @@ export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: Al
             forceAttachments: user.force_attachments
           })
           .catch((error: TelegramErrorResponse) => {
-            if ((!error.ok && (error.error_code === 403)) || (
+            if (
+              (!error.ok && (error.error_code === 403)) || (
               error.description === 'Bad Request: chat not found' ||
               error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
-              error.description === 'Bad Request: chat_id is empty')) {
+              error.description === 'Bad Request: chat_id is empty')
+            ) {
               errorMessages.add(Number(user.user_id));
 
-              return {};
+              return null;
             }
 
             return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));

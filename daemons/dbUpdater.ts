@@ -1,6 +1,7 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
+import * as io from "@pm2/io";
 import * as config from 'config';
 import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
@@ -106,12 +107,12 @@ async function updateAneksTimer() {
 
     const results = await bot.fulfillAll(approves);
 
-    await database.Approve.insertMany(results);
-  } else {
-    const users = await database.User.find({subscribed: true}).exec();
-
-    return common.broadcastAneks(users, dbAneks, {_rule: 'individual'});
+    return database.Approve.insertMany(results);
   }
+
+  const users = await database.User.find({subscribed: true}).exec();
+
+  return common.broadcastAneks(users, dbAneks, {_rule: 'individual'});
 }
 
 async function updateLastAneksTimer() {

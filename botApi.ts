@@ -38,10 +38,6 @@ const earlyResponse = (req: IBotRequest, res: Response, next: NextFunction) => {
 };
 
 const writeLog = async (data: Update, result: any[], error?: Error) => {
-  if (error) {
-    debugError(error);
-  }
-
   if (Array.isArray(result)) {
     return databaseModel.Log.insertMany(result.map((log: any) => ({
       date: new Date(),

@@ -9,7 +9,7 @@
       },
       "env_production": {
         "NODE_ENV": "production",
-        "DEBUG": "baneks-node:*:error"
+        "DEBUG": "baneks-node:*,-baneks-node:queue,-baneks-node:network"
       }
     }
   ]
