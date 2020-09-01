@@ -1,7 +1,6 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
-import * as io from "@pm2/io";
 import * as config from 'config';
 import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
@@ -87,6 +86,12 @@ async function updateAneksTimer() {
   const filteredAneks = aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek)));
   const dbAneks = await database.Anek.insertMany(filteredAneks);
 
+  debug(`Found ${aneks.length} new aneks`);
+
+  if (!aneks.length) {
+    return;
+  }
+
   if (needApprove) {
     const approvedUsers = await database.User.find({approver: true}).exec();
     const approves = dbAneks
@@ -144,7 +149,7 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
 
   return () => {
     if (updateInProcess) {
-      debug(`Conflict: updating "${currentUpdate}" and "${name}"`);
+      error(`Conflict: updating "${currentUpdate}" and "${name}"`);
 
       return;
     }
@@ -157,6 +162,8 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
     fn()
       .catch((err) => {
         error(`Executing update function "${name}" error`, err);
+
+        return;
       })
       .then(() => {
         updateInProcess = false;

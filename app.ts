@@ -33,7 +33,7 @@ if (config.get('telegram.daemonEnabled')) {
 
 // catch 404 and forward to error handler
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const err: NetworkError = new Error('Not Found');
+  const err: NetworkError = new Error('Not Found: ' + req.url);
 
   err.status = 404;
   next(err);
