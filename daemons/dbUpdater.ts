@@ -78,7 +78,11 @@ async function approveAneksTimer() {
       bot.prepareInlineKeyboard([])
     )));
 
-  await database.Approve.deleteMany(approves).exec();
+  const ids = approves.map((a) => a.id);
+
+  await database.Approve.deleteMany({
+    _id: {$in: ids}
+  }).exec();
 
   const readyApproves = approves
     .filter((approve) => approve.pros >= approve.cons)
