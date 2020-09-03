@@ -162,6 +162,34 @@ async function calculateStatisticsTimer() {
   }
 }
 
+async function sendScheduledAneks() {
+  const now = new Date().getHours();
+  const users = await database.User.find({
+    scheduleCount: {
+      $gt: 0
+    },
+    scheduleTimes: {
+      $in: [now]
+    }
+  });
+
+  if (!users.length) {
+    return;
+  }
+
+  const aneks = await database.Anek
+    .find({})
+    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60}})
+    .sort({likes: -1})
+    .limit(3)
+    .exec();
+
+  const messages = users
+    .map((user) => (bot.sendAneks(user.user_id, aneks.slice(0, user.scheduleCount))));
+
+  bot.fulfillAll(messages);
+}
+
 function createUpdateFunction(fn: () => Promise<any>): () => void {
   const name = fn.name || "Unknown function";
 
@@ -181,6 +209,7 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
 const updateAneksCron = new CronJob('*/30 * * * * *', createUpdateFunction(updateAneksTimer), null, true);
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', createUpdateFunction(updateLastAneksTimer), null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
+const scheduleAneksCron = new CronJob('0 0 */1 * * *', createUpdateFunction(sendScheduledAneks), null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', createUpdateFunction(refreshAneksTimer), null, true);
 const approveAneksCron = new CronJob('25 * * * * *', createUpdateFunction(approveAneksTimer), null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
@@ -201,12 +230,15 @@ if (!config.get("telegram.spawnUpdater")) {
               updateLastAneksCron.stop();
               refreshAneksCron.stop();
               synchronizeDatabaseCron.stop();
+              synchronizeDatabaseCron.stop();
+              scheduleAneksCron.stop();
               approveAneksCron.stop();
             } else {
               updateAneksCron.start();
               updateLastAneksCron.start();
               refreshAneksCron.start();
               synchronizeDatabaseCron.start();
+              scheduleAneksCron.start();
               approveAneksCron.start();
             }
             break;

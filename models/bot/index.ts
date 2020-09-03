@@ -275,6 +275,10 @@ class Bot extends Telegram implements IBot {
       });
   }
 
+  public async sendAneks(userId: UserId, aneks: IAnek[], params: AllMessageParams = {}) {
+    return this.fulfillAll(aneks.map((anek) => this.sendAnek(userId, anek, params)));
+  }
+
   public async sendComment(userId: UserId, comment: Comment, params: MessageParams): Promise<Message> {
     return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
       .then((message: any) => {

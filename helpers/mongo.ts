@@ -92,6 +92,8 @@ export interface IUser extends mongoose.Document {
   client: string;
   pin: string;
   date: mongoose.Schema.Types.Date;
+  scheduleCount: number;
+  scheduleTimes: number[];
 }
 
 export interface IAnek extends mongoose.Document {
@@ -242,6 +244,8 @@ const userSchema = new mongoose.Schema({
   language: {type: String, default: 'russian'},
   last_name: String,
   pin: {type: String, select: false},
+  scheduleCount: {type: Number, default: 0},
+  scheduleTimes: [Number],
   subscribed: {type: Boolean, default: false},
   suggest_mode: {type: Boolean, default: false},
   title: String,

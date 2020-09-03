@@ -15,6 +15,7 @@ import {
 import {Comment, MultipleResponse} from "../models/vk";
 import * as common from './common';
 import {languageExists, translate} from './dictionary';
+import Menu from "./menu";
 import {IAnek, IAnekModel, IApprove, IUser} from './mongo';
 
 let debugTimer: NodeJS.Timeout;
@@ -83,6 +84,23 @@ const getDonatePrices = (): LabeledPrice[] => ([
     label: 'попитос'
   }
 ]);
+
+const singleIntervalTable = [7, 8, 9];
+
+function getIntervals(time: number, intervals: number): number[] {
+  const result = [];
+  const span = 24 / 2 ** (intervals - 1);
+
+  for (let i = 0; i < intervals; i++) {
+    result.push(time + span * i);
+  }
+
+  return result;
+}
+
+function formatInterval(intervals: number[]): string {
+  return intervals.map((r) => `${r}:00`).join(" / ");
+}
 
 async function acceptSuggest(queryData: string[], callbackQuery: CallbackQuery, anonymous: boolean) {
   const suggest = await botApi.database.Suggest.findOneAndUpdate({_id: botApi.database.Suggest.convertId(queryData[1])}, {approved: true});
@@ -1126,6 +1144,39 @@ botApi.bot.onCommand('photo', async (command, message) => {
   return botApi.bot.sendPhoto(message.chat.id, photo);
 });
 
+botApi.bot.onCommand('schedule', async (command, message, user) => {
+  if (!botApi.bot.isSameChat(message)) {
+    return;
+  }
+
+  const buttons = new Menu();
+  const userId = user.user_id;
+
+  buttons
+    .addRow()
+    .addButton({
+      callback_data: "sc_1 1",
+      text: "1"
+    })
+    .addButton({
+      callback_data: "sc_1 2",
+      text: "2"
+    })
+    .addButton({
+      callback_data: "sc_1 3",
+      text: "3"
+    });
+
+  buttons.addRow().addButton({
+    callback_data: 'sc_0',
+    text: 'Отмена'
+  });
+
+  return botApi.bot.sendMessage(userId, "Выберите количество присылаемых анеков", {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
+  });
+});
+
 botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   const skip = Number(inlineQuery.offset || 0);
   const limit = 5;
@@ -1302,6 +1353,89 @@ botApi.bot.onCallbackQuery('a_a', async (args: string[], callbackQuery, user) =>
 });
 botApi.bot.onCallbackQuery('a_d', async (args: string[], callbackQuery, user) => {
   return acceptVote(args[1], callbackQuery, user, false);
+});
+
+botApi.bot.onCallbackQuery("sc_0", async (args: string[], callbackQuery, user) => {
+  await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Подписка отменена'});
+});
+
+botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery, user) => {
+  const buttons = new Menu();
+  const count = args[1];
+
+  buttons
+    .addRow()
+    .addButton({
+      callback_data: `sc_2 ${count} 1`,
+      text: "1"
+    })
+    .addButton({
+      callback_data: `sc_2 ${count} 2`,
+      text: "2"
+    })
+    .addButton({
+      callback_data: `sc_2 ${count} 3`,
+      text: "3"
+    })
+    .addButton({
+      callback_data: `sc_2 ${count} 4`,
+      text: "4"
+    });
+
+  buttons.addRow().addButton({
+    callback_data: 'sc_0',
+    text: 'Отмена'
+  });
+
+  await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, "Выберите количество рассылок в день", {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
+  });
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество анеков выбрано'});
+});
+
+botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery, user) => {
+  const count = args[1];
+  const times = Number(args[2]);
+  const buttons = new Menu();
+
+  for (const interval of singleIntervalTable) {
+    buttons
+      .addRow()
+      .addButton({
+        callback_data: `sc_3 ${count} ${times} ${interval}`,
+        text: formatInterval(getIntervals(interval, times))
+      });
+  }
+
+  buttons.addRow().addButton({
+    callback_data: 'sc_0',
+    text: 'Отмена'
+  });
+
+  await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, "Выберите удобные интервалы", {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
+  });
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество рассылок выбрано'});
+});
+
+botApi.bot.onCallbackQuery("sc_3", async (args: string[], callbackQuery, user) => {
+  const count = Number(args[1]);
+  const times = Number(args[2]);
+  const interval = Number(args[3]);
+  const intervalsArray = getIntervals(interval, times);
+  const text = `Ваш вариант подписки:\n${count} анека(-ов), ${times} раз(-а) в день, в ${formatInterval(intervalsArray)}`;
+
+  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, {scheduleCount: count, scheduleTimes: intervalsArray});
+
+  await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, text, {
+    reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([]))
+  });
+
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Подписка оформлена'});
 });
 
 botApi.bot.on('feedback', (message: Message) => {
