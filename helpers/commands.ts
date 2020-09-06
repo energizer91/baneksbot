@@ -89,7 +89,12 @@ const singleIntervalTable = [7, 8, 9];
 
 function getIntervals(time: number, intervals: number): number[] {
   const result = [];
-  const span = 24 / 2 ** (intervals - 1);
+
+  if (intervals === 1) {
+    return [time];
+  }
+
+  const span = 12 / (intervals - 1);
 
   for (let i = 0; i < intervals; i++) {
     result.push(time + span * i);
@@ -1149,6 +1154,10 @@ botApi.bot.onCommand('schedule', async (command, message, user) => {
     return;
   }
 
+  if (user.scheduleCount) {
+    return botApi.bot.sendMessage(user.user_id, "Рассылка уже оформлена");
+  }
+
   const buttons = new Menu();
   const userId = user.user_id;
 
@@ -1175,6 +1184,20 @@ botApi.bot.onCommand('schedule', async (command, message, user) => {
   return botApi.bot.sendMessage(userId, "Выберите количество присылаемых анеков", {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
   });
+});
+
+botApi.bot.onCommand('unschedule', async (command, message, user) => {
+  if (!botApi.bot.isSameChat(message)) {
+    return;
+  }
+
+  if (!user.scheduleCount) {
+    return botApi.bot.sendMessage(user.user_id, "Рассылка не оформлена");
+  }
+
+  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, {scheduleCount: 0, scheduleTimes: []});
+
+  return botApi.bot.sendMessage(user.user_id, "Рассылка удалена");
 });
 
 botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
@@ -1356,9 +1379,9 @@ botApi.bot.onCallbackQuery('a_d', async (args: string[], callbackQuery, user) =>
 });
 
 botApi.bot.onCallbackQuery("sc_0", async (args: string[], callbackQuery, user) => {
-  await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
-
   await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Подписка отменена'});
+
+  await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
 });
 
 botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery, user) => {
@@ -1389,11 +1412,11 @@ botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery, user) =
     text: 'Отмена'
   });
 
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество анеков выбрано'});
+
   await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, "Выберите количество рассылок в день", {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
   });
-
-  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество анеков выбрано'});
 });
 
 botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery, user) => {
@@ -1402,12 +1425,20 @@ botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery, user) =
   const buttons = new Menu();
 
   for (const interval of singleIntervalTable) {
-    buttons
+    const row = buttons
       .addRow()
       .addButton({
         callback_data: `sc_3 ${count} ${times} ${interval}`,
         text: formatInterval(getIntervals(interval, times))
       });
+
+    if (times === 1) {
+      row
+        .addButton({
+          callback_data: `sc_3 ${count} ${times} ${interval + 12}`,
+          text: formatInterval(getIntervals(interval + 12, times))
+        });
+    }
   }
 
   buttons.addRow().addButton({
@@ -1415,11 +1446,11 @@ botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery, user) =
     text: 'Отмена'
   });
 
+  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество рассылок выбрано'});
+
   await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, "Выберите удобные интервалы", {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard(buttons))
   });
-
-  await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Количество рассылок выбрано'});
 });
 
 botApi.bot.onCallbackQuery("sc_3", async (args: string[], callbackQuery, user) => {
@@ -1429,11 +1460,11 @@ botApi.bot.onCallbackQuery("sc_3", async (args: string[], callbackQuery, user) =
   const intervalsArray = getIntervals(interval, times);
   const text = `Ваш вариант подписки:\n${count} анека(-ов), ${times} раз(-а) в день, в ${formatInterval(intervalsArray)}`;
 
-  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, {scheduleCount: count, scheduleTimes: intervalsArray});
-
   await botApi.bot.editMessageText(callbackQuery.message.chat.id, callbackQuery.message.message_id, text, {
     reply_markup: botApi.bot.prepareReplyMarkup(botApi.bot.prepareInlineKeyboard([]))
   });
+
+  await botApi.database.User.findOneAndUpdate({user_id: user.user_id}, {scheduleCount: count, scheduleTimes: intervalsArray});
 
   await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Подписка оформлена'});
 });
