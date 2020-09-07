@@ -1,6 +1,5 @@
 import * as config from 'config';
 import {NextFunction, Response} from 'express';
-import {cloneDeep} from 'lodash';
 import {bot, IBotRequest} from '../../botApi';
 import debugFactory from '../../helpers/debug';
 import {translate} from '../../helpers/dictionary';
@@ -18,6 +17,7 @@ import Telegram, {
   Message,
   MessageParams,
   OtherParams,
+  ParseMode,
   Poll,
   PollAnswer as TelegramPollAnswer,
   PreCheckoutQuery,
@@ -104,27 +104,19 @@ class Bot extends Telegram implements IBot {
   public convertTextLinks(text: string = '') {
     const userRegexp = /\[(.+)\|(.+)]/g;
 
-    return text.replace(userRegexp, (match, p1, p2) => `[${p2}](https://vk.com/${p1})`);
+    return text.replace(userRegexp, (match, p1, p2) => `[${p2}](${Vk.getVkLink()}/${p1})`);
   }
 
   public async sendAttachment(userId: UserId, attachment: VkAttachment, params?: AllMessageParams): Promise<Message> {
     switch (attachment.type) {
       case 'photo':
-        const photo = attachment.photo.photo_2560
-          || attachment.photo.photo_1280
-          || attachment.photo.photo_604
-          || attachment.photo.photo_130
-          || attachment.photo.photo_75;
+        const photo = Vk.getPhotoUrl(attachment.photo);
 
         return this.sendPhoto(userId, photo, {caption: attachment.text, ...params});
       case 'video':
-        const caption = (attachment.title || '') + '\nhttps://vk.com/video' + attachment.video.owner_id + '_' + attachment.video.id;
-        const video = attachment.video.photo_800
-          || attachment.video.photo_640
-          || attachment.video.photo_320
-          || attachment.video.photo_130;
+        const caption = (attachment.title || '') + '\n' + Vk.getVkLink() + '/video' + attachment.video.owner_id + '_' + attachment.video.id;
 
-        return this.sendPhoto(userId, video, {caption, ...params});
+        return this.sendMessage(userId, caption, params);
       case 'doc':
         const document = attachment.doc.url;
 
@@ -150,26 +142,29 @@ class Bot extends Telegram implements IBot {
     }
   }
 
-  public async sendAttachments(userId: UserId, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message | Message[]> {
+  public async sendAttachments(userId: UserId, attachments: VkAttachment[] = [], params?: AllMessageParams): Promise<Message[]> {
     const mediaGroup: MediaGroup = attachments
       .filter((attachment: VkAttachment) => attachment.type === 'photo')
       .map((attachment: VkAttachment): InputMediaPhoto => ({
+        type: 'photo',
         caption: attachment.text,
-        media: attachment.photo.photo_2560
-          || attachment.photo.photo_1280
-          || attachment.photo.photo_604
-          || attachment.photo.photo_130
-          || attachment.photo.photo_75,
-        type: 'photo'
+        media: Vk.getPhotoUrl(attachment.photo)
       }));
 
     if (mediaGroup.length === attachments.length && (mediaGroup.length >= 2 && mediaGroup.length <= 10)) {
-      return this.sendMediaGroup(userId, mediaGroup, params);
+      const group = await this.sendMediaGroup(userId, mediaGroup, params);
+
+      const message = await this.sendMessage(userId, params.caption, {
+        ...params,
+        reply_to_message_id: group[0] && group[0].message_id
+      });
+
+      return [...group, message];
     }
 
     return this.fulfillAll(attachments
       .filter(Boolean)
-      .map((attachment: VkAttachment) => this.sendAttachment(userId, attachment, params)));
+      .map((attachment) => this.sendAttachment(userId, attachment, params)));
   }
 
   public getAnekButtons(anek: IAnek, params: OtherParams = {}): InlineKeyboardButton[][] {
@@ -229,50 +224,75 @@ class Bot extends Telegram implements IBot {
     ]));
   }
 
-  public async sendAnek(userId: UserId, anek: IAnek, params: AllMessageParams = {}): Promise<Message> {
-    const immutableAnek = anek.toObject ? anek.toObject() : cloneDeep(anek);
+  public async sendAnek(userId: UserId, anek: IAnek, params: AllMessageParams = {}): Promise<Message | Message[]> {
+    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(anek, params);
 
-    const buttons: InlineKeyboardButton[][] = this.getAnekButtons(immutableAnek, params);
+    if (anek.copy_history && anek.copy_history.length && anek.post_id) {
+      const forward = anek.copy_history[0];
 
-    if (immutableAnek.copy_history && immutableAnek.copy_history.length && immutableAnek.post_id) {
-      const insideMessage = immutableAnek.copy_history[0];
+      return this.sendAnek(userId, {
+        ...forward,
+        post_id: anek.post_id,
+        from_id: anek.from_id,
+        text: anek.text + (forward.text.length > 0 ? '\n' : '') + forward.text,
+        attachments: (forward.attachments || []).concat(anek.attachments || [])
+      }, params);
+    }
 
-      insideMessage.post_id = immutableAnek.post_id;
-      insideMessage.from_id = immutableAnek.from_id;
-      insideMessage.text = immutableAnek.text + (immutableAnek.text.length ? '\n' : '') + insideMessage.text;
+    const replyMarkup = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
+    let message = this.convertTextLinks(anek.text);
 
-      if (immutableAnek.attachments && immutableAnek.attachments.length) {
-        if (!insideMessage.attachments || !insideMessage.attachments.length) {
-          insideMessage.attachments = [];
-        }
-
-        insideMessage.attachments = insideMessage.attachments.concat(immutableAnek.attachments);
+    if (anek.attachments && anek.attachments.length > 0 && !params.forceAttachments && !params.disableAttachments) {
+      if (config.get<boolean>("vk.forceAttachments")) {
+        return this.sendAttachments(userId, anek.attachments, {
+          caption: message,
+          reply_markup: replyMarkup,
+          ...params
+        });
       }
 
-      return this.sendAnek(userId, insideMessage, params);
+      message += '\n(Вложений: ' + anek.attachments.length + ')';
     }
 
-    if (immutableAnek.attachments && immutableAnek.attachments.length > 0 && !params.forceAttachments && !params.disableAttachments) {
-      immutableAnek.text += '\n(Вложений: ' + immutableAnek.attachments.length + ')';
-    }
+    if (message.length > 4096) {
+      const messages = [];
+      let messageCursor = 0;
+      let messagePart = '';
 
-    const replyMarkup: string = this.prepareReplyMarkup(this.prepareInlineKeyboard(buttons));
+      do {
+        messageCursor += 4096;
+        messagePart = message.slice(messageCursor, messageCursor);
 
-    return this.sendMessage(userId, this.convertTextLinks(immutableAnek.text), {
-      reply_markup: replyMarkup,
-      ...params
-    })
-      .then((message: any) => {
-        if (immutableAnek.attachments && params.forceAttachments) {
-          this.sendAttachments(userId, immutableAnek.attachments, {
-            forcePlaceholder: !immutableAnek.text,
-            reply_markup: replyMarkup,
-            ...params
-          });
+        if (messagePart) {
+          messages.push(this.sendAnek(userId, {...anek, text: messagePart} as IAnek, params));
         }
+      } while (messagePart);
 
-        return message;
-      });
+      const results = await this.fulfillAll(messages);
+
+      return results.reduce((acc: Message[], r: Message | Message[]) => acc.concat(r), []);
+    }
+
+    const result = await this.sendMessage(userId, message, {
+      reply_markup: replyMarkup,
+      parse_mode: ParseMode.Markdown,
+      ...params
+    });
+
+    if (anek.attachments) {
+      if (params.forceAttachments || config.get<boolean>("vk.forceAttachments")) {
+        const attaches = await this.sendAttachments(userId, anek.attachments, {
+          forcePlaceholder: !anek.text,
+          reply_markup: replyMarkup,
+          caption: message,
+          ...params
+        });
+
+        return [result, ...attaches];
+      }
+    }
+
+    return result;
   }
 
   public async sendAneks(userId: UserId, aneks: IAnek[], params: AllMessageParams = {}) {
@@ -280,14 +300,13 @@ class Bot extends Telegram implements IBot {
   }
 
   public async sendComment(userId: UserId, comment: Comment, params: MessageParams): Promise<Message> {
-    return this.sendMessage(userId, this.convertTextLinks(comment.text), params)
-      .then((message: any) => {
-        if (comment.attachments && comment.attachments.length) {
-          return this.sendAttachments(userId, comment.attachments, {forceAttachments: true});
-        }
+    const message = await this.sendMessage(userId, this.convertTextLinks(comment.text), params);
 
-        return message;
-      });
+    if (comment.attachments && comment.attachments.length) {
+      await this.sendAttachments(userId, comment.attachments, {reply_to_message_id: message.message_id});
+    }
+
+    return message;
   }
 
   public async sendComments(userId: UserId, comments: Comment[] = [], params: AllMessageParams): Promise<Message[]> {
@@ -360,7 +379,7 @@ class Bot extends Telegram implements IBot {
     return this.fulfillAll(suggests.map((suggest: ISuggest) => this.sendSuggest(userId, suggest, params)));
   }
 
-  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
+  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message[]> {
     if (params.forcePlaceholder) {
       await this.sendMessage(userId, 'Вложений: ' + mediaGroup.length, params);
     }
@@ -371,9 +390,11 @@ class Bot extends Telegram implements IBot {
   }
 
   public async sendApproveAneks(users: IUser[], anek: IAnek, approveId: string): Promise<Message[]> {
-    return this.fulfillAll(users.map((user) => this.sendAnek(user.user_id, anek, {
-      reply_markup: bot.prepareReplyMarkup(bot.prepareApproveInlineKeyboard(approveId, anek, user))
-    })));
+    const approves = await this.fulfillAll(users.map((user) => this.sendAnek(user.user_id, anek, {
+        reply_markup: bot.prepareReplyMarkup(bot.prepareApproveInlineKeyboard(approveId, anek, user))
+      })));
+    // @ts-ignore
+    return approves.flat(2);
   }
 
   public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {

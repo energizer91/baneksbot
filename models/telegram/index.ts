@@ -692,23 +692,7 @@ class Telegram extends NetworkModel {
     }
 
     if (message.length > 4096) {
-      const messages = [];
-
-      let messageCursor = 0;
-      let messagePart = '';
-
-      do {
-        messagePart = message.slice(messageCursor, messageCursor + 4096);
-
-        if (messagePart) {
-          messages.push(messagePart);
-        }
-
-        messageCursor += 4096;
-      } while (messagePart);
-
-      return this.sendMessages(userId, messages, params)
-          .then((returnedMessages: Message[]) => returnedMessages[0]);
+      throw new Error("Message is too long");
     }
 
     debug('Sending message', userId, message, params);
@@ -796,17 +780,16 @@ class Telegram extends NetworkModel {
   public async editMessageReplyMarkup(chatId: UserId, messageId: number, ...markup: ReplyMarkup[]): Promise<boolean> {
     debug('Editing message markup', chatId, messageId, markup);
 
-    try {
-      return this.sendRequest<boolean>('editMessageReplyMarkup', {
-        chat_id: chatId,
-        message_id: messageId,
-        reply_markup: this.prepareReplyMarkup.apply(this, markup)
-      });
-    } catch (error) {
-      debugError('Editing message markup error', error);
+    return this.sendRequest<boolean>('editMessageReplyMarkup', {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: this.prepareReplyMarkup.apply(this, markup)
+    })
+      .catch((error) => {
+        debugError('Editing message markup error', error);
 
-      return false;
-    }
+        return false;
+      });
   }
 
   public deleteMessage(chatId: UserId, messageId: number): Promise<boolean> {
@@ -927,7 +910,7 @@ class Telegram extends NetworkModel {
     return this.fulfillAll(messages.map((message: string) => this.sendMessage(userId, message, params)));
   }
 
-  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message> {
+  public async sendMediaGroup(userId: UserId, mediaGroup: MediaGroup = [], params?: AllMessageParams): Promise<Message[]> {
     debug('Sending media group', userId, mediaGroup, params);
 
     return this.sendRequest('sendMediaGroup', {
@@ -1002,18 +985,17 @@ class Telegram extends NetworkModel {
       throw new Error('Callback query id is not specified');
     }
 
-    try {
-      return this.sendRequest<boolean>('answerCallbackQuery', {
-        _key: Number(queryId),
-        _rule: config.get('telegram.rules.callbackQuery'),
-        callback_query_id: queryId,
-        ...payload
-      });
-    } catch (error) {
-      debugError(error);
+    return this.sendRequest<boolean>('answerCallbackQuery', {
+      _key: Number(queryId),
+      _rule: config.get('telegram.rules.callbackQuery'),
+      callback_query_id: queryId,
+      ...payload
+    })
+      .catch((error) => {
+        debugError(error);
 
-      return false;
-    }
+        return false;
+      });
   }
 
   public createButton(text: string, callbackData: string, params?: InlineKeyboardButton): InlineKeyboardButton {

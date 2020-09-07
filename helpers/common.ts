@@ -171,8 +171,9 @@ export function filterAnek(anek: Anek | IAnek): boolean {
   const ads = anek.marked_as_ads;
   const empty = !anek.text || !anek.text.length;
   const long = anek.text && anek.text.length >= 2000;
+  const forward = anek.copy_history && anek.copy_history.length;
 
-  return !donate && !ads && !empty && !long;
+  return !donate && !ads && !empty && !long && !forward;
 }
 
 export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: AllMessageParams): Promise<void> {

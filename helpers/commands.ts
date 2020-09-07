@@ -431,6 +431,10 @@ botApi.bot.onCommand('anek', async (command, message, user) => {
   } else if (command[1] && (!isNaN(Number(command[1])))) {
     const foundAnek = await botApi.database.Anek.findOne().skip(Number(command[1]) - 1).exec();
 
+    if (!foundAnek) {
+      return;
+    }
+
     return botApi.bot.sendAnek(message.chat.id, foundAnek, {language: user.language, forceAttachments: user.force_attachments});
   }
 

@@ -26,6 +26,16 @@ export type Link = {
   url: string
 };
 
+export type Note = {
+  id: number,
+  owner_id: number,
+  title: string,
+  text: string,
+  date: number
+};
+
+export type PhotosList = string[];
+
 type PhotoSize = {
   type: string,
   url: string,
@@ -118,7 +128,9 @@ export type Attachment = {
   poll?: Poll,
   link?: Link,
   text?: string,
-  title?: string
+  title?: string,
+  note?: Note,
+  photos_list?: PhotosList
 };
 
 export type Comment = {
@@ -162,8 +174,20 @@ type AllRequestParams = {
 };
 
 class Vk extends NetworkModel {
+  public static getVkLink() {
+    return 'https://vk.com';
+  }
+
   public static getAnekLink(postId: number, fromId: number = config.get('vk.group_id')) {
-    return 'https://vk.com/wall' + fromId + '_' + postId;
+    return Vk.getVkLink() + '/wall' + fromId + '_' + postId;
+  }
+
+  public static getPhotoUrl(photo: Photo): string {
+    return photo.photo_2560 || photo.photo_1280 || photo.photo_604 || photo.photo_130 || photo.photo_75;
+  }
+
+  public static getVideoImageUrl(video: Video): string {
+    return video.photo_800 || video.photo_640 || video.photo_320 || video.photo_130;
   }
 
   public endpoint: string = config.get('vk.url');

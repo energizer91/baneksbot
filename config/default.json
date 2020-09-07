@@ -79,7 +79,8 @@
     "api_version": "5.60",
     "access_token": "",
     "needApprove": true,
-    "approveTimeout": 300
+    "approveTimeout": 300,
+    "forceAttachments": false
   },
   "application": {
     "port": 3050
