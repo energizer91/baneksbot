@@ -89,7 +89,11 @@ export const connect = (app: Application) => {
     value: () => bot.queue.totalLength
   });
 
-  app.post(config.get('telegram.endpoint'), middlewares);
+  app.post(config.get<string>('telegram.endpoint'), middlewares);
+
+  if (config.get<boolean>("vk.useWebhook")) {
+    app.post(config.get<string>('vk.endpoint'), vk.middleware);
+  }
 };
 
 let dbUpdater: cp.ChildProcess = null;

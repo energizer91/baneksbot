@@ -6,9 +6,10 @@ import {CronJob} from 'cron';
 import debugFactory from '../helpers/debug';
 import {IAnek} from "../helpers/mongo";
 import SmartQueue from "../models/queue";
+import {Anek} from "../models/vk";
 import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
 
-import {bot, database, statistics} from '../botApi';
+import {bot, database, statistics, vk} from '../botApi';
 import * as common from '../helpers/common';
 
 const debug = debugFactory('baneks-node:updater');
@@ -56,6 +57,37 @@ async function synchronizeWithElastic() {
       return reject(err);
     });
   });
+}
+
+async function performAnek(post: Anek) {
+  const needApprove = config.get<boolean>('vk.needApprove');
+  const anek = common.processAnek(post);
+
+  // @ts-ignore
+  if (!common.filterAnek(anek)) {
+    return;
+  }
+
+  const dbAnek = new database.Anek(anek);
+
+  await dbAnek.save();
+
+  if (needApprove) {
+    const approvedUsers = await database.User.find({approver: true}).exec();
+    const approve = new database.Approve({dbAnek});
+    const approveMessages = await bot.sendApproveAneks(approvedUsers, dbAnek, approve.id);
+
+    approve.messages = approveMessages.map((m) => ({
+      chat_id: m.chat.id,
+      message_id: m.message_id
+    }));
+
+    await approve.save();
+  }
+
+  const users = await database.User.find({subscribed: true}).exec();
+
+  return common.broadcastAneks(users, [dbAnek], {_rule: 'individual'});
 }
 
 async function approveAneksTimer() {
@@ -209,13 +241,19 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
   };
 }
 
-const updateAneksCron = new CronJob('*/30 * * * * *', createUpdateFunction(updateAneksTimer), null, true);
+const useVkWebhook = config.get<boolean>("vk.useWebhook");
+
+const updateAneksCron = new CronJob('*/30 * * * * *', createUpdateFunction(updateAneksTimer), null, !useVkWebhook);
 const updateLastAneksCron = new CronJob('10 0 */1 * * *', createUpdateFunction(updateLastAneksTimer), null, true);
 const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
 const scheduleAneksCron = new CronJob('0 0 */1 * * *', createUpdateFunction(sendScheduledAneks), null, true);
 const refreshAneksCron = new CronJob('20 0 0 */1 * *', createUpdateFunction(refreshAneksTimer), null, true);
 const approveAneksCron = new CronJob('25 * * * * *', createUpdateFunction(approveAneksTimer), null, true);
 const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
+
+if (useVkWebhook) {
+  vk.on("anek", performAnek);
+}
 
 if (!config.get("telegram.spawnUpdater")) {
   process.on('message', (m: UpdaterMessages) => {
@@ -229,7 +267,9 @@ if (!config.get("telegram.spawnUpdater")) {
             forceDenyUpdate = !m.value;
 
             if (forceDenyUpdate) {
-              updateAneksCron.stop();
+              if (!useVkWebhook) {
+                updateAneksCron.stop();
+              }
               updateLastAneksCron.stop();
               refreshAneksCron.stop();
               synchronizeDatabaseCron.stop();
@@ -237,7 +277,9 @@ if (!config.get("telegram.spawnUpdater")) {
               scheduleAneksCron.stop();
               approveAneksCron.stop();
             } else {
-              updateAneksCron.start();
+              if (!useVkWebhook) {
+                updateAneksCron.start();
+              }
               updateLastAneksCron.start();
               refreshAneksCron.start();
               synchronizeDatabaseCron.start();

@@ -1,8 +1,30 @@
 import * as config from 'config';
+import {NextFunction, Request, Response} from "express";
 import debugFactory from '../../helpers/debug';
 import NetworkModel, {Methods, RequestConfig, RequestParams} from '../network';
 
 const debug = debugFactory('baneks-node:vk');
+
+type AnekWithPostponeId = Anek & {
+  postponed_id: number
+};
+
+export interface BaseCallback {
+  type: string;
+  group_id: number;
+  object: any;
+}
+
+export interface ConfirmationCallback extends BaseCallback {
+  type: "confirmation";
+}
+
+export interface WallPostNewCallback extends BaseCallback {
+  type: "wall_post_new";
+  object: AnekWithPostponeId;
+}
+
+export type Callback = ConfirmationCallback | WallPostNewCallback;
 
 export type PollAnswer = {
   id: number,
@@ -287,6 +309,50 @@ class Vk extends NetworkModel {
 
         return this.fulfillAll(requests);
       });
+  }
+
+  public async performWallPost(post: AnekWithPostponeId) {
+    debug("Performing new wall post", post.post_id);
+    this.emit("anek", post);
+  }
+
+  public async performCallback(callback: Callback) {
+    const {type} = callback;
+
+    switch (type) {
+      case "wall_post_new":
+        return this.performWallPost(callback.object);
+    }
+  }
+
+  public middleware = async (req: Request, res: Response, next: NextFunction) => {
+    const callback: Callback = req.body;
+
+    if (!callback) {
+      next(new Error('No webhook callback specified'));
+
+      return;
+    }
+
+    if (callback.type === "confirmation") {
+      debug("Sending confirmation to vk callback API");
+
+      res.send(config.get('vk.confirmation'));
+
+      return;
+    }
+
+    this.emit('callback', callback);
+
+    try {
+      await this.performCallback(callback);
+
+      res.send("ok");
+
+      return;
+    } catch (error) {
+      next(error);
+    }
   }
 }
 

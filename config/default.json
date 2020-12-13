@@ -80,7 +80,11 @@
     "access_token": "",
     "needApprove": true,
     "approveTimeout": 300,
-    "forceAttachments": false
+    "forceAttachments": false,
+    "endpoint": "/api/vk/webhook",
+    "confirmation": 0,
+    "secret": "",
+    "useWebhook": false
   },
   "application": {
     "port": 3050
