@@ -5,15 +5,20 @@
 import * as config from 'config';
 import * as botApi from '../botApi';
 import {AllMessageParams, TelegramErrorResponse} from '../models/telegram';
-import {Anek, MultipleResponse, PreparedAnek} from '../models/vk';
+import {Anek, MultipleResponse} from '../models/vk';
 import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
 
-export const processAnek = (anek: Anek, approved: boolean = true): PreparedAnek => {
+export type PreparedAnek = {
+  post_id: number,
+  likes: number,
+  reposts: number
+};
+
+export const processAnek = (anek: Anek): PreparedAnek => {
   const {id, ...rest} = anek;
 
   return {
     ...rest,
-    approved,
     likes: anek.likes.count,
     post_id: anek.id,
     reposts: anek.reposts.count
@@ -136,7 +141,7 @@ export async function redefineDatabase(count: number) {
 
   const aneks = responses
     .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
-    .map((anek: Anek): PreparedAnek => processAnek(anek, true));
+    .map(processAnek);
 
   if (aneks.length) {
     return AnekModel.insertMany(aneks)
@@ -166,7 +171,7 @@ export async function updateAneks() {
   return bulk.execute();
 }
 
-export function filterAnek(anek: Anek | IAnek): boolean {
+export function filterAnek(anek: IAnek): boolean {
   const donate = (anek.text || '').indexOf('#донат') >= 0;
   const ads = anek.marked_as_ads;
   const empty = !anek.text || !anek.text.length;

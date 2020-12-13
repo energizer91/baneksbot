@@ -1206,7 +1206,8 @@ botApi.bot.on('inlineQuery', async (inlineQuery, user) => {
   let aneks;
 
   if (!inlineQuery.query) {
-    aneks = await botApi.database.Anek.find({text: {$ne: ''}})
+    aneks = await botApi.database.Anek
+      .find({text: {$ne: ''}})
       .sort({date: -1})
       .skip(skip)
       .limit(limit)
@@ -1378,13 +1379,13 @@ botApi.bot.onCallbackQuery('a_d', async (args: string[], callbackQuery, user) =>
   return acceptVote(args[1], callbackQuery, user, false);
 });
 
-botApi.bot.onCallbackQuery("sc_0", async (args: string[], callbackQuery, user) => {
+botApi.bot.onCallbackQuery("sc_0", async (args: string[], callbackQuery) => {
   await botApi.bot.answerCallbackQuery(callbackQuery.id, {text: 'Подписка отменена'});
 
   await botApi.bot.deleteMessage(callbackQuery.message.chat.id, callbackQuery.message.message_id);
 });
 
-botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery, user) => {
+botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery) => {
   const buttons = new Menu();
   const count = args[1];
 
@@ -1419,7 +1420,7 @@ botApi.bot.onCallbackQuery("sc_1", async (args: string[], callbackQuery, user) =
   });
 });
 
-botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery, user) => {
+botApi.bot.onCallbackQuery("sc_2", async (args: string[], callbackQuery) => {
   const count = args[1];
   const times = Number(args[2]);
   const buttons = new Menu();

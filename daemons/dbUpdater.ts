@@ -101,7 +101,10 @@ async function updateAneksTimer() {
   const needApprove: boolean = config.get('vk.needApprove');
   const aneks = await common.getAneksUpdate();
 
-  const filteredAneks = aneks.map((anek) => common.processAnek(anek, !needApprove || !common.filterAnek(anek)));
+  const filteredAneks = aneks
+    .map(common.processAnek)
+    .filter(common.filterAnek);
+
   const dbAneks = await database.Anek.insertMany(filteredAneks);
 
   debug(`Found ${aneks.length} new aneks`);
