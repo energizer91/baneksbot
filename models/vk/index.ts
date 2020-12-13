@@ -112,13 +112,6 @@ export type Anek = {
   }
 };
 
-export type PreparedAnek = {
-  approved: boolean,
-  post_id: number,
-  likes: number,
-  reposts: number
-};
-
 export type Attachment = {
   type: string,
   photo?: Photo,
