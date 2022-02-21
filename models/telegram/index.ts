@@ -716,6 +716,10 @@ class Telegram extends NetworkModel {
   }
 
   public async sendPhoto(userId: UserId, photo: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
+    if (!photo) {
+      throw new Error('Photo URL is not specified');
+    }
+
     this.sendChatAction(userId, ChatAction.uploadPhoto);
 
     return this.sendRequest('sendPhoto', {
@@ -727,6 +731,10 @@ class Telegram extends NetworkModel {
   }
 
   public async sendAudio(userId: UserId, audio: string, params?: AllMessageParams & {title?: string, performer?: string}): Promise<Message> {
+    if (!audio) {
+      throw new Error('Photo URL is not specified');
+    }
+
     this.sendChatAction(userId, ChatAction.uploadAudio);
 
     return this.sendRequest('sendAudio', {
@@ -737,6 +745,10 @@ class Telegram extends NetworkModel {
   }
 
   public async sendDocument(userId: UserId, document: string | ReadableStream, params?: AllMessageParams): Promise<Message> {
+    if (!document) {
+      throw new Error('Document URL is not specified');
+    }
+
     this.sendChatAction(userId, ChatAction.uploadDocument);
 
     return this.sendRequest('sendDocument', {
@@ -748,6 +760,10 @@ class Telegram extends NetworkModel {
   }
 
   public async sendVideo(userId: UserId, video: string, params?: AllMessageParams): Promise<Message> {
+    if (!video) {
+      throw new Error('Video URL is not specified');
+    }
+
     this.sendChatAction(userId, ChatAction.uploadVideo);
 
     return this.sendRequest('sendVideo', {

@@ -58,11 +58,31 @@ export type Note = {
 
 export type PhotosList = string[];
 
+enum PhotoType {
+  S = 's',
+  M = 'm',
+  X = 'x',
+  O = 'o',
+  P = 'p',
+  Q = 'q',
+  R = 'r',
+  Y = 'y',
+  Z = 'z',
+  W = 'w',
+}
+
 type PhotoSize = {
-  type: string,
+  type: PhotoType,
   url: string,
   width: number,
   height: number
+};
+
+type VideoSize = {
+  height: number;
+  url: string;
+  width: number;
+  with_padding: number;
 };
 
 type Photo = {
@@ -75,11 +95,6 @@ type Photo = {
   sizes: PhotoSize[],
   width: number,
   height: number,
-  photo_75: string,
-  photo_130: string,
-  photo_604: string,
-  photo_1280: string,
-  photo_2560: string
 };
 
 type Audio = {
@@ -100,11 +115,8 @@ type Audio = {
 type Video = {
   id: number,
   title?: string,
-  photo_800?: string,
-  photo_640?: string,
-  photo_320?: string,
-  photo_130?: string,
   owner_id: number,
+  image: VideoSize[],
   text: string
 };
 
@@ -198,11 +210,11 @@ class Vk extends NetworkModel {
   }
 
   public static getPhotoUrl(photo: Photo): string {
-    return photo.photo_2560 || photo.photo_1280 || photo.photo_604 || photo.photo_130 || photo.photo_75;
+    return photo.sizes[photo.sizes.length - 1].url;
   }
 
   public static getVideoImageUrl(video: Video): string {
-    return video.photo_800 || video.photo_640 || video.photo_320 || video.photo_130;
+    return video.image[video.image.length - 1].url;
   }
 
   public endpoint: string = config.get('vk.url');
