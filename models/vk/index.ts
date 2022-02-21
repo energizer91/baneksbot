@@ -95,6 +95,11 @@ type Photo = {
   sizes: PhotoSize[],
   width: number,
   height: number,
+  photo_75: string,
+  photo_130: string,
+  photo_604: string,
+  photo_1280: string,
+  photo_2560: string
 };
 
 type Audio = {
@@ -115,6 +120,10 @@ type Audio = {
 type Video = {
   id: number,
   title?: string,
+  photo_800?: string,
+  photo_640?: string,
+  photo_320?: string,
+  photo_130?: string,
   owner_id: number,
   image: VideoSize[],
   text: string
@@ -210,11 +219,11 @@ class Vk extends NetworkModel {
   }
 
   public static getPhotoUrl(photo: Photo): string {
-    return photo.sizes[photo.sizes.length - 1].url;
+    return photo.photo_2560 || photo.photo_1280 || photo.photo_604 || photo.photo_130 || photo.photo_75 || photo.sizes[photo.sizes.length - 1].url;
   }
 
   public static getVideoImageUrl(video: Video): string {
-    return video.image[video.image.length - 1].url;
+    return video.photo_800 || video.photo_640 || video.photo_320 || video.photo_130 || video.image[video.image.length - 1].url;
   }
 
   public endpoint: string = config.get('vk.url');
