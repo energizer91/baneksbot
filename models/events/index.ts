@@ -1,3 +1,7 @@
+import debugFactory from '../../helpers/debug';
+
+const debugError = debugFactory('baneks-node:events:error', true);
+
 export type Callback = (...params: any) => any | Promise<any>;
 
 class EventEmitter {
@@ -15,7 +19,12 @@ class EventEmitter {
     if (this.events.has(event)) {
       return Promise.all(this.events.get(event).map((callback: Callback) =>
         callback(...params))
-      );
+      )
+        .catch((e) => {
+          debugError('Executing event "' + event + '" error', e, params);
+
+          return null;
+        });
     }
 
     return [];
