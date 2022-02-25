@@ -440,6 +440,12 @@ if (config.get('mongodb.searchEngine') === 'elastic') {
   });
 }
 
+userSchema.index({user_id: 1}, {
+  unique: true,
+  sparse: true,
+  expireAfterSeconds: 3600
+});
+
 export const Anek = mongoose.model('Anek', anekSchema) as IAnekModel;
 export const Comment = mongoose.model('Comment', commentSchema);
 export const GroupAdmin = mongoose.model('GroupAdmin', groupAdminSchema);
