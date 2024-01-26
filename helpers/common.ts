@@ -39,15 +39,7 @@ export function searchAneksElastic(searchPhrase: string, skip: number = 0, limit
         }
       },
       size: limit
-    }, {
-      highlight: {
-        fields: {
-          text: {}
-        },
-        post_tags: ['*'],
-        pre_tags: ['*']
-      }
-    }, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
+    }, {}, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
       if (err) {
         return reject(err);
       }
