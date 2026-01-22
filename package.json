@@ -4,11 +4,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "start": "node ./dist/bin/www",
-    "start-dev": "node -r ts-node/register ./bin/www",
+    "start": "node ./dist/index.js",
+    "start-dev": "node -r ts-node/register ./dist/index.js",
     "test": "mocha **/models/**/*.spec.js",
-    "deploy": "pm2 start ecosystem.config.json",
-    "deploy-prod": "pm2 start ecosystem.config.json --env=production",
     "build": "tsc"
   },
   "dependencies": {

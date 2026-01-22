@@ -1,0 +1,37 @@
+﻿services:
+  mongo:
+    image: mongo:3.4.24
+    container_name: local-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.16
+    container_name: local-elasticsearch
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=single-node
+      - http.host=0.0.0.0
+      - transport.host=127.0.0.1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  bot:
+    build: .
+    container_name: baneksbot
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - mongo
+      - elasticsearch
+    restart: unless-stopped
+    ports:
+     - "3050:3050"
+
+volumes:
+  mongo_data:
+  es_data:
