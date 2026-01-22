@@ -26,9 +26,14 @@
     depends_on:
       - mongo
       - elasticsearch
-    ports:
-      - "3050:3050"
+    networks:
+      - default
+      - proxy_net
 
 volumes:
   mongo_data:
   es_data:
+
+networks:
+  proxy_net:
+    external: true
