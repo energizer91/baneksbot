@@ -392,7 +392,11 @@ botApi.bot.onCommand('synchronize_database', async (command, message, user) => {
     throw new Error('Unauthorized access');
   }
 
-  botApi.sendUpdaterMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.synchronize, value: true});
+  if (config.get('mongodb.searchEngine') === 'elastic') {
+      botApi.database.Anek.synchronize();
+  } else {
+      botApi.sendUpdaterMessage({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.synchronize, value: true});
+  }
 
   return botApi.bot.sendMessage(message.from.id, 'synchronize start');
 });
