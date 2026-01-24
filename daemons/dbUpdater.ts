@@ -99,7 +99,7 @@ async function approveAneksTimer() {
     .map((approve) => approve.anek);
 
   if (readyApproves.length) {
-    logger.info(
+    logger.debug(
       approves.length +
         " anek(s) approve time expired. " +
         readyApproves.length +
@@ -120,7 +120,7 @@ async function updateAneksTimer() {
 
   const dbAneks = await database.Anek.insertMany(filteredAneks);
 
-  logger.info(`Found ${aneks.length} new aneks`);
+  logger.debug(`Found ${aneks.length} new aneks`);
 
   if (!aneks.length) {
     return;
