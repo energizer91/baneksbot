@@ -1,5 +1,5 @@
-﻿import http from "http";
-import client from "prom-client";
+﻿import * as http from "http";
+import * as client from "prom-client";
 
 client.collectDefaultMetrics({
   prefix: "baneksbot_",
