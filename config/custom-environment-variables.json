@@ -1,0 +1,18 @@
+{
+  "telegram": {
+    "token": "TELEGRAM_TOKEN",
+    "paymentToken": "TELEGRAM_PAYMENT_TOKEN",
+    "secret": "TELEGRAM_SECRET",
+    "baneksLink": "TELEGRAM_BANEKS_LINK"
+  },
+  "mongodb": {
+    "server": "MONGODB_SERVER",
+    "port": "MONGODB_PORT",
+    "user": "MONGODB_USER",
+    "password": "MONGODB_PASSWORD",
+    "database": "MONGODB_DATABASE"
+  },
+  "vk": {
+    "access_token": "VK_ACCESS_TOKEN"
+  }
+}
