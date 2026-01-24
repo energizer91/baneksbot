@@ -42,7 +42,7 @@
       - mongo
       - elasticsearch
     ports:
-      - "10.50.0.2:9464:9464"
+      - "10.50.0.2:9100:9100"
     networks:
       - default
       - proxy_net
