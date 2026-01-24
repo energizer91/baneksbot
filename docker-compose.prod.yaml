@@ -22,6 +22,15 @@
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_PAYMENT_TOKEN=${TELEGRAM_PAYMENT_TOKEN}
+      - TELEGRAM_SECRET=${TELEGRAM_SECRET}
+      - MONGODB_SERVER=${MONGODB_SERVER}
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_USER=${MONGODB_USER}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - VK_ACCESS_TOKEN=${VK_ACCESS_TOKEN}
     logging:
       driver: "json-file"
       options:
