@@ -4,6 +4,15 @@
 import * as config from "config";
 import * as uuid from "uuid/v1";
 
+import {
+  queueErrorsTotal,
+  queueInFlight,
+  queueLengthByRule,
+  queueLengthTotal,
+  queueRequestDuration,
+  queueRetriesTotal,
+  queueWaitDuration,
+} from "../../helpers/metrics";
 import createLogger from "../../helpers/logger";
 
 const logger = createLogger("baneks-node:queue");
@@ -20,6 +29,7 @@ type Callback = (error: Error | null, data?: any) => void;
 
 type QueueItemData = {
   id: string;
+  enqueuedAt: number;
   request: QueueRequest;
   callback: Callback;
 };
@@ -98,6 +108,7 @@ class SmartQueue {
     logger.debug("Clearing all queues");
 
     this.queue.clear();
+    this.updateQueueMetrics();
   }
 
   public get isOverheated(): boolean {
@@ -123,6 +134,8 @@ class SmartQueue {
     const queue = this.createQueue(key, request, callback, rule);
 
     logger.debug("Adding request to the queue", queue.id);
+
+    this.updateQueueMetrics();
 
     if (!this.pending) {
       this.execute(queue);
@@ -157,6 +170,7 @@ class SmartQueue {
 
     queue.data.push({
       callback,
+      enqueuedAt: Date.now(),
       id: queueItemId,
       request,
     });
@@ -177,6 +191,7 @@ class SmartQueue {
   private async addRetry(item: ShiftItemStructure, delay: number) {
     logger.debug("Adding retry", item.queue.id, delay);
 
+    queueRetriesTotal.inc({ rule: item.queue.ruleName });
     await this.delay(delay * 1000);
 
     this.add(
@@ -207,6 +222,12 @@ class SmartQueue {
       return;
     }
 
+    const ruleName = nextItem.queue.ruleName;
+    const waitTimeSeconds = Math.max(Date.now() - nextItem.item.enqueuedAt, 0);
+    queueWaitDuration.observe({ rule: ruleName }, waitTimeSeconds / 1000);
+    queueInFlight.inc({ rule: ruleName });
+    const endTimer = queueRequestDuration.startTimer({ rule: ruleName });
+
     logger.debug("Executing queue item", nextItem.item.id);
 
     try {
@@ -215,16 +236,22 @@ class SmartQueue {
       this.execute();
       const data = await requestPromise;
       if (retryState) {
+        endTimer({ status: "retry" });
         this.addRetry(nextItem, retryTimer);
       } else {
         logger.debug("Queue item executed successfully", nextItem.item.id);
 
+        endTimer({ status: "ok" });
         nextItem.item.callback(null, data);
       }
     } catch (error) {
       logger.error({ err: error }, "Queue item request error");
 
+      queueErrorsTotal.inc({ rule: ruleName });
+      endTimer({ status: "error" });
       nextItem.item.callback(error);
+    } finally {
+      queueInFlight.dec({ rule: ruleName });
     }
   }
 
@@ -237,8 +264,11 @@ class SmartQueue {
 
     this.setCooldown(currentQueue);
 
+    const item = currentQueue.data.shift() as QueueItemData;
+    this.updateQueueMetrics();
+
     return {
-      item: currentQueue.data.shift() as QueueItemData,
+      item,
       queue: currentQueue,
     };
   }
@@ -361,6 +391,26 @@ class SmartQueue {
     logger.debug("Deleting queue", key);
 
     this.queue.delete(key);
+    this.updateQueueMetrics();
+  }
+
+  private updateQueueMetrics() {
+    const totals: { [key: string]: number } = {};
+
+    this.queue.forEach((queue: QueueItem) => {
+      if (!totals[queue.ruleName]) {
+        totals[queue.ruleName] = 0;
+      }
+
+      totals[queue.ruleName] += queue.data.length;
+    });
+
+    queueLengthByRule.reset();
+    Object.keys(totals).forEach((rule: string) => {
+      queueLengthByRule.set({ rule }, totals[rule]);
+    });
+
+    queueLengthTotal.set(this.totalLength);
   }
 }
 

@@ -83,5 +83,10 @@
   },
   "application": {
     "port": 3050
+  },
+  "metrics": {
+    "enabled": true,
+    "port": 9100,
+    "updaterPort": 9101
   }
 }

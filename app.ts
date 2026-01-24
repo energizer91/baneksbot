@@ -5,6 +5,7 @@ import * as express from "express";
 import * as path from "path";
 import * as botApi from "./botApi";
 import createLogger from "./helpers/logger";
+import { startMetricsServer } from "./helpers/metrics";
 
 const logger = createLogger("baneks-node:app");
 
@@ -22,6 +23,11 @@ app.use(express.static(path.join(__dirname, "bundle"))); // eslint-disable-line
 botApi.connect(app);
 
 require("./helpers/commands");
+
+if (config.get<boolean>("metrics.enabled")) {
+  const metricsPort = config.get<number>("metrics.port");
+  startMetricsServer(metricsPort);
+}
 
 if (config.get<boolean>("telegram.daemonEnabled")) {
   if (config.get<boolean>("telegram.spawnUpdater")) {

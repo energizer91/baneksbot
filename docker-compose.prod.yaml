@@ -41,6 +41,8 @@
     depends_on:
       - mongo
       - elasticsearch
+    ports:
+      - "10.50.0.2:9464:9464"
     networks:
       - default
       - proxy_net

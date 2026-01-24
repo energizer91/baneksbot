@@ -1,4 +1,5 @@
 import * as config from "config";
+import { apiErrorsTotal } from "../../helpers/metrics";
 import createLogger from "../../helpers/logger";
 import NetworkModel, {
   Methods,
@@ -182,7 +183,9 @@ class Vk extends NetworkModel {
     const requestParams = Object.assign(
       {
         _getBackoff: () => 300,
+        _methodName: command,
         _rule: "vk",
+        _service: "vk",
         access_token: config.get<string>("vk.access_token"),
         v: config.get<string>("vk.api_version"),
       },
@@ -192,6 +195,11 @@ class Vk extends NetworkModel {
     return this.makeRequest(axiosConfig, requestParams).then(
       (data: IVkResponse<R>): R => {
         if (data.error) {
+          apiErrorsTotal.inc({
+            code: String(data.error.error_code || "unknown"),
+            method: command,
+            service: "vk",
+          });
           throw new Error(data.error.error_msg || "Unknown error");
         }
 

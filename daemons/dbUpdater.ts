@@ -4,6 +4,12 @@
 import * as config from "config";
 import { CronJob } from "cron";
 import createLogger from "../helpers/logger";
+import {
+  cronJobDuration,
+  cronJobRunsTotal,
+  errorsTotal,
+  startMetricsServer,
+} from "../helpers/metrics";
 import { IAnek } from "../helpers/mongo";
 import SmartQueue from "../models/queue";
 import {
@@ -18,6 +24,14 @@ import * as common from "../helpers/common";
 const logger = createLogger("baneks-node:updater");
 
 let forceDenyUpdate = false;
+
+const isChildProcess = typeof process.send === "function";
+if (isChildProcess && config.has("metrics.updaterPort")) {
+  const updaterPort = config.get<number>("metrics.updaterPort");
+  if (updaterPort) {
+    startMetricsServer(updaterPort);
+  }
+}
 
 const cronQueue = new SmartQueue({
   default: {
@@ -164,18 +178,36 @@ async function refreshAneksTimer() {
 }
 
 async function synchronizeDatabase() {
+  const endTimer = cronJobDuration.startTimer({
+    job: "synchronizeDatabase",
+  });
+
   try {
     await synchronizeWithElastic();
+    endTimer({ status: "ok" });
+    cronJobRunsTotal.inc({ job: "synchronizeDatabase", status: "ok" });
   } catch (err) {
     logger.error({ err }, "Database synchronize error");
+    endTimer({ status: "error" });
+    cronJobRunsTotal.inc({ job: "synchronizeDatabase", status: "error" });
+    errorsTotal.inc({ where: "cron", code: "synchronizeDatabase" });
   }
 }
 
 async function calculateStatisticsTimer() {
+  const endTimer = cronJobDuration.startTimer({
+    job: "calculateStatisticsTimer",
+  });
+
   try {
     await statistics.calculateStatistics();
+    endTimer({ status: "ok" });
+    cronJobRunsTotal.inc({ job: "calculateStatisticsTimer", status: "ok" });
   } catch (err) {
     logger.error({ err }, "Statistics calculate error");
+    endTimer({ status: "error" });
+    cronJobRunsTotal.inc({ job: "calculateStatisticsTimer", status: "error" });
+    errorsTotal.inc({ where: "cron", code: "calculateStatisticsTimer" });
   }
 }
 
@@ -214,14 +246,20 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
 
   return () => {
     logger.debug(`Starting update function "${name}"`);
+    const endTimer = cronJobDuration.startTimer({ job: name });
 
     cronQueue
       .request(fn)
-      .catch((err) => {
-        logger.error({ err }, `Executing update function "${name}" error`);
-      })
       .then(() => {
         logger.debug(`Finishing update function "${name}"`);
+        cronJobRunsTotal.inc({ job: name, status: "ok" });
+        endTimer({ status: "ok" });
+      })
+      .catch((err) => {
+        logger.error({ err }, `Executing update function "${name}" error`);
+        cronJobRunsTotal.inc({ job: name, status: "error" });
+        endTimer({ status: "error" });
+        errorsTotal.inc({ where: "cron", code: name });
       });
   };
 }

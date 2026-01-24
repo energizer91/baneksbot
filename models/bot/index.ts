@@ -5,6 +5,15 @@ import { bot, IBotRequest } from "../../botApi";
 import { translate } from "../../helpers/dictionary";
 import createLogger from "../../helpers/logger";
 import Menu, { Row } from "../../helpers/menu";
+import {
+  callbackQueriesTotal,
+  commandsTotal,
+  errorsTotal,
+  handlerDuration,
+  inFlight,
+  updateEventsTotal,
+  updatesTotal,
+} from "../../helpers/metrics";
 import { IAnek, ISuggest, IUser } from "../../helpers/mongo";
 
 import Telegram, {
@@ -640,29 +649,34 @@ class Bot extends Telegram implements IBot {
 
   public performInlineQuery(inlineQuery: InlineQuery, user: IUser) {
     logger.debug("Performing inline query from " + this.getUserInfo(user));
+    updateEventsTotal.inc({ event: "inline_query" });
     return this.emit("inlineQuery", inlineQuery, user);
   }
 
   public performCallbackQuery(callbackQuery: CallbackQuery, user: IUser) {
     logger.debug("Performing callback query from " + this.getUserInfo(user));
+    updateEventsTotal.inc({ event: "callback_query" });
     const { data = "" } = callbackQuery;
     const queryData = data.split(" ");
+    const action = queryData[0] || "unknown";
 
-    return this.emit(
-      "callbackQuery:" + queryData[0],
-      queryData,
-      callbackQuery,
-      user,
-    );
+    callbackQueriesTotal.inc({ action });
+
+    return this.emit("callbackQuery:" + action, queryData, callbackQuery, user);
   }
 
   public performMessage(message: Message, user: IUser) {
     logger.debug("Performing message from " + this.getUserInfo(user));
+    updateEventsTotal.inc({ event: "message" });
     return this.emit("message", message, user);
   }
 
   public performCommand(command: string[], message: Message, user: IUser) {
     logger.debug("Performing command from " + this.getUserInfo(user));
+    updateEventsTotal.inc({ event: "command" });
+    commandsTotal.inc({
+      command: command[0] ? command[0].slice(1) : "unknown",
+    });
     return this.emit("command:" + command[0].slice(1), command, message, user);
   }
 
@@ -673,6 +687,7 @@ class Bot extends Telegram implements IBot {
     logger.debug(
       "Performing pre checkout query from " + this.getUserInfo(user),
     );
+    updateEventsTotal.inc({ event: "pre_checkout_query" });
     return this.emit("preCheckoutQuery", preCheckoutQuery, user);
   }
 
@@ -683,34 +698,42 @@ class Bot extends Telegram implements IBot {
     logger.debug(
       "Performing successful payment from " + this.getUserInfo(user),
     );
+    updateEventsTotal.inc({ event: "successful_payment" });
     return this.emit("successfulPayment", successfulPayment, user);
   }
 
   public performPoll(poll: Poll, user: IUser) {
+    updateEventsTotal.inc({ event: "poll" });
     return this.emit("poll", poll, user);
   }
 
   public performPollAnswer(pollAnswer: TelegramPollAnswer, user: IUser) {
+    updateEventsTotal.inc({ event: "poll_answer" });
     return this.emit("pollAnswer", pollAnswer, user);
   }
 
   public performNewChatMembers(members: User[], message: Message, user: IUser) {
+    updateEventsTotal.inc({ event: "new_chat_members" });
     return this.emit("newChatMembers", members, message, user);
   }
 
   public performLeftChatMember(member: User, message: Message, user: IUser) {
+    updateEventsTotal.inc({ event: "left_chat_member" });
     return this.emit("leftChatMember", member, message, user);
   }
 
   public performSuggest(suggest: Message, user: IUser) {
+    updateEventsTotal.inc({ event: "suggest" });
     return this.emit("suggest", suggest, user);
   }
 
   public performReply(reply: Message, message: Message, user: IUser) {
+    updateEventsTotal.inc({ event: "reply" });
     return this.emit("reply", reply, message, user);
   }
 
   public performFeedback(message: Message, user: IUser) {
+    updateEventsTotal.inc({ event: "feedback" });
     return this.emit("feedback", message, user);
   }
 
@@ -718,6 +741,7 @@ class Bot extends Telegram implements IBot {
     logger.debug(
       "Performing button " + button + " from " + this.getUserInfo(user),
     );
+    updateEventsTotal.inc({ event: "button" });
     return this.emit("button:" + button, message, user);
   }
 
@@ -841,6 +865,25 @@ class Bot extends Telegram implements IBot {
 
     const { user, chat } = req;
 
+    let updateType = "unknown";
+    if (update.message) {
+      updateType = "message";
+    } else if (update.inline_query) {
+      updateType = "inline_query";
+    } else if (update.callback_query) {
+      updateType = "callback_query";
+    } else if (update.pre_checkout_query) {
+      updateType = "pre_checkout_query";
+    } else if (update.poll) {
+      updateType = "poll";
+    } else if (update.poll_answer) {
+      updateType = "poll_answer";
+    }
+
+    updatesTotal.inc({ type: updateType });
+    inFlight.inc();
+    const endTimer = handlerDuration.startTimer({ type: updateType });
+
     this.emit("update", update, user);
 
     req.update = update;
@@ -850,9 +893,17 @@ class Bot extends Telegram implements IBot {
 
       req.results = results || [];
 
+      endTimer({ status: "ok" });
       next();
     } catch (error) {
+      endTimer({ status: "error" });
+      errorsTotal.inc({
+        where: "handler",
+        code: error && error.name ? error.name : "Error",
+      });
       next(error);
+    } finally {
+      inFlight.dec();
     }
   };
 }

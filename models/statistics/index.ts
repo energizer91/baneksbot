@@ -1,3 +1,11 @@
+import {
+  usersAdminTotal,
+  usersApproverTotal,
+  usersBannedTotal,
+  usersEditorTotal,
+  usersSubscribedTotal,
+  usersTotal,
+} from "../../helpers/metrics";
 import { Anek, IStatistics, Log, Statistic, User } from "../../helpers/mongo";
 
 export type StatisticsData = {
@@ -24,18 +32,47 @@ class Statistics {
     const fromDate = new Date(from || 0);
     const toDate = new Date(to || Date.now());
 
-    return {
-      count: await User.count({}),
-      new: await User.find({ date: { $gte: fromDate, $lte: toDate } }).count(),
-      newly_subscribed: await Log.find({
+    const [
+      count,
+      newUsers,
+      newlySubscribed,
+      subscribed,
+      unsubscribed,
+      approvers,
+      admins,
+      editors,
+      banned,
+    ] = await Promise.all([
+      User.count({}),
+      User.find({ date: { $gte: fromDate, $lte: toDate } }).count(),
+      Log.find({
         "request.message.text": "/subscribe",
         date: { $gte: fromDate, $lte: toDate },
       }).count(),
-      subscribed: await User.find({ subscribed: true }).count(),
-      unsubscribed: await Log.find({
+      User.find({ subscribed: true }).count(),
+      Log.find({
         "request.message.text": "/unsubscribe",
         date: { $gte: fromDate, $lte: toDate },
       }).count(),
+      User.find({ approver: true }).count(),
+      User.find({ admin: true }).count(),
+      User.find({ editor: true }).count(),
+      User.find({ banned: true }).count(),
+    ]);
+
+    usersTotal.set(count);
+    usersSubscribedTotal.set(subscribed);
+    usersApproverTotal.set(approvers);
+    usersAdminTotal.set(admins);
+    usersEditorTotal.set(editors);
+    usersBannedTotal.set(banned);
+
+    return {
+      count,
+      new: newUsers,
+      newly_subscribed: newlySubscribed,
+      subscribed,
+      unsubscribed,
     };
   }
 

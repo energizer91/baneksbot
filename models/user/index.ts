@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { usersCreatedTotal } from "../../helpers/metrics";
 import { IUser, User as UserModel } from "../../helpers/mongo";
 import { Chat, User as UserType } from "../telegram";
 
@@ -21,12 +22,33 @@ class User {
     }
 
     try {
-      return UserModel.findOneAndUpdate(
-        // @ts-ignore
-        { user_id: user.user_id || user.id },
-        params || user,
-        { new: true, upsert: true, setDefaultsOnInsert: true },
-      ).exec();
+      const result: any = await (UserModel as any)
+        .findOneAndUpdate(
+          // @ts-ignore
+          { user_id: user.user_id || user.id },
+          params || user,
+          {
+            new: true,
+            rawResult: true,
+            setDefaultsOnInsert: true,
+            upsert: true,
+          },
+        )
+        .exec();
+
+      const created = Boolean(
+        result && result.lastErrorObject && result.lastErrorObject.upserted,
+      );
+
+      if (created) {
+        const isChat = Boolean(
+          // @ts-ignore
+          typeof (user as Chat).type === "string",
+        );
+        usersCreatedTotal.inc({ kind: isChat ? "chat" : "user" });
+      }
+
+      return (result && result.value) || (user as IUser);
     } catch (error) {
       console.error(error);
 

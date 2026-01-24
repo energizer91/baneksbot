@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import * as config from "config";
+import { apiErrorsTotal, outboundMessagesTotal } from "../../helpers/metrics";
 import createLogger from "../../helpers/logger";
 import NetworkModel, {
   Methods,
@@ -8,6 +9,18 @@ import NetworkModel, {
 } from "../network";
 
 const logger = createLogger("baneks-node:telegram");
+const outboundMethods = new Set([
+  "sendMessage",
+  "sendPhoto",
+  "sendAudio",
+  "sendDocument",
+  "sendVideo",
+  "sendSticker",
+  "sendPoll",
+  "sendInvoice",
+  "sendMediaGroup",
+  "forwardMessage",
+]);
 
 export enum ParseMode {
   Markdown = "Markdown",
@@ -1146,6 +1159,10 @@ class Telegram extends NetworkModel {
     params: AllMessageParams | {} = {},
     method: Methods = Methods.POST,
   ): Promise<T> {
+    if (outboundMethods.has(request)) {
+      outboundMessagesTotal.inc({ method: request });
+    }
+
     const axiosConfig: RequestConfig = {
       method,
       url: `${this.endpoint}/${request}`,
@@ -1155,6 +1172,8 @@ class Telegram extends NetworkModel {
       ...params,
       _getBackoff: (error: AxiosError): number =>
         error.response.data.parameters.retry_after,
+      _methodName: request,
+      _service: "telegram",
     };
 
     if (!requestParams._key) {
@@ -1172,6 +1191,11 @@ class Telegram extends NetworkModel {
     );
 
     if (response.ok === false) {
+      apiErrorsTotal.inc({
+        code: String(response.error_code || "unknown"),
+        method: request,
+        service: "telegram",
+      });
       throw new Error(response.description);
     }
 

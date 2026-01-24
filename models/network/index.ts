@@ -1,5 +1,11 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import * as FormData from "form-data";
+import {
+  errorsTotal,
+  networkRequestDuration,
+  networkRequestsTotal,
+  networkRetriesTotal,
+} from "../../helpers/metrics";
 import createLogger from "../../helpers/logger";
 import EventEmitter from "../events";
 import Queue, { RetryFunction } from "../queue";
@@ -21,6 +27,8 @@ export type RequestParams = {
   _rule?: string;
   _getBackoff?: (error: AxiosError) => number;
   _stream?: boolean;
+  _service?: string;
+  _methodName?: string;
 };
 
 const queue = new Queue();
@@ -44,8 +52,13 @@ class NetworkModel extends EventEmitter {
       _rule: rule,
       _getBackoff,
       _stream,
+      _service,
+      _methodName,
       ...httpParams
     } = params;
+
+    const service = _service || "unknown";
+    const method = _methodName || "unknown";
 
     if (config.method === Methods.GET) {
       data = { ...config, params: httpParams };
@@ -63,15 +76,35 @@ class NetworkModel extends EventEmitter {
     }
 
     return this.queue.request(
-      (backoff: RetryFunction) =>
-        axios(data)
+      (backoff: RetryFunction) => {
+        const endTimer = networkRequestDuration.startTimer({
+          method,
+          service,
+        });
+
+        return axios(data)
           .then((response: AxiosResponse<R>) => {
+            networkRequestsTotal.inc({
+              code: String(response.status),
+              method,
+              service,
+              status: "ok",
+            });
+            endTimer({ status: "ok" });
             logger.debug("Returning response", response.data);
 
             return response.data;
           })
           .catch((error: AxiosError) => {
             if (!error || !error.response) {
+              networkRequestsTotal.inc({
+                code: "unknown",
+                method,
+                service,
+                status: "error",
+              });
+              endTimer({ status: "error" });
+              errorsTotal.inc({ where: "network", code: "UnknownError" });
               throw new Error("Unknown error");
             }
 
@@ -79,6 +112,18 @@ class NetworkModel extends EventEmitter {
               typeof backoff === "function" &&
               error.response.status === 429
             ) {
+              networkRequestsTotal.inc({
+                code: String(error.response.status),
+                method,
+                service,
+                status: "backoff",
+              });
+              endTimer({ status: "backoff" });
+              networkRetriesTotal.inc({
+                method,
+                reason: "rate_limited",
+                service,
+              });
               logger.warn("Back off request", error.response.data.parameters);
               backoff(_getBackoff ? _getBackoff(error) : 300);
 
@@ -86,6 +131,17 @@ class NetworkModel extends EventEmitter {
             }
 
             if (error.response.status >= 400 && error.response.status <= 600) {
+              networkRequestsTotal.inc({
+                code: String(error.response.status),
+                method,
+                service,
+                status: "error",
+              });
+              endTimer({ status: "error" });
+              errorsTotal.inc({
+                where: "network",
+                code: String(error.response.status),
+              });
               logger.error(
                 "An error occurred with code " + error.response.status,
                 error.response.data,
@@ -93,10 +149,18 @@ class NetworkModel extends EventEmitter {
               throw error.response.data;
             }
 
+            networkRequestsTotal.inc({
+              code: String(error.response.status || "unknown"),
+              method,
+              service,
+              status: "empty",
+            });
+            endTimer({ status: "empty" });
             logger.warn("Returning empty response");
 
             return {};
-          }),
+          });
+      },
       key,
       rule,
     );
