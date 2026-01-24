@@ -1,0 +1,25 @@
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    project: "./tsconfig.json",
+    tsconfigRootDir: __dirname,
+    sourceType: "module",
+  },
+  plugins: ["@typescript-eslint"],
+  extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"],
+  ignorePatterns: ["dist/", "node_modules/"],
+  rules: {
+    "no-console": ["warn", { allow: ["debug", "info", "warn", "error"] }],
+    "no-case-declarations": "off",
+    "no-prototype-builtins": "off",
+    "no-useless-escape": "off",
+    "prefer-spread": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-var-requires": "off",
+  },
+};

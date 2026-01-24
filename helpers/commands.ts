@@ -538,7 +538,7 @@ botApi.bot.onCommand("synchronize_database", async (command, message, user) => {
     throw new Error("Unauthorized access");
   }
 
-  if (config.get("mongodb.searchEngine") === "elastic") {
+  if (config.get<string>("mongodb.searchEngine") === "elastic") {
     botApi.database.Anek.synchronize();
   } else {
     botApi.sendUpdaterMessage({
@@ -1031,7 +1031,7 @@ botApi.bot.onCommand("find_user", async (command, message) => {
 });
 
 botApi.bot.onCommand("chat", (command, message) => {
-  const baneksLink = config.get("telegram.baneksLink");
+  const baneksLink = config.get<string>("telegram.baneksLink");
 
   if (command[1] === "id") {
     return botApi.bot.sendMessage(
@@ -1411,7 +1411,13 @@ botApi.bot.onCommand("grant", async (command, message, user) => {
     return botApi.bot.sendMessage(message.chat.id, "Введите id пользователя.");
   }
 
-  if (message.from.id === config.get("telegram.editorialChannel")) {
+  const editorialChannel = config.get<number>("telegram.editorialChannel");
+
+  if (!editorialChannel) {
+    throw new Error("Editorial channel not configured");
+  }
+
+  if (message.from.id === editorialChannel) {
     const newAdmin = await botApi.database.User.findOne({
       user_id: command[1],
     }).exec();
@@ -1426,22 +1432,15 @@ botApi.bot.onCommand("grant", async (command, message, user) => {
 
     await newAdmin.save();
 
-    await botApi.bot.promoteChatMember(
-      config.get("telegram.editorialChannel"),
-      newAdmin.user_id,
-      {
-        can_delete_messages: newStatus,
-        can_edit_messages: newStatus,
-        can_invite_users: newStatus,
-        can_pin_messages: newStatus,
-        can_post_messages: newStatus,
-      },
-    );
+    await botApi.bot.promoteChatMember(editorialChannel, newAdmin.user_id, {
+      can_delete_messages: newStatus,
+      can_edit_messages: newStatus,
+      can_invite_users: newStatus,
+      can_pin_messages: newStatus,
+      can_post_messages: newStatus,
+    });
 
-    await botApi.bot.deleteMessage(
-      config.get("telegram.editorialChannel"),
-      message.message_id,
-    );
+    await botApi.bot.deleteMessage(editorialChannel, message.message_id);
 
     if (!newStatus) {
       return botApi.bot.sendMessage(
@@ -1913,19 +1912,18 @@ botApi.bot.onCallbackQuery(
       text: "Анек помечен как спам.",
     });
 
+    const editorialChannel = config.get<number>("telegram.editorialChannel");
+
     // in case we have this in approve queue
     const approve = await botApi.database.Approve.findOne({ anek: anek._id });
 
-    if (!approve || !config.get("telegram.editorialChannel")) {
+    if (!approve || !editorialChannel) {
       return;
     }
 
     await botApi.bot.fulfillAll(
       approve.messages.map((message) =>
-        botApi.bot.deleteMessage(
-          config.get("telegram.editorialChannel"),
-          message.message_id,
-        ),
+        botApi.bot.deleteMessage(editorialChannel, message.message_id),
       ),
     );
 
@@ -2113,7 +2111,7 @@ botApi.bot.onCallbackQuery(
 
 botApi.bot.on("feedback", (message: Message) => {
   return botApi.bot.forwardMessage(
-    config.get("telegram.adminChat"),
+    config.get<number>("telegram.adminChat"),
     message.message_id,
     message.chat.id,
   );

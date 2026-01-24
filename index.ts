@@ -24,7 +24,7 @@ export interface ErrnoException extends Error {
  * Get port from environment and store in Express.
  */
 
-const port = config.get("application.port");
+const port = config.get<number>("application.port");
 app.set("port", port);
 
 /**

@@ -1,11 +1,18 @@
-import { expect } from "chai";
+jest.mock("../../botApi", () => ({
+  __esModule: true,
+  bot: {
+    prepareInlineKeyboard: (v: any) => v,
+    prepareReplyMarkup: (v: any) => v,
+  },
+}));
+
 import Bot from "./";
 
 const bot = new Bot();
 
 describe("Bot model", () => {
   it("should initialize", () => {
-    expect(bot).to.be.a("object");
+    expect(bot).toBeTruthy();
   });
 
   // describe('Bot.getUserInfo', () => {

@@ -13,7 +13,7 @@
     "baseUrl": ".",
     "target": "es2018",
     "typeRoots": ["./@types", "./node_modules/@types"],
-    "types": ["mocha"]
+    "types": ["node", "jest"]
   },
   "include": ["**/*.ts", "**/*.js", "config/*.json", "languages/*.json"],
   "exclude": ["node_modules", "dist", "ecosystem.config.js"]

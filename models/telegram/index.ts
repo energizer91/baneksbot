@@ -693,11 +693,11 @@ export type QuizPoll = {
 export type Poll = BasePoll & (RegularPoll | QuizPoll);
 
 class Telegram extends NetworkModel {
-  public endpoint: string = `${config.get("telegram.url")}${config.get("telegram.token")}`;
-  public individualRule: string = config.get(
+  public endpoint = `${config.get<string>("telegram.url")}${config.get<string>("telegram.token")}`;
+  public individualRule = config.get<string>(
     "telegram.rules.individualMessage",
   );
-  public groupRule: string = config.get("telegram.rules.groupMessage");
+  public groupRule: string = config.get<string>("telegram.rules.groupMessage");
 
   public async getMe(): Promise<User> {
     return this.sendRequest("getMe");
@@ -936,7 +936,7 @@ class Telegram extends NetworkModel {
   ): Promise<boolean> {
     return this.sendRequest("answerInlineQuery", {
       _key: inlineId,
-      _rule: config.get("telegram.rules.inlineQuery"),
+      _rule: config.get<string>("telegram.rules.inlineQuery"),
       cache_time: 0,
       inline_query_id: inlineId,
       next_offset: String(nextOffset),
@@ -952,7 +952,7 @@ class Telegram extends NetworkModel {
 
     return this.sendRequest("sendInvoice", {
       chat_id: userId,
-      provider_token: config.get("telegram.paymentToken"),
+      provider_token: config.get<string>("telegram.paymentToken"),
       ...invoice,
     });
   }
@@ -1118,7 +1118,7 @@ class Telegram extends NetworkModel {
     try {
       return this.sendRequest<boolean>("answerCallbackQuery", {
         _key: Number(queryId),
-        _rule: config.get("telegram.rules.callbackQuery"),
+        _rule: config.get<string>("telegram.rules.callbackQuery"),
         callback_query_id: queryId,
         ...payload,
       });

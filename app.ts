@@ -21,12 +21,12 @@ app.use(express.static(path.join(__dirname, "bundle"))); // eslint-disable-line
 
 botApi.connect(app);
 
-require("./helpers/commands"); // tslint:disable-line
+require("./helpers/commands");
 
-if (config.get("telegram.daemonEnabled")) {
-  if (config.get("telegram.spawnUpdater")) {
-    require("./daemons/dbUpdater"); // tslint:disable-line
-  } else if (config.get("telegram.daemonEnabled")) {
+if (config.get<boolean>("telegram.daemonEnabled")) {
+  if (config.get<boolean>("telegram.spawnUpdater")) {
+    require("./daemons/dbUpdater");
+  } else if (config.get<boolean>("telegram.daemonEnabled")) {
     botApi.startDaemon();
   }
 }

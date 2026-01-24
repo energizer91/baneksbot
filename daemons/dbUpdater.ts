@@ -34,7 +34,7 @@ const cronQueue = new SmartQueue({
 });
 
 async function synchronizeWithElastic() {
-  if (config.get("mongodb.searchEngine") !== "elastic") {
+  if (config.get<string>("mongodb.searchEngine") !== "elastic") {
     logger.info(
       "Database synchronizing is only available on elasticsearch engine",
     );
@@ -113,7 +113,7 @@ async function approveAneksTimer() {
 }
 
 async function updateAneksTimer() {
-  const needApprove: boolean = config.get("vk.needApprove");
+  const needApprove = config.get<boolean>("vk.needApprove");
   const aneks = await common.getAneksUpdate();
 
   const filteredAneks = aneks.map(common.processAnek).filter(common.filterAnek);
@@ -213,7 +213,7 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
   const name = fn.name || "Unknown function";
 
   return () => {
-    logger.info(`Starting update function "${name}"`);
+    logger.debug(`Starting update function "${name}"`);
 
     cronQueue
       .request(fn)
@@ -221,7 +221,7 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
         logger.error({ err }, `Executing update function "${name}" error`);
       })
       .then(() => {
-        logger.info(`Finishing update function "${name}"`);
+        logger.debug(`Finishing update function "${name}"`);
       });
   };
 }
@@ -269,7 +269,7 @@ const calculateStatisticsCron = new CronJob(
   true,
 );
 
-if (!config.get("telegram.spawnUpdater")) {
+if (!config.get<boolean>("telegram.spawnUpdater")) {
   process.on("message", (m: UpdaterMessages) => {
     logger.debug("CHILD got message:", m);
 

@@ -607,18 +607,17 @@ class Bot extends Telegram implements IBot {
   }
 
   public forwardMessageToChannel(message: ISuggest, params: AllMessageParams) {
-    if (!config.get("telegram.baneksChannel")) {
+    const baneksChannel = config.get<number>("telegram.baneksChannel");
+
+    if (!baneksChannel) {
       return;
     }
-    return this.sendSuggest(
-      config.get("telegram.baneksChannel"),
-      message,
-      params,
-    );
+
+    return this.sendSuggest(baneksChannel, message, params);
   }
 
   public sendMessageToAdmin(text: string) {
-    return this.sendMessage(config.get("telegram.adminChat"), text);
+    return this.sendMessage(config.get<number>("telegram.adminChat"), text);
   }
 
   /**
@@ -767,7 +766,7 @@ class Bot extends Telegram implements IBot {
             if (
               botName.length === 1 ||
               (botName.length === 2 &&
-                botName[1] === config.get("telegram.botName"))
+                botName[1] === config.get<string>("telegram.botName"))
             ) {
               if (
                 this.isGroup(message) &&

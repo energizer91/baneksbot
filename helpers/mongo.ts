@@ -9,7 +9,6 @@ import { Stream } from "stream";
 import createLogger from "./logger";
 
 // There are no typings for mongoose
-// tslint:disable-next-line
 const mongoosastic = require("mongoosastic");
 
 const logger = createLogger("baneks-node:mongo");
@@ -388,7 +387,9 @@ const approveSchema = new mongoose.Schema({
   approveTimeout: {
     type: Date,
     default: () =>
-      new Date(Date.now() + Number(config.get("vk.approveTimeout")) * 1000),
+      new Date(
+        Date.now() + Number(config.get<number>("vk.approveTimeout")) * 1000,
+      ),
   },
   cons: [userSchema],
   messages: [
@@ -443,21 +444,21 @@ anekSchema.statics.convertIds = (ids: mongoose.Document[]) => {
 if (db.readyState === 0) {
   mongoose.connect(
     "mongodb://" +
-      config.get("mongodb.server") +
+      config.get<string>("mongodb.server") +
       "/" +
-      config.get("mongodb.database"),
+      config.get<string>("mongodb.database"),
   );
 }
 
-if (config.get("mongodb.searchEngine") === "elastic") {
+if (config.get<string>("mongodb.searchEngine") === "elastic") {
   anekSchema.plugin(mongoosastic, {
-    hosts: config.get("mongodb.elasticHosts") as string[],
+    hosts: config.get<string[]>("mongodb.elasticHosts"),
     hydrate: true,
     hydrateOptions: {
       select: "text post_id from_id likes",
     },
   });
-} else if (config.get("mongodb.searchEngine") === "native") {
+} else if (config.get<string>("mongodb.searchEngine") === "native") {
   anekSchema.index(
     { text: "text" },
     {

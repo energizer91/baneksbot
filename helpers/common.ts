@@ -80,7 +80,7 @@ export function performSearch(
   skip: number,
   limit: number,
 ) {
-  if (config.get("mongodb.searchEngine") === "elastic") {
+  if (config.get<string>("mongodb.searchEngine") === "elastic") {
     return this.searchAneksElastic(searchPhrase, skip, limit);
   }
 

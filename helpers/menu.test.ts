@@ -1,27 +1,26 @@
-import { expect } from "chai";
 import Menu from "./menu";
 
 describe("Menu creator", () => {
   it("should create menu", () => {
     const menu = new Menu();
-    expect(menu).to.be.a("array");
+    expect(Array.isArray(menu)).toBe(true);
   });
 
   it("should add a row", () => {
     const menu = new Menu();
     const row = menu.addRow();
 
-    expect(row).to.be.a("array");
-    expect(row).to.have.length(0);
-    expect(menu).to.have.length(1);
+    expect(Array.isArray(row)).toBe(true);
+    expect(row).toHaveLength(0);
+    expect(menu).toHaveLength(1);
   });
 
   it("should add a button in row", () => {
     const menu = new Menu();
     menu.addRow();
 
-    expect(menu).to.have.length(1);
-    expect(menu[0]).to.have.length(0);
+    expect(menu).toHaveLength(1);
+    expect(menu[0]).toHaveLength(0);
   });
 
   it("should return a JSON with menu", () => {
@@ -29,7 +28,7 @@ describe("Menu creator", () => {
 
     menu.addRow().addButton({ text: "a", callback_data: "a" });
 
-    expect(menu.toInlineMarkup()).to.eq(
+    expect(menu.toInlineMarkup()).toBe(
       JSON.stringify({
         inline_keyboard: [[{ text: "a", callback_data: "a" }]],
       }),

@@ -161,13 +161,13 @@ type AllRequestParams = {
 class Vk extends NetworkModel {
   public static getAnekLink(
     postId: number,
-    fromId: number = config.get("vk.group_id"),
+    fromId: number = config.get<number>("vk.group_id"),
   ) {
     return "https://vk.com/wall" + fromId + "_" + postId;
   }
 
-  public endpoint: string = config.get("vk.url");
-  public groupId: number = config.get("vk.group_id");
+  public endpoint = config.get<string>("vk.url");
+  public groupId = config.get<number>("vk.group_id");
 
   public executeCommand<R>(
     command: string,
@@ -183,8 +183,8 @@ class Vk extends NetworkModel {
       {
         _getBackoff: () => 300,
         _rule: "vk",
-        access_token: config.get("vk.access_token"),
-        v: config.get("vk.api_version"),
+        access_token: config.get<string>("vk.access_token"),
+        v: config.get<string>("vk.api_version"),
       },
       params,
     );

@@ -1,5 +1,3 @@
-/* tslint:disable max-classes-per-file */
-
 import { InlineKeyboard, InlineKeyboardButton } from "../models/telegram";
 
 export class Row extends Array {
