@@ -2,74 +2,76 @@
  * Created by xgmv84 on 11/26/2016.
  */
 
-import * as config from 'config';
-import * as mongoose from 'mongoose';
-import {Stream} from "stream";
+import * as config from "config";
+import * as mongoose from "mongoose";
+import { Stream } from "stream";
 
-import debugFactory from './debug';
+import createLogger from "./logger";
 
 // There are no typings for mongoose
 // tslint:disable-next-line
-const mongoosastic = require('mongoosastic');
+const mongoosastic = require("mongoosastic");
 
-const debug = debugFactory('baneks-node:mongo');
-const error = debugFactory('baneks-node:mongo:error', true);
+const logger = createLogger("baneks-node:mongo");
 
 export type PluginOptions = {
-  hosts?: string[],
-  hydrate?: boolean,
+  hosts?: string[];
+  hydrate?: boolean;
   hydrateOptions?: {
-    select?: string
-  }
+    select?: string;
+  };
 };
 
 export type SearchQuery = {
-  from?: number,
+  from?: number;
   query: {
     match?: {
-      text: string,
-      minimum_should_match?: number | string
-    },
+      text: string;
+      minimum_should_match?: number | string;
+    };
     more_like_this?: {
-      fields?: string[],
-      like: string | {_id: mongoose.Types.ObjectId},
-      min_doc_freq?: number,
-      min_term_freq?: number,
-      max_query_terms?: number,
-      minimum_should_match?: number | string
-    }
-  },
-  size?: number
+      fields?: string[];
+      like: string | { _id: mongoose.Types.ObjectId };
+      min_doc_freq?: number;
+      min_term_freq?: number;
+      max_query_terms?: number;
+      minimum_should_match?: number | string;
+    };
+  };
+  size?: number;
 };
 
 export type SearchParams = {
   highlight?: {
     fields: {
-      text: {}
-    },
-    post_tags: string[],
-    pre_tags: string[]
-  },
-  hydrate?: boolean,
-  hydrateWithESResults?: boolean
+      text: {};
+    };
+    post_tags: string[];
+    pre_tags: string[];
+  };
+  hydrate?: boolean;
+  hydrateWithESResults?: boolean;
 };
 
 export type ElasticHit = {
-  _id: mongoose.Types.ObjectId,
-  text: string,
-  post_id: number,
-  from_id: number,
-  likes: number
+  _id: mongoose.Types.ObjectId;
+  text: string;
+  post_id: number;
+  from_id: number;
+  likes: number;
 };
 
 export interface IElasticSearchResult<T> {
   hits: {
-    hits: Array<T & {_highlight: string, _esResult: {_score: number}}>,
-    max_score: number
+    hits: Array<T & { _highlight: string; _esResult: { _score: number } }>;
+    max_score: number;
   };
 }
 
-export type SearchCallback = (err: Error, result: IElasticSearchResult<any>) => void;
+export type SearchCallback = (
+  err: Error,
+  result: IElasticSearchResult<any>,
+) => void;
 
 export interface IUser extends mongoose.Document {
   username: string;
@@ -118,41 +120,41 @@ export interface ISuggest extends mongoose.Document {
   date: mongoose.Schema.Types.Date;
   message_id: number;
   chat: {
-    id: number
+    id: number;
   };
   text: string;
   audio: {
-    file_id: string,
-    duration: number,
-    performer: string,
-    title: string,
-    mime_type: string,
-    file_size: number
+    file_id: string;
+    duration: number;
+    performer: string;
+    title: string;
+    mime_type: string;
+    file_size: number;
   };
   document: {
-    file_id: string,
-    file_name: string,
-    title: string,
-    mime_type: string,
-    file_size: number
+    file_id: string;
+    file_name: string;
+    title: string;
+    mime_type: string;
+    file_size: number;
   };
   photo: Array<{
-    file_id: string,
-    width: number,
-    height: number,
-    file_size: number
+    file_id: string;
+    width: number;
+    height: number;
+    file_size: number;
   }>;
   voice: {
-    file_id: string,
-    duration: number,
-    mime_type: string,
-    file_size: number
+    file_id: string;
+    duration: number;
+    mime_type: string;
+    file_size: number;
   };
   video_note: {
-    file_id: string,
-    length: number,
-    duration: number,
-    file_size: number
+    file_id: string;
+    length: number;
+    duration: number;
+    file_size: number;
   };
   caption: string;
   approved: boolean;
@@ -168,26 +170,26 @@ interface ILog extends mongoose.Document {
 
 export interface IStatistics extends mongoose.Document {
   aneks: {
-    count: number,
-    new: number
+    count: number;
+    new: number;
   };
   date: Date;
   messages: {
-    popularCommand: string,
-    received: number
+    popularCommand: string;
+    received: number;
   };
   users: {
-    count: number,
-    new: number,
-    newly_subscribed: number,
-    subscribed: number,
-    unsubscribed: number
+    count: number;
+    new: number;
+    newly_subscribed: number;
+    subscribed: number;
+    unsubscribed: number;
   };
 }
 
 export type ApproveMessage = {
-  chat_id: number,
-  message_id: number
+  chat_id: number;
+  message_id: number;
 };
 
 export interface IApprove extends mongoose.Document {
@@ -202,7 +204,11 @@ export interface IApprove extends mongoose.Document {
 export interface IAnekModel extends mongoose.Model<IAnek> {
   random(): Promise<IAnek>;
   synchronize(): Stream;
-  esSearch(query: SearchQuery, params: SearchParams, callback: SearchCallback): void;
+  esSearch(
+    query: SearchQuery,
+    params: SearchParams,
+    callback: SearchCallback,
+  ): void;
 }
 
 interface ISuggestModel extends mongoose.Model<ISuggest> {
@@ -210,11 +216,11 @@ interface ISuggestModel extends mongoose.Model<ISuggest> {
 }
 
 export type Database = {
-  User: mongoose.Model<IUser>,
-  Log: mongoose.Model<ILog>,
-  Suggest: ISuggestModel,
-  Statistic: mongoose.Model<IStatistics>,
-  Anek: IAnekModel
+  User: mongoose.Model<IUser>;
+  Log: mongoose.Model<ILog>;
+  Suggest: ISuggestModel;
+  Statistic: mongoose.Model<IStatistics>;
+  Anek: IAnekModel;
 };
 
 // @ts-ignore
@@ -222,35 +228,37 @@ mongoose.Promise = Promise;
 
 const db = mongoose.connection;
 
-db.on('error', error);
+db.on("error", (err) => {
+  logger.error({ err }, "MongoDB connection error");
+});
 
-db.once('open', () => {
-  debug('MongoDB connection successful');
+db.once("open", () => {
+  logger.info("MongoDB connection successful");
 });
 
 const userSchema = new mongoose.Schema({
-  admin: {type: Boolean, default: false},
-  approver: {type: Boolean, default: false},
-  banned: {type: Boolean, default: false},
-  client: {type: String, default: 'web'},
-  date: {type: Date, default: Date.now},
-  deleted_subscribe: {type: Boolean, default: false},
-  disable_commands: {type: Boolean, default: false},
-  editor: {type: Boolean, default: false},
-  feedback_mode: {type: Boolean, default: false},
+  admin: { type: Boolean, default: false },
+  approver: { type: Boolean, default: false },
+  banned: { type: Boolean, default: false },
+  client: { type: String, default: "web" },
+  date: { type: Date, default: Date.now },
+  deleted_subscribe: { type: Boolean, default: false },
+  disable_commands: { type: Boolean, default: false },
+  editor: { type: Boolean, default: false },
+  feedback_mode: { type: Boolean, default: false },
   first_name: String,
-  force_attachments: {type: Boolean, default: false},
-  keyboard: {type: Boolean, default: false},
-  language: {type: String, default: 'russian'},
+  force_attachments: { type: Boolean, default: false },
+  keyboard: { type: Boolean, default: false },
+  language: { type: String, default: "russian" },
   last_name: String,
-  pin: {type: String, select: false},
-  scheduleCount: {type: Number, default: 0},
+  pin: { type: String, select: false },
+  scheduleCount: { type: Number, default: 0 },
   scheduleTimes: [Number],
-  subscribed: {type: Boolean, default: false},
-  suggest_mode: {type: Boolean, default: false},
+  subscribed: { type: Boolean, default: false },
+  suggest_mode: { type: Boolean, default: false },
   title: String,
   user_id: Number,
-  username: String
+  username: String,
 });
 const anekSchema: mongoose.Schema<IAnek> = new mongoose.Schema({
   attachments: Array,
@@ -265,60 +273,62 @@ const anekSchema: mongoose.Schema<IAnek> = new mongoose.Schema({
   post_type: String,
   reposts: Number,
   signer_id: Number,
-  spam: {type: Boolean, default: false},
-  text: {type: String, es_indexed: true}
+  spam: { type: Boolean, default: false },
+  text: { type: String, es_indexed: true },
 });
 const commentSchema = new mongoose.Schema({
   comment_id: Number,
   date: Number,
   from_id: Number,
   likes: Number,
-  text: String
+  text: String,
 });
 const suggestSchema = new mongoose.Schema({
-  approved: {type: Boolean, default: false},
+  approved: { type: Boolean, default: false },
   audio: {
     duration: Number,
     file_id: String,
     file_size: Number,
     mime_type: String,
     performer: String,
-    title: String
+    title: String,
   },
   caption: String,
   chat: {
-    id: Number
+    id: Number,
   },
-  date: {type: Date, default: Date.now},
+  date: { type: Date, default: Date.now },
   document: {
     file_id: String,
     file_name: String,
     file_size: Number,
     mime_type: String,
-    title: String
+    title: String,
   },
   message_id: Number,
-  photo: [{
-    file_id: String,
-    file_size: Number,
-    height: Number,
-    width: Number
-  }],
-  public: {type: Boolean, default: false},
+  photo: [
+    {
+      file_id: String,
+      file_size: Number,
+      height: Number,
+      width: Number,
+    },
+  ],
+  public: { type: Boolean, default: false },
   text: String,
-  user: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   video_note: {
     duration: Number,
     file_id: String,
     file_size: Number,
-    length: Number
+    length: Number,
   },
   voice: {
     duration: Number,
     file_id: String,
     file_size: Number,
-    mime_type: String
-  }
+    mime_type: String,
+  },
 });
 const groupAdminSchema = new mongoose.Schema({
   all_members_are_administrators: Boolean,
@@ -326,76 +336,86 @@ const groupAdminSchema = new mongoose.Schema({
   group_id: Number,
   invite_link: String,
   title: String,
-  votes: [{
-    agreeVotes: Number,
-    disagreeVotes: Number,
-    requiredVotes: Number,
-    title: String,
-    type: String,
-    untilVote: Number,
-    voteIssuer: Number,
-    voteTarget: Number,
-    voteTime: Number
-  }]
+  votes: [
+    {
+      agreeVotes: Number,
+      disagreeVotes: Number,
+      requiredVotes: Number,
+      title: String,
+      type: String,
+      untilVote: Number,
+      voteIssuer: Number,
+      voteTarget: Number,
+      voteTime: Number,
+    },
+  ],
 });
 const logSchema = new mongoose.Schema({
   date: {
     default: Date.now,
     expires: 60 * 60 * 24 * 7,
-    type: Date
+    type: Date,
   },
   error: Object,
   request: Object,
-  response: Object
+  response: Object,
 });
 const statisticsSchema = new mongoose.Schema({
   aneks: {
     count: Number,
-    new: Number
+    new: Number,
   },
   date: {
     default: Date.now,
     expires: 60 * 60 * 24 * 365,
-    type: Date
+    type: Date,
   },
   messages: {
     popularCommand: String,
-    received: Number
+    received: Number,
   },
   users: {
     count: Number,
     new: Number,
     newly_subscribed: Number,
     subscribed: Number,
-    unsubscribed: Number
-  }
+    unsubscribed: Number,
+  },
 });
 
 const approveSchema = new mongoose.Schema({
-  anek: {type: mongoose.Schema.Types.ObjectId, ref: 'Anek'},
-  approveTimeout: {type: Date, default: () => new Date(Date.now() + Number(config.get('vk.approveTimeout')) * 1000)},
+  anek: { type: mongoose.Schema.Types.ObjectId, ref: "Anek" },
+  approveTimeout: {
+    type: Date,
+    default: () =>
+      new Date(Date.now() + Number(config.get("vk.approveTimeout")) * 1000),
+  },
   cons: [userSchema],
-  messages: [{
-    chat_id: Number,
-    message_id: Number
-  }],
-  pros: [userSchema]
+  messages: [
+    {
+      chat_id: Number,
+      message_id: Number,
+    },
+  ],
+  pros: [userSchema],
 });
 
-anekSchema.statics.random = function() {
+anekSchema.statics.random = function () {
   const request = {
     $or: [
-      {spam: {$ne: true}},
-      {spam: {$exists: false}},
-      {attachments: {$exists: false}},
-      {attachments: {$size: 0}}
-    ]
+      { spam: { $ne: true } },
+      { spam: { $exists: false } },
+      { attachments: { $exists: false } },
+      { attachments: { $size: 0 } },
+    ],
   };
-  return this.find(request).count().then((count: number) => {
-    const rand = Math.floor(Math.random() * count);
+  return this.find(request)
+    .count()
+    .then((count: number) => {
+      const rand = Math.floor(Math.random() * count);
 
-    return this.findOne(request).skip(rand).exec();
-  });
+      return this.findOne(request).skip(rand).exec();
+    });
 };
 
 anekSchema.statics.convertId = (id: string) => {
@@ -421,30 +441,44 @@ anekSchema.statics.convertIds = (ids: mongoose.Document[]) => {
 };
 
 if (db.readyState === 0) {
-  mongoose.connect('mongodb://' + config.get('mongodb.server') + '/' + config.get('mongodb.database'));
+  mongoose.connect(
+    "mongodb://" +
+      config.get("mongodb.server") +
+      "/" +
+      config.get("mongodb.database"),
+  );
 }
 
-if (config.get('mongodb.searchEngine') === 'elastic') {
+if (config.get("mongodb.searchEngine") === "elastic") {
   anekSchema.plugin(mongoosastic, {
-    hosts: config.get('mongodb.elasticHosts') as string[],
+    hosts: config.get("mongodb.elasticHosts") as string[],
     hydrate: true,
     hydrateOptions: {
-      select: 'text post_id from_id likes'
-    }
+      select: "text post_id from_id likes",
+    },
   });
-} else if (config.get('mongodb.searchEngine') === 'native') {
-  anekSchema.index({text: 'text'}, {
-    default_language: 'russian',
-    name: 'text_text',
-    weights: {content: 10, keywords: 5}
-  });
+} else if (config.get("mongodb.searchEngine") === "native") {
+  anekSchema.index(
+    { text: "text" },
+    {
+      default_language: "russian",
+      name: "text_text",
+      weights: { content: 10, keywords: 5 },
+    },
+  );
 }
 
-export const Anek = mongoose.model('Anek', anekSchema) as IAnekModel;
-export const Comment = mongoose.model('Comment', commentSchema);
-export const GroupAdmin = mongoose.model('GroupAdmin', groupAdminSchema);
-export const Log = mongoose.model('Log', logSchema);
-export const Statistic = mongoose.model('Statistic', statisticsSchema);
-export const Suggest = mongoose.model('Suggest', suggestSchema) as ISuggestModel;
-export const User = mongoose.model('User', userSchema) as mongoose.Model<IUser>;
-export const Approve = mongoose.model('Approve', approveSchema) as mongoose.Model<IApprove>;
+export const Anek = mongoose.model("Anek", anekSchema) as IAnekModel;
+export const Comment = mongoose.model("Comment", commentSchema);
+export const GroupAdmin = mongoose.model("GroupAdmin", groupAdminSchema);
+export const Log = mongoose.model("Log", logSchema);
+export const Statistic = mongoose.model("Statistic", statisticsSchema);
+export const Suggest = mongoose.model(
+  "Suggest",
+  suggestSchema,
+) as ISuggestModel;
+export const User = mongoose.model("User", userSchema) as mongoose.Model<IUser>;
+export const Approve = mongoose.model(
+  "Approve",
+  approveSchema,
+) as mongoose.Model<IApprove>;

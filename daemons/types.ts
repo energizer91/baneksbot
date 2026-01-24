@@ -1,8 +1,8 @@
-import {IAnek} from "../helpers/mongo";
-import {MessageParams} from "../models/telegram";
+import { IAnek } from "../helpers/mongo";
+import { MessageParams } from "../models/telegram";
 
 export enum UpdaterMessageTypes {
-  service
+  service,
 }
 
 export enum UpdaterMessageActions {
@@ -12,7 +12,7 @@ export enum UpdaterMessageActions {
   last,
   anek,
   update,
-  statistics
+  statistics,
 }
 
 interface IUpdaterMessageInterface {
@@ -43,8 +43,8 @@ interface IUpdaterServiceUpdateLastMessage extends IUpdaterServiceMessage {
 interface IUpdaterServiceAnekMessage extends IUpdaterServiceMessage {
   action: UpdaterMessageActions.anek;
   params: {
-    language: string
-    needApprove: boolean
+    language: string;
+    needApprove: boolean;
   };
   userId: number;
   anek: IAnek;
@@ -65,10 +65,11 @@ interface IUpdaterReadyMessage extends IUpdaterServiceMessage {
   value: boolean;
 }
 
-export type UpdaterMessages = IUpdaterSendMessage
-    | IUpdaterServiceSynchronizeMessage
-    | IUpdaterServiceAnekMessage
-    | IUpdaterUpdateMessage
-    | IUpdaterServiceUpdateLastMessage
-    | IUpdaterStatisticsMessage
-    | IUpdaterReadyMessage;
+export type UpdaterMessages =
+  | IUpdaterSendMessage
+  | IUpdaterServiceSynchronizeMessage
+  | IUpdaterServiceAnekMessage
+  | IUpdaterUpdateMessage
+  | IUpdaterServiceUpdateLastMessage
+  | IUpdaterStatisticsMessage
+  | IUpdaterReadyMessage;

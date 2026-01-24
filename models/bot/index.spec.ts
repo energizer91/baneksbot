@@ -1,11 +1,11 @@
-import {expect} from 'chai';
-import Bot from './';
+import { expect } from "chai";
+import Bot from "./";
 
 const bot = new Bot();
 
-describe('Bot model', () => {
-  it('should initialize', () => {
-    expect(bot).to.be.a('object');
+describe("Bot model", () => {
+  it("should initialize", () => {
+    expect(bot).to.be.a("object");
   });
 
   // describe('Bot.getUserInfo', () => {

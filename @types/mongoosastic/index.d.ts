@@ -1,43 +1,49 @@
 /// <reference types="node" />
 
-declare module 'mongoosastic' {
+declare module "mongoosastic" {
   import * as mongoose from "mongoose";
 
   export type PluginOptions = {
-    hosts?: string[],
-    hydrate?: boolean,
+    hosts?: string[];
+    hydrate?: boolean;
     hydrateOptions?: {
-      select?: string
-    }
+      select?: string;
+    };
   };
 
   export type SearchQuery = {
-    from: number,
+    from: number;
     query: {
       match: {
-        text: string
-      }
-    },
-    size: number
+        text: string;
+      };
+    };
+    size: number;
   };
 
   export type SearchParams = {
     highlight: {
       fields: {
-        text: {}
-      },
-      post_tags: string[],
-      pre_tags: string[]
-    }
+        text: {};
+      };
+      post_tags: string[];
+      pre_tags: string[];
+    };
   };
 
   export interface IElasticSearchResult<T> {
     hits: {
-      hits: Array<T & {_highlight: string}>
+      hits: Array<T & { _highlight: string }>;
     };
   }
 
-  export type SearchCallback = (err: Error, result: IElasticSearchResult<any>) => void;
+  export type SearchCallback = (
+    err: Error,
+    result: IElasticSearchResult<any>,
+  ) => void;
 
-  export default function Mongoosastic(schema: mongoose.Schema, pluginOpts: PluginOptions): void;
+  export default function Mongoosastic(
+    schema: mongoose.Schema,
+    pluginOpts: PluginOptions,
+  ): void;
 }

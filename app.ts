@@ -1,12 +1,12 @@
-import * as bodyParser from 'body-parser';
-import * as config from 'config';
-import * as cookieParser from 'cookie-parser';
-import * as debugFactory from 'debug';
-import * as express from 'express';
-import * as path from 'path';
-import * as botApi from './botApi';
+import * as bodyParser from "body-parser";
+import * as config from "config";
+import * as cookieParser from "cookie-parser";
+import * as express from "express";
+import * as path from "path";
+import * as botApi from "./botApi";
+import createLogger from "./helpers/logger";
 
-const debugError = debugFactory('baneks-node:app:error');
+const logger = createLogger("baneks-node:app");
 
 const app = express();
 
@@ -15,48 +15,64 @@ interface NetworkError extends Error {
 }
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'bundle'))); // eslint-disable-line
+app.use(express.static(path.join(__dirname, "bundle"))); // eslint-disable-line
 
 botApi.connect(app);
 
-require('./helpers/commands'); // tslint:disable-line
+require("./helpers/commands"); // tslint:disable-line
 
-if (config.get('telegram.daemonEnabled')) {
-  if (config.get('telegram.spawnUpdater')) {
-    require("./daemons/dbUpdater");  // tslint:disable-line
-  } else if (config.get('telegram.daemonEnabled')) {
+if (config.get("telegram.daemonEnabled")) {
+  if (config.get("telegram.spawnUpdater")) {
+    require("./daemons/dbUpdater"); // tslint:disable-line
+  } else if (config.get("telegram.daemonEnabled")) {
     botApi.startDaemon();
   }
 }
 
 // catch 404 and forward to error handler
-app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const err: NetworkError = new Error('Not Found: ' + req.url);
+app.use(
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const err: NetworkError = new Error("Not Found: " + req.url);
 
-  err.status = 404;
-  next(err);
-});
+    err.status = 404;
+    next(err);
+  },
+);
 
 // error handlers
 
 // development error handler
 // will print stacktrace
-if (app.get('env') === 'development') {
-  app.use((err: NetworkError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    debugError(err, err.stack);
-    res.status(err.status || 500);
-    res.json(err);
-  });
+if (app.get("env") === "development") {
+  app.use(
+    (
+      err: NetworkError,
+      req: express.Request,
+      res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      logger.error({ err }, "Request failed");
+      res.status(err.status || 500);
+      res.json(err);
+    },
+  );
 }
 
 // production error handler
 // no stacktraces leaked to user
-app.use((err: NetworkError, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  debugError(err, err.stack);
-  res.status(err.status || 500);
-  res.json(err);
-});
+app.use(
+  (
+    err: NetworkError,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    logger.error({ err }, "Request failed");
+    res.status(err.status || 500);
+    res.json(err);
+  },
+);
 
 export default app;

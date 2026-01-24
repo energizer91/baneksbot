@@ -1,6 +1,6 @@
-import {NextFunction, Request, Response} from 'express';
-import {IUser, User as UserModel} from '../../helpers/mongo';
-import {Chat, User as UserType} from '../telegram';
+import { NextFunction, Request, Response } from "express";
+import { IUser, User as UserModel } from "../../helpers/mongo";
+import { Chat, User as UserType } from "../telegram";
 
 export interface ITelegramRequest extends Request {
   user: IUser | void;
@@ -12,7 +12,10 @@ class User {
     return this.updateWith(user);
   }
 
-  public async updateWith(user: UserType | Chat | IUser, params?: any): Promise<IUser> {
+  public async updateWith(
+    user: UserType | Chat | IUser,
+    params?: any,
+  ): Promise<IUser> {
     if (!user) {
       return;
     }
@@ -20,9 +23,9 @@ class User {
     try {
       return UserModel.findOneAndUpdate(
         // @ts-ignore
-        {user_id: user.user_id || user.id},
+        { user_id: user.user_id || user.id },
         params || user,
-        {new: true, upsert: true, setDefaultsOnInsert: true}
+        { new: true, upsert: true, setDefaultsOnInsert: true },
       ).exec();
     } catch (error) {
       console.error(error);
@@ -31,9 +34,14 @@ class User {
     }
   }
 
-  public middleware = async (req: ITelegramRequest, res: Response, next: NextFunction) => {
+  public middleware = async (
+    req: ITelegramRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
     const update = req.body;
-    const message = update.message || update.inline_query || update.callback_query;
+    const message =
+      update.message || update.inline_query || update.callback_query;
     const user = message && message.from;
     const chat = message && message.chat;
 
@@ -44,7 +52,7 @@ class User {
     req.chat = updatedChat;
 
     return next();
-  }
+  };
 }
 
 export default User;

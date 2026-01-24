@@ -2,67 +2,97 @@
  * Created by energizer on 30.06.17.
  */
 
-import * as config from 'config';
-import * as botApi from '../botApi';
-import {AllMessageParams, TelegramErrorResponse} from '../models/telegram';
-import {Anek, MultipleResponse} from '../models/vk';
-import {Anek as AnekModel, ElasticHit, IAnek, IElasticSearchResult, IUser, User} from './mongo';
+import * as config from "config";
+import * as botApi from "../botApi";
+import { AllMessageParams, TelegramErrorResponse } from "../models/telegram";
+import { Anek, MultipleResponse } from "../models/vk";
+import {
+  Anek as AnekModel,
+  ElasticHit,
+  IAnek,
+  IElasticSearchResult,
+  IUser,
+  User,
+} from "./mongo";
 
 export type PreparedAnek = {
-  post_id: number,
-  likes: number,
-  reposts: number
+  post_id: number;
+  likes: number;
+  reposts: number;
 };
 
 export const processAnek = (anek: Anek): PreparedAnek => {
-  const {id, ...rest} = anek;
+  const { id, ...rest } = anek;
 
   return {
     ...rest,
     likes: anek.likes.count,
     post_id: anek.id,
-    reposts: anek.reposts.count
+    reposts: anek.reposts.count,
   };
 };
 
-export function searchAneks(searchPhrase: string, skip: number = 0, limit: number) {
-  return AnekModel.find({$text: {$search: searchPhrase}}).limit(limit).skip(skip).exec();
+export function searchAneks(
+  searchPhrase: string,
+  skip: number = 0,
+  limit: number,
+) {
+  return AnekModel.find({ $text: { $search: searchPhrase } })
+    .limit(limit)
+    .skip(skip)
+    .exec();
 }
 
-export function searchAneksElastic(searchPhrase: string, skip: number = 0, limit: number) {
+export function searchAneksElastic(
+  searchPhrase: string,
+  skip: number = 0,
+  limit: number,
+) {
   return new Promise((resolve, reject) => {
-    return AnekModel.esSearch({
-      from: skip,
-      query: {
-        match: {
-          text: searchPhrase
-        }
+    return AnekModel.esSearch(
+      {
+        from: skip,
+        query: {
+          match: {
+            text: searchPhrase,
+          },
+        },
+        size: limit,
       },
-      size: limit
-    }, {}, (err: Error, result: IElasticSearchResult<ElasticHit>) => {
-      if (err) {
-        return reject(err);
-      }
+      {},
+      (err: Error, result: IElasticSearchResult<ElasticHit>) => {
+        if (err) {
+          return reject(err);
+        }
 
-      if (result && result.hits && result.hits.hits) {
-        return resolve(result.hits.hits);
-      }
+        if (result && result.hits && result.hits.hits) {
+          return resolve(result.hits.hits);
+        }
 
-      return resolve([]);
-    });
+        return resolve([]);
+      },
+    );
   });
 }
 
-export function performSearch(searchPhrase: string, skip: number, limit: number) {
-  if (config.get('mongodb.searchEngine') === 'elastic') {
+export function performSearch(
+  searchPhrase: string,
+  skip: number,
+  limit: number,
+) {
+  if (config.get("mongodb.searchEngine") === "elastic") {
     return this.searchAneksElastic(searchPhrase, skip, limit);
   }
 
   return this.searchAneks(searchPhrase, skip, limit);
 }
 
-export async function getAneksUpdate(skip: number = 0, limit: number = 100, aneks: Anek[] = []): Promise<Anek[]> {
-  const lastDBAnek = await AnekModel.findOne().sort({date: -1}).exec();
+export async function getAneksUpdate(
+  skip: number = 0,
+  limit: number = 100,
+  aneks: Anek[] = [],
+): Promise<Anek[]> {
+  const lastDBAnek = await AnekModel.findOne().sort({ date: -1 }).exec();
   const lastDBAnekDate = lastDBAnek ? lastDBAnek.date : 0;
   const vkAneks = await botApi.vk.getPosts(skip, limit);
 
@@ -96,16 +126,18 @@ export async function getAneksUpdate(skip: number = 0, limit: number = 100, anek
 }
 
 export function getLastAneks(count: number = 100) {
-  return botApi.vk.getPosts(0, count)
-    .then((response) => {
-      return response.items.map((anek) => {
-        return AnekModel.findOneAndUpdate({post_id: anek.post_id}, {
+  return botApi.vk.getPosts(0, count).then((response) => {
+    return response.items.map((anek) => {
+      return AnekModel.findOneAndUpdate(
+        { post_id: anek.post_id },
+        {
           comments: anek.comments,
           likes: anek.likes.count,
-          reposts: anek.reposts.count
-        });
-      });
+          reposts: anek.reposts.count,
+        },
+      );
     });
+  });
 }
 
 export async function getAllAneks(start: number = 0) {
@@ -132,7 +164,11 @@ export async function redefineDatabase(count: number) {
   const responses = await this.getAllAneks(count);
 
   const aneks = responses
-    .reduce((acc: Anek[], response: MultipleResponse<Anek>) => acc.concat(response.items.reverse()), [])
+    .reduce(
+      (acc: Anek[], response: MultipleResponse<Anek>) =>
+        acc.concat(response.items.reverse()),
+      [],
+    )
     .map(processAnek);
 
   if (aneks.length) {
@@ -150,12 +186,12 @@ export async function updateAneks() {
 
   responses.forEach((response: MultipleResponse<Anek>) => {
     response.items.forEach((anek) => {
-      bulk.find({post_id: anek.post_id}).update({
+      bulk.find({ post_id: anek.post_id }).update({
         $set: {
           comments: anek.comments,
           likes: anek.likes.count,
-          reposts: anek.reposts.count
-        }
+          reposts: anek.reposts.count,
+        },
       });
     });
   });
@@ -164,7 +200,7 @@ export async function updateAneks() {
 }
 
 export function filterAnek(anek: IAnek): boolean {
-  const donate = (anek.text || '').indexOf('#донат') >= 0;
+  const donate = (anek.text || "").indexOf("#донат") >= 0;
   const ads = anek.marked_as_ads;
   const empty = !anek.text || !anek.text.length;
   const long = anek.text && anek.text.length >= 2000;
@@ -172,46 +208,64 @@ export function filterAnek(anek: IAnek): boolean {
   return !donate && !ads && !empty && !long;
 }
 
-export async function broadcastAneks(users: IUser[], aneks: IAnek[], params?: AllMessageParams): Promise<void> {
+export async function broadcastAneks(
+  users: IUser[],
+  aneks: IAnek[],
+  params?: AllMessageParams,
+): Promise<void> {
   const errorMessages: Set<number> = new Set();
 
   if (!users.length || !aneks.length) {
     return;
   }
 
-  Promise.all(aneks
-    .map((anek) => botApi.bot.fulfillAll(
-      users.map((user) =>
-        botApi.bot
-          .sendAnek(user.user_id, anek, {
-            ...params,
-            forceAttachments: user.force_attachments
-          })
-          .catch((error: TelegramErrorResponse) => {
-            if (
-              (!error.ok && (error.error_code === 403)) || (
-              error.description === 'Bad Request: chat not found' ||
-              error.description === 'Bad Request: group chat was migrated to a supergroup chat' ||
-              error.description === 'Bad Request: chat_id is empty')
-            ) {
-              errorMessages.add(Number(user.user_id));
+  Promise.all(
+    aneks.map((anek) =>
+      botApi.bot.fulfillAll(
+        users.map((user) =>
+          botApi.bot
+            .sendAnek(user.user_id, anek, {
+              ...params,
+              forceAttachments: user.force_attachments,
+            })
+            .catch((error: TelegramErrorResponse) => {
+              if (
+                (!error.ok && error.error_code === 403) ||
+                error.description === "Bad Request: chat not found" ||
+                error.description ===
+                  "Bad Request: group chat was migrated to a supergroup chat" ||
+                error.description === "Bad Request: chat_id is empty"
+              ) {
+                errorMessages.add(Number(user.user_id));
 
-              return null;
-            }
+                return null;
+              }
 
-            return botApi.bot.sendMessageToAdmin('Sending message error: ' + JSON.stringify(error) + JSON.stringify(anek));
-          })))))
-    .then(() => {
-      const usersArray: number[] = Array.from(errorMessages);
+              return botApi.bot.sendMessageToAdmin(
+                "Sending message error: " +
+                  JSON.stringify(error) +
+                  JSON.stringify(anek),
+              );
+            }),
+        ),
+      ),
+    ),
+  ).then(() => {
+    const usersArray: number[] = Array.from(errorMessages);
 
-      if (usersArray.length) {
-        const text = usersArray.length + ' message(s) has been sent with errors due to access errors. Unsubscribing them: \n' + usersArray.join(', ');
-        const bulk = User.collection.initializeOrderedBulkOp();
+    if (usersArray.length) {
+      const text =
+        usersArray.length +
+        " message(s) has been sent with errors due to access errors. Unsubscribing them: \n" +
+        usersArray.join(", ");
+      const bulk = User.collection.initializeOrderedBulkOp();
 
-        bulk.find({user_id: {$in: usersArray}}).update({$set: {subscribed: false, deleted_subscribe: true}});
-        botApi.bot.sendMessageToAdmin(text);
+      bulk
+        .find({ user_id: { $in: usersArray } })
+        .update({ $set: { subscribed: false, deleted_subscribe: true } });
+      botApi.bot.sendMessageToAdmin(text);
 
-        return bulk.execute();
-      }
-    });
+      return bulk.execute();
+    }
+  });
 }

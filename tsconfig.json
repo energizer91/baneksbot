@@ -12,18 +12,9 @@
     "allowJs": true,
     "baseUrl": ".",
     "target": "es2018",
-    "typeRoots": [ "./@types", "./node_modules/@types"],
+    "typeRoots": ["./@types", "./node_modules/@types"],
     "types": ["mocha"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js",
-    "config/*.json",
-    "languages/*.json"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "ecosystem.config.js"
-  ]
+  "include": ["**/*.ts", "**/*.js", "config/*.json", "languages/*.json"],
+  "exclude": ["node_modules", "dist", "ecosystem.config.js"]
 }

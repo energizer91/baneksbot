@@ -1,6 +1,6 @@
 /* tslint:disable max-classes-per-file */
 
-import {InlineKeyboard, InlineKeyboardButton} from '../models/telegram';
+import { InlineKeyboard, InlineKeyboardButton } from "../models/telegram";
 
 export class Row extends Array {
   public addButton(button: InlineKeyboardButton): Row {
@@ -13,7 +13,7 @@ export class Row extends Array {
 class Menu extends Array implements InlineKeyboard {
   public static toInlineMarkup(menuStructure: Menu) {
     return JSON.stringify({
-      inline_keyboard: menuStructure
+      inline_keyboard: menuStructure,
     });
   }
 
@@ -27,7 +27,7 @@ class Menu extends Array implements InlineKeyboard {
 
   public toInlineMarkup(): string {
     return JSON.stringify({
-      inline_keyboard: this
+      inline_keyboard: this,
     });
   }
 }

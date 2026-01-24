@@ -22,6 +22,11 @@
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
     volumes:
       - /opt/baneksbot/config/production.json:/app/config/production.json:ro
     depends_on:

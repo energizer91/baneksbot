@@ -3,3 +3,4 @@ config/*.json
 !config/default.json
 .idea/
 dist/
+AGENTS.md

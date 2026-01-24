@@ -1,18 +1,17 @@
 /**
  * Created by energizer on 13.06.17.
  */
-import * as config from 'config';
-import * as uuid from 'uuid/v1';
+import * as config from "config";
+import * as uuid from "uuid/v1";
 
-import debugFactory from '../../helpers/debug';
+import createLogger from "../../helpers/logger";
 
-const debug = debugFactory('baneks-node:queue');
-const debugError = debugFactory('baneks-node:error:queue', true);
+const logger = createLogger("baneks-node:queue");
 
 type Rule = {
-  rate: number,
-  limit: number,
-  priority: number
+  rate: number;
+  limit: number;
+  priority: number;
 };
 
 export type RetryFunction = (delay?: number) => void;
@@ -20,23 +19,23 @@ type QueueRequest = (RetryFunction: RetryFunction) => Promise<any>;
 type Callback = (error: Error | null, data?: any) => void;
 
 type QueueItemData = {
-  id: string,
-  request: QueueRequest,
-  callback: Callback
+  id: string;
+  request: QueueRequest;
+  callback: Callback;
 };
 
 type QueueItem = {
-  id: string,
-  cooldown: number,
-  key: string,
-  data: QueueItemData[],
-  rule: Rule,
-  ruleName: string
+  id: string;
+  cooldown: number;
+  key: string;
+  data: QueueItemData[];
+  rule: Rule;
+  ruleName: string;
 };
 
 type ShiftItemStructure = {
-  queue: QueueItem,
-  item: QueueItemData
+  queue: QueueItem;
+  item: QueueItemData;
 };
 
 type QueueConfig = {
@@ -62,40 +61,41 @@ class SmartQueue {
   private readonly heatPart: number;
 
   constructor(params?: Partial<QueueConfig>) {
-    this.params = Object.assign({}, config.get<QueueConfig>('queue'), params);
+    this.params = Object.assign({}, config.get<QueueConfig>("queue"), params);
 
-    this.heatPart = (this.params.overall.limit * 1000) / this.params.overall.rate;
+    this.heatPart =
+      (this.params.overall.limit * 1000) / this.params.overall.rate;
   }
 
   public request(
     fn: QueueRequest,
     key: string = this.params.default.key,
-    rule: string = this.params.default.rule
+    rule: string = this.params.default.rule,
   ): Promise<any> {
-    debug('Adding queue request', key, rule);
+    logger.debug("Adding queue request", key, rule);
 
     return new Promise((resolve, reject) => {
       this.add(
         fn,
         (error, data) => {
           if (error) {
-            debugError('Request resolving error', key, rule, error);
+            logger.error({ err: error }, "Request resolving error", key, rule);
 
             return reject(error);
           }
 
-          debug('Resolving queue request', key, rule);
+          logger.debug("Resolving queue request", key, rule);
 
           return resolve(data);
         },
         key,
-        rule
+        rule,
       );
     });
   }
 
   public clear() {
-    debug('Clearing all queues');
+    logger.debug("Clearing all queues");
 
     this.queue.clear();
   }
@@ -114,21 +114,31 @@ class SmartQueue {
     return length;
   }
 
-  private add(request: QueueRequest, callback: Callback, key: string, rule: string): void {
+  private add(
+    request: QueueRequest,
+    callback: Callback,
+    key: string,
+    rule: string,
+  ): void {
     const queue = this.createQueue(key, request, callback, rule);
 
-    debug('Adding request to the queue', queue.id);
+    logger.debug("Adding request to the queue", queue.id);
 
     if (!this.pending) {
       this.execute(queue);
     }
   }
 
-  private createQueue(queueName: string, request: QueueRequest, callback: Callback, rule: string): QueueItem {
+  private createQueue(
+    queueName: string,
+    request: QueueRequest,
+    callback: Callback,
+    rule: string,
+  ): QueueItem {
     if (!this.queue.has(queueName)) {
       const queueId = uuid();
 
-      debug('Creating queue', queueId, queueName, rule);
+      logger.debug("Creating queue", queueId, queueName, rule);
 
       this.queue.set(queueName, {
         cooldown: Date.now(),
@@ -136,19 +146,19 @@ class SmartQueue {
         id: queueId,
         key: queueName,
         rule: this.getRule(rule),
-        ruleName: rule
+        ruleName: rule,
       });
     }
 
     const queue = this.queue.get(queueName) as QueueItem;
     const queueItemId = uuid();
 
-    debug('Adding item to existing queue', queue.id, queueItemId);
+    logger.debug("Adding item to existing queue", queue.id, queueItemId);
 
     queue.data.push({
       callback,
       id: queueItemId,
-      request
+      request,
     });
 
     return queue;
@@ -165,16 +175,21 @@ class SmartQueue {
   }
 
   private async addRetry(item: ShiftItemStructure, delay: number) {
-    debug('Adding retry', item.queue.id, delay);
+    logger.debug("Adding retry", item.queue.id, delay);
 
     await this.delay(delay * 1000);
 
-    this.add(item.item.request, item.item.callback, item.queue.key, item.queue.ruleName);
+    this.add(
+      item.item.request,
+      item.item.callback,
+      item.queue.key,
+      item.queue.ruleName,
+    );
   }
 
   private async execute(queue?: QueueItem) {
     if (queue) {
-      debug('Executing queue', queue.id);
+      logger.debug("Executing queue", queue.id);
     }
 
     this.pending = true;
@@ -192,7 +207,7 @@ class SmartQueue {
       return;
     }
 
-    debug('Executing queue item', nextItem.item.id);
+    logger.debug("Executing queue item", nextItem.item.id);
 
     try {
       const requestPromise = nextItem.item.request(retryFn);
@@ -202,12 +217,12 @@ class SmartQueue {
       if (retryState) {
         this.addRetry(nextItem, retryTimer);
       } else {
-        debug('Queue item executed successfully', nextItem.item.id);
+        logger.debug("Queue item executed successfully", nextItem.item.id);
 
         nextItem.item.callback(null, data);
       }
     } catch (error) {
-      debugError('Queue item request error', error);
+      logger.error({ err: error }, "Queue item request error");
 
       nextItem.item.callback(error);
     }
@@ -224,7 +239,7 @@ class SmartQueue {
 
     return {
       item: currentQueue.data.shift() as QueueItemData,
-      queue: currentQueue
+      queue: currentQueue,
     };
   }
 
@@ -236,19 +251,21 @@ class SmartQueue {
     this.overheat = Date.now() + this.heatPart;
     const lastOverheat = this.overheat;
 
-    debug('Heating overall queue', this.heatPart);
+    logger.debug("Heating overall queue", this.heatPart);
 
     setTimeout(() => {
       const leftOverHeat = Math.max(this.overheat - lastOverheat, 0);
       this.overheat = Date.now() + leftOverHeat;
 
-      debug('Cooling down overall queue', leftOverHeat);
+      logger.debug("Cooling down overall queue", leftOverHeat);
     }, this.heatPart);
   }
 
-  private async findMostImportant(bestQueue?: QueueItem): Promise<QueueItem | null> {
+  private async findMostImportant(
+    bestQueue?: QueueItem,
+  ): Promise<QueueItem | null> {
     if (bestQueue) {
-      debug('Providing best queue', bestQueue.id);
+      logger.debug("Providing best queue", bestQueue.id);
 
       return bestQueue;
     }
@@ -260,7 +277,11 @@ class SmartQueue {
     const now = Date.now();
 
     this.queue.forEach((queue: QueueItem) => {
-      if (queue.rule.priority < maximumPriority && queue.data.length && this.isCool(queue, now)) {
+      if (
+        queue.rule.priority < maximumPriority &&
+        queue.data.length &&
+        this.isCool(queue, now)
+      ) {
         maximumPriority = queue.rule.priority;
         selectedQueue = queue;
       }
@@ -272,8 +293,12 @@ class SmartQueue {
 
     const defactoMinimalCooldown = minimalCooldown - now;
 
-    if (!selectedQueue && defactoMinimalCooldown > 0 && minimalCooldown !== Infinity) {
-      debug('Waiting for cooldown', defactoMinimalCooldown);
+    if (
+      !selectedQueue &&
+      defactoMinimalCooldown > 0 &&
+      minimalCooldown !== Infinity
+    ) {
+      logger.debug("Waiting for cooldown", defactoMinimalCooldown);
 
       await this.delay(defactoMinimalCooldown);
 
@@ -281,7 +306,7 @@ class SmartQueue {
     }
 
     if (this.isOverheated && !this.params.ignoreOverallOverheat) {
-      debug('Everything is overheated');
+      logger.debug("Everything is overheated");
 
       await this.delay(this.overheat - now);
 
@@ -289,14 +314,17 @@ class SmartQueue {
     }
 
     if (!selectedQueue && this.totalLength === 0) {
-      debug('No queues available. Stopping queue');
+      logger.debug("No queues available. Stopping queue");
 
       this.pending = false;
 
       return null;
     }
 
-    debug('Finding best queue', selectedQueue && (selectedQueue as QueueItem).id);
+    logger.debug(
+      "Finding best queue",
+      selectedQueue && (selectedQueue as QueueItem).id,
+    );
 
     return selectedQueue;
   }
@@ -308,12 +336,12 @@ class SmartQueue {
 
     queue.cooldown = cooldown;
 
-    debug('Setting cooldown', queue.id, defactoCooldown);
+    logger.debug("Setting cooldown", queue.id, defactoCooldown);
 
     setTimeout(() => {
       queue.cooldown = Date.now() + Math.max(queue.cooldown - cooldown, 0);
 
-      debug('Removing cooldown', queue.id, defactoCooldown);
+      logger.debug("Removing cooldown", queue.id, defactoCooldown);
 
       if (!queue.data.length) {
         this.remove(queue.key);
@@ -330,7 +358,7 @@ class SmartQueue {
   }
 
   private remove(key: string) {
-    debug('Deleting queue', key);
+    logger.debug("Deleting queue", key);
 
     this.queue.delete(key);
   }

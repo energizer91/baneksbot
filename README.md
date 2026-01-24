@@ -77,7 +77,7 @@ This model is responsible for communicating with API and fulfilling multiple res
 ### Queue
 
 This model takes care of creating requests queue for sending them with rates and limits of service.
-e.g. Telegram has rates/limits of 1 message per second for private messages and 30 messages per second for 
+e.g. Telegram has rates/limits of 1 message per second for private messages and 30 messages per second for
 broadcasting. This model creates queues with configuration via config and helps you not caring about
 delays and limits of sending per second.
 
@@ -108,5 +108,5 @@ File `botApi.ts` joins all models and daemons and allows communicating between t
 
 ## Contribution
 
-Feel free to contribute and create pull requests. I'll really appreciate 
+Feel free to contribute and create pull requests. I'll really appreciate
 every your change to make this bot better.

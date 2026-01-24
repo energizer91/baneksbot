@@ -1,38 +1,43 @@
 /**
  * Created by Алекс on 27.11.2016.
  */
-import * as config from 'config';
-import {CronJob} from 'cron';
-import debugFactory from '../helpers/debug';
-import {IAnek} from "../helpers/mongo";
+import * as config from "config";
+import { CronJob } from "cron";
+import createLogger from "../helpers/logger";
+import { IAnek } from "../helpers/mongo";
 import SmartQueue from "../models/queue";
-import {UpdaterMessageActions, UpdaterMessages, UpdaterMessageTypes} from './types';
+import {
+  UpdaterMessageActions,
+  UpdaterMessages,
+  UpdaterMessageTypes,
+} from "./types";
 
-import {bot, database, statistics} from '../botApi';
-import * as common from '../helpers/common';
+import { bot, database, statistics } from "../botApi";
+import * as common from "../helpers/common";
 
-const debug = debugFactory('baneks-node:updater');
-const error = debugFactory('baneks-node:updater:error', true);
+const logger = createLogger("baneks-node:updater");
 
 let forceDenyUpdate = false;
 
 const cronQueue = new SmartQueue({
   default: {
     key: "cron",
-    rule: "cron"
+    rule: "cron",
   },
   rules: {
     cron: {
       limit: 1,
       priority: 1,
-      rate: 1000
-    }
-  }
+      rate: 1000,
+    },
+  },
 });
 
 async function synchronizeWithElastic() {
-  if (config.get('mongodb.searchEngine') !== 'elastic') {
-    debug('Database synchronizing is only available on elasticsearch engine');
+  if (config.get("mongodb.searchEngine") !== "elastic") {
+    logger.info(
+      "Database synchronizing is only available on elasticsearch engine",
+    );
     return;
   }
 
@@ -46,21 +51,23 @@ async function synchronizeWithElastic() {
       return reject(err);
     }
 
-    stream.on('data', () => {
+    stream.on("data", () => {
       count++;
     });
-    stream.on('close', () => {
+    stream.on("close", () => {
       return resolve(count);
     });
-    stream.on('error', (err: Error) => {
+    stream.on("error", (err: Error) => {
       return reject(err);
     });
   });
 }
 
 async function approveAneksTimer() {
-  const approves = await database.Approve.find({approveTimeout: {$lte: new Date()}})
-    .populate('anek')
+  const approves = await database.Approve.find({
+    approveTimeout: { $lte: new Date() },
+  })
+    .populate("anek")
     .exec();
 
   if (!approves.length) {
@@ -71,17 +78,20 @@ async function approveAneksTimer() {
     .map((approve) => approve.messages)
     .reduce((acc, m) => acc.concat(m), []);
 
-  await bot.fulfillAll(messages.map((message) => bot
-    .editMessageReplyMarkup(
-      message.chat_id,
-      message.message_id,
-      bot.prepareInlineKeyboard([])
-    )));
+  await bot.fulfillAll(
+    messages.map((message) =>
+      bot.editMessageReplyMarkup(
+        message.chat_id,
+        message.message_id,
+        bot.prepareInlineKeyboard([]),
+      ),
+    ),
+  );
 
   const ids = approves.map((a) => a.id);
 
   await database.Approve.deleteMany({
-    _id: {$in: ids}
+    _id: { $in: ids },
   }).exec();
 
   const readyApproves = approves
@@ -89,41 +99,45 @@ async function approveAneksTimer() {
     .map((approve) => approve.anek);
 
   if (readyApproves.length) {
-    debug(approves.length + ' anek(s) approve time expired. ' + readyApproves.length + ' of them approved. Start broadcasting');
+    logger.info(
+      approves.length +
+        " anek(s) approve time expired. " +
+        readyApproves.length +
+        " of them approved. Start broadcasting",
+    );
   }
 
-  const users = await database.User.find({subscribed: true}).exec();
+  const users = await database.User.find({ subscribed: true }).exec();
 
-  return common.broadcastAneks(users, readyApproves, {_rule: 'individual'});
+  return common.broadcastAneks(users, readyApproves, { _rule: "individual" });
 }
 
 async function updateAneksTimer() {
-  const needApprove: boolean = config.get('vk.needApprove');
+  const needApprove: boolean = config.get("vk.needApprove");
   const aneks = await common.getAneksUpdate();
 
-  const filteredAneks = aneks
-    .map(common.processAnek)
-    .filter(common.filterAnek);
+  const filteredAneks = aneks.map(common.processAnek).filter(common.filterAnek);
 
   const dbAneks = await database.Anek.insertMany(filteredAneks);
 
-  debug(`Found ${aneks.length} new aneks`);
+  logger.info(`Found ${aneks.length} new aneks`);
 
   if (!aneks.length) {
     return;
   }
 
   if (needApprove) {
-    const approvedUsers = await database.User.find({approver: true}).exec();
+    const approvedUsers = await database.User.find({ approver: true }).exec();
     const approves = dbAneks
       .map((anek) => {
-        const result = new database.Approve({anek});
+        const result = new database.Approve({ anek });
 
-        return bot.sendApproveAneks(approvedUsers, anek, result.id)
+        return bot
+          .sendApproveAneks(approvedUsers, anek, result.id)
           .then((messages) => {
             result.messages = messages.map((m) => ({
               chat_id: m.chat.id,
-              message_id: m.message_id
+              message_id: m.message_id,
             }));
 
             return result;
@@ -136,9 +150,9 @@ async function updateAneksTimer() {
     return database.Approve.insertMany(results);
   }
 
-  const users = await database.User.find({subscribed: true}).exec();
+  const users = await database.User.find({ subscribed: true }).exec();
 
-  return common.broadcastAneks(users, dbAneks, {_rule: 'individual'});
+  return common.broadcastAneks(users, dbAneks, { _rule: "individual" });
 }
 
 async function updateLastAneksTimer() {
@@ -153,7 +167,7 @@ async function synchronizeDatabase() {
   try {
     await synchronizeWithElastic();
   } catch (err) {
-    error('Database synchronize error', err);
+    logger.error({ err }, "Database synchronize error");
   }
 }
 
@@ -161,7 +175,7 @@ async function calculateStatisticsTimer() {
   try {
     await statistics.calculateStatistics();
   } catch (err) {
-    error('Statistics calculate error', err);
+    logger.error({ err }, "Statistics calculate error");
   }
 }
 
@@ -169,26 +183,28 @@ async function sendScheduledAneks() {
   const now = new Date().getHours();
   const users = await database.User.find({
     scheduleCount: {
-      $gt: 0
+      $gt: 0,
     },
     scheduleTimes: {
-      $in: [now]
-    }
+      $in: [now],
+    },
   });
 
   if (!users.length) {
     return;
   }
 
-  const aneks = await database.Anek
-    .find({})
-    .where({date: {$gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60}})
-    .sort({likes: -1})
+  const aneks = await database.Anek.find({})
+    .where({
+      date: { $gte: Math.floor(new Date().getTime() / 1000) - 24 * 60 * 60 },
+    })
+    .sort({ likes: -1 })
     .limit(3)
     .exec();
 
-  const messages = users
-    .map((user) => (bot.sendAneks(user.user_id, aneks.slice(0, user.scheduleCount))));
+  const messages = users.map((user) =>
+    bot.sendAneks(user.user_id, aneks.slice(0, user.scheduleCount)),
+  );
 
   bot.fulfillAll(messages);
 }
@@ -197,35 +213,71 @@ function createUpdateFunction(fn: () => Promise<any>): () => void {
   const name = fn.name || "Unknown function";
 
   return () => {
-    debug(`Starting update function "${name}"`);
+    logger.info(`Starting update function "${name}"`);
 
-    cronQueue.request(fn)
+    cronQueue
+      .request(fn)
       .catch((err) => {
-        error(`Executing update function "${name}" error`, err);
+        logger.error({ err }, `Executing update function "${name}" error`);
       })
       .then(() => {
-        debug(`Finishing update function "${name}"`);
+        logger.info(`Finishing update function "${name}"`);
       });
   };
 }
 
-const updateAneksCron = new CronJob('*/30 * * * * *', createUpdateFunction(updateAneksTimer), null, true);
-const updateLastAneksCron = new CronJob('10 0 */1 * * *', createUpdateFunction(updateLastAneksTimer), null, true);
-const synchronizeDatabaseCron = new CronJob('0 30 */1 * * *', synchronizeDatabase, null, true);
-const scheduleAneksCron = new CronJob('0 0 */1 * * *', createUpdateFunction(sendScheduledAneks), null, true);
-const refreshAneksCron = new CronJob('20 0 0 */1 * *', createUpdateFunction(refreshAneksTimer), null, true);
-const approveAneksCron = new CronJob('25 * * * * *', createUpdateFunction(approveAneksTimer), null, true);
-const calculateStatisticsCron = new CronJob('0 */5 * * * *', calculateStatisticsTimer, null, true);
+const updateAneksCron = new CronJob(
+  "*/30 * * * * *",
+  createUpdateFunction(updateAneksTimer),
+  null,
+  true,
+);
+const updateLastAneksCron = new CronJob(
+  "10 0 */1 * * *",
+  createUpdateFunction(updateLastAneksTimer),
+  null,
+  true,
+);
+const synchronizeDatabaseCron = new CronJob(
+  "0 30 */1 * * *",
+  synchronizeDatabase,
+  null,
+  true,
+);
+const scheduleAneksCron = new CronJob(
+  "0 0 */1 * * *",
+  createUpdateFunction(sendScheduledAneks),
+  null,
+  true,
+);
+const refreshAneksCron = new CronJob(
+  "20 0 0 */1 * *",
+  createUpdateFunction(refreshAneksTimer),
+  null,
+  true,
+);
+const approveAneksCron = new CronJob(
+  "25 * * * * *",
+  createUpdateFunction(approveAneksTimer),
+  null,
+  true,
+);
+const calculateStatisticsCron = new CronJob(
+  "0 */5 * * * *",
+  calculateStatisticsTimer,
+  null,
+  true,
+);
 
 if (!config.get("telegram.spawnUpdater")) {
-  process.on('message', (m: UpdaterMessages) => {
-    debug('CHILD got message:', m);
+  process.on("message", (m: UpdaterMessages) => {
+    logger.debug("CHILD got message:", m);
 
     switch (m.type) {
       case UpdaterMessageTypes.service:
         switch (m.action) {
           case UpdaterMessageActions.update:
-            debug('Switch automatic updates to', m.value);
+            logger.info("Switch automatic updates to", m.value);
             forceDenyUpdate = !m.value;
 
             if (forceDenyUpdate) {
@@ -250,11 +302,13 @@ if (!config.get("telegram.spawnUpdater")) {
           case UpdaterMessageActions.last:
             return updateLastAneksTimer();
           case UpdaterMessageActions.message:
-            return bot.sendMessage(m.value, m.text || 'Проверка');
+            return bot.sendMessage(m.value, m.text || "Проверка");
           case UpdaterMessageActions.anek:
-            return database.Anek.random().then((anek: IAnek) => bot.sendAnek(m.userId, anek, {language: m.params.language}));
+            return database.Anek.random().then((anek: IAnek) =>
+              bot.sendAnek(m.userId, anek, { language: m.params.language }),
+            );
           case UpdaterMessageActions.statistics:
-            debug('Switch statistics update to', m.value);
+            logger.info("Switch statistics update to", m.value);
             forceDenyUpdate = !m.value;
 
             if (forceDenyUpdate) {
@@ -264,11 +318,14 @@ if (!config.get("telegram.spawnUpdater")) {
             }
             break;
           default:
-            debug('Unknown service command');
+            logger.debug("Unknown service command");
             break;
         }
     }
   });
 
-  process.send({type: UpdaterMessageTypes.service, action: UpdaterMessageActions.ready});
+  process.send({
+    type: UpdaterMessageTypes.service,
+    action: UpdaterMessageActions.ready,
+  });
 }
