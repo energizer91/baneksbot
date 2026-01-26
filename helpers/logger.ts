@@ -22,7 +22,7 @@ const baseLogger = pino(
     },
     formatters: {
       level(label, number) {
-        return { level: number, level_label: label };
+        return { level: label, level_number: number };
       },
     },
   },

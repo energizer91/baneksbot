@@ -183,12 +183,22 @@ class Bot extends Telegram implements IBot {
   ): Promise<Message> {
     switch (attachment.type) {
       case "photo":
-        const photo =
+        let photo =
           attachment.photo.photo_2560 ||
           attachment.photo.photo_1280 ||
           attachment.photo.photo_604 ||
           attachment.photo.photo_130 ||
           attachment.photo.photo_75;
+
+        if (!photo && attachment.photo.sizes.length > 0) {
+          photo = attachment.photo.sizes.reduce((acc, size) => {
+            if (size.url) {
+              return size.url;
+            }
+
+            return acc;
+          }, photo);
+        }
 
         return this.sendPhoto(userId, photo, {
           caption: attachment.text,
