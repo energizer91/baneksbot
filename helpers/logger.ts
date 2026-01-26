@@ -20,6 +20,11 @@ const baseLogger = pino(
     base: {
       service: "baneks-node",
     },
+    formatters: {
+      level(label, number) {
+        return { level: number, level_label: label };
+      },
+    },
   },
   transport,
 );
