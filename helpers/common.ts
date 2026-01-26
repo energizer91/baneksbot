@@ -14,6 +14,9 @@ import {
   IUser,
   User,
 } from "./mongo";
+import createLogger from "./logger";
+
+const logger = createLogger("baneks-node:app");
 
 export type PreparedAnek = {
   post_id: number;
@@ -241,11 +244,7 @@ export async function broadcastAneks(
                 return null;
               }
 
-              return botApi.bot.sendMessageToAdmin(
-                "Sending message error: " +
-                  JSON.stringify(error) +
-                  JSON.stringify(anek),
-              );
+              logger.error({ error, anek }, "Broadcasting message error");
             }),
         ),
       ),
@@ -263,7 +262,8 @@ export async function broadcastAneks(
       bulk
         .find({ user_id: { $in: usersArray } })
         .update({ $set: { subscribed: false, deleted_subscribe: true } });
-      botApi.bot.sendMessageToAdmin(text);
+
+      logger.error(text);
 
       return bulk.execute();
     }
