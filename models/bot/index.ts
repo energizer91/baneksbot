@@ -40,6 +40,7 @@ import Vk, {
   Comment,
   PollAnswer as VkPollAnswer,
 } from "../vk";
+import { getImageURL } from "../../helpers/common";
 
 type SuggestMessage = {
   caption: string;
@@ -183,22 +184,9 @@ class Bot extends Telegram implements IBot {
   ): Promise<Message> {
     switch (attachment.type) {
       case "photo":
-        let photo =
-          attachment.photo.photo_2560 ||
-          attachment.photo.photo_1280 ||
-          attachment.photo.photo_604 ||
-          attachment.photo.photo_130 ||
-          attachment.photo.photo_75;
+        const photo = getImageURL(attachment);
 
-        if (!photo && attachment.photo.sizes.length > 0) {
-          photo = attachment.photo.sizes.reduce((acc, size) => {
-            if (size.url) {
-              return size.url;
-            }
-
-            return acc;
-          }, photo);
-        }
+        if (!photo) throw new Error("No photo url");
 
         return this.sendPhoto(userId, photo, {
           caption: attachment.text,
@@ -281,12 +269,7 @@ class Bot extends Telegram implements IBot {
       .map(
         (attachment: VkAttachment): InputMediaPhoto => ({
           caption: attachment.text,
-          media:
-            attachment.photo.photo_2560 ||
-            attachment.photo.photo_1280 ||
-            attachment.photo.photo_604 ||
-            attachment.photo.photo_130 ||
-            attachment.photo.photo_75,
+          media: getImageURL(attachment),
           type: "photo",
         }),
       );

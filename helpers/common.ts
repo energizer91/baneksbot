@@ -5,7 +5,7 @@
 import * as config from "config";
 import * as botApi from "../botApi";
 import { AllMessageParams, TelegramErrorResponse } from "../models/telegram";
-import { Anek, MultipleResponse } from "../models/vk";
+import { Anek, Attachment, MultipleResponse } from "../models/vk";
 import {
   Anek as AnekModel,
   ElasticHit,
@@ -269,3 +269,27 @@ export async function broadcastAneks(
     }
   });
 }
+
+export const getImageURL = (attachment: Attachment) => {
+  if (attachment.type !== "photo") {
+    return "";
+  }
+
+  if (attachment.photo.sizes.length > 0) {
+    return attachment.photo.sizes.reduce((acc, size) => {
+      if (size.url) {
+        return size.url;
+      }
+
+      return acc;
+    }, "");
+  }
+
+  return (
+    attachment.photo.photo_2560 ||
+    attachment.photo.photo_1280 ||
+    attachment.photo.photo_604 ||
+    attachment.photo.photo_130 ||
+    attachment.photo.photo_75
+  );
+};
